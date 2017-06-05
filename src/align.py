@@ -127,8 +127,8 @@ class AlignerHMM():
             totalC_j_Minus_iOverAllObservations = [[[0.0 for x in range(N + 1)] for y in range(N + 1)] for z in range(N + 1)]
             totalC_l_Minus_iOverAllObservations = [[0.0 for x in range(N + 1)] for y in range(N + 1)]
 
-            gamma = [[0.0 for x in range(N*2 + 1)] for y in range(N + 1)]
-            small_t = [[0.0 for x in range(N*2 + 1)] for y in range(N*2 + 1)]
+            gamma = [[0.0 for x in range(N * 2 + 1)] for y in range(N + 1)]
+            small_t = [[0.0 for x in range(N * 2 + 1)] for y in range(N * 2 + 1)]
 
             start0_time = time.time()
 
@@ -305,12 +305,13 @@ class AlignerHMM():
             line = ""
             for i in range(len(bestAlignment)):
                 if bestAlignment[i] <= len(e):
-                    line += str(i) + "-" + str(bestAlignment[i]-1) + " "
+                    line += str(i) + "-" + str(bestAlignment[i] - 1) + " "
             alignmentList.append(line)
             outputFile.write(line + "\n")
             # sys.stdout.write(line + "\n")
         outputFile.close()
         return alignmentList
+
 
 if __name__ == '__main__':
     sys.stderr.write("HMM Main Programme\n")
