@@ -4,11 +4,11 @@ import sys
 import os
 
 optparser = optparse.OptionParser()
-optparser.add_option("-d", "--datadir", dest="datadir", default="data", help="data directory (default=data)")
-optparser.add_option("-p", "--prefix", dest="fileprefix", default="hansards", help="prefix of parallel data files (default=hansards)")
+optparser.add_option("-d", "--datadir", dest="datadir", default="~/Daten/align-data", help="data directory (default=~/Daten/align-data)")
+optparser.add_option("-p", "--prefix", dest="fileprefix", default="test.seg.cln", help="prefix of parallel data files (default=test.seg.cln)")
+optparser.add_option("-f", "--french", dest="french", default="cn", help="suffix of French (source language) filename (default=cn)")
 optparser.add_option("-e", "--english", dest="english", default="en", help="suffix of English (target language) filename (default=en)")
-optparser.add_option("-f", "--french", dest="french", default="fr", help="suffix of French (source language) filename (default=fr)")
-optparser.add_option("-a", "--alignments", dest="alignment", default="a", help="suffix of gold alignments filename (default=a)")
+optparser.add_option("-a", "--alignments", dest="alignment", default="gold.wa", help="suffix of gold alignments filename (default=gold.wa)")
 optparser.add_option("-l", "--logfile", dest="logfile", default=None, help="filename for logging output")
 optparser.add_option("-t", "--threshold", dest="threshold", default=0.5, type="float", help="threshold for alignment (default=0.5)")
 optparser.add_option("-n", "--num_display", dest="n", default=sys.maxint, type="int", help="number of alignments to display")
