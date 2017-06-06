@@ -107,8 +107,9 @@ class AlignerIBM1():
             sys.stdout.write(line + "\n")
         return
 
+
 if __name__ == '__main__':
-    sys.stderr.write("IBM Model 1 Main Programme")
+    sys.stderr.write("IBM Model 1 Main Programme\n")
     optparser = optparse.OptionParser()
     optparser.add_option("-d", "--datadir", dest="datadir", default="sample-data", help="data directory (default=data)")
     optparser.add_option("-p", "--prefix", dest="fileprefix", default="hansards", help="prefix of parallel data files (default=hansards)")
