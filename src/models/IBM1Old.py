@@ -4,13 +4,14 @@ import sys
 import os
 import time
 from collections import defaultdict
-from loggers import logging, task
 
 
 class AlignmentModel():
     def __init__(self):
+        from loggers import logging, task
         self.t = defaultdict(float)
         self.logger = logging.getLogger('IBM1')
+        self.task = task
         return
 
     def initWithBiText(self, biText):
@@ -55,8 +56,8 @@ class AlignmentModel():
 
             for (f, e) in biText:
                 counter += 1
-                task.progress("IBM1Old iter %d, %d of %d" %
-                              (iteration, counter, len(biText),))
+                self.task.progress("IBM1Old iter %d, %d of %d" %
+                                   (iteration, counter, len(biText),))
                 for fWord in f:
                     z = 0
                     for eWord in e:
@@ -69,7 +70,7 @@ class AlignmentModel():
                 self.t[(f, e)] = c[(f, e)] / total[e]
 
         end_time = time.time()
-        self.logger.info("Training Complete, total time(seconds): %f\n" %
+        self.logger.info("Training Complete, total time(seconds): %f" %
                          (end_time - start_time,))
         return
 
