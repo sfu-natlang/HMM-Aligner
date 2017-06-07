@@ -2,6 +2,15 @@
 # replacement will take place at a later stage of development
 
 
+def stringHashcode(s):
+    if not s:
+        return 0
+    h = 0
+    for c in s:
+        h = (31 * h + ord(c)) & 0xFFFFFFFF
+    return ((h + 0x80000000) & 0xFFFFFFFF) - 0x80000000
+
+
 class IntPair():
     def __init__(self, left=0, right=0):
         '''
@@ -69,14 +78,8 @@ class Pair():
         '''
         prime = 31
         result = 1
-        if not self.left:
-            result = prime * result + 0
-        else:
-            result = prime * result + self.left.hashCode()
-        if not self.right:
-            result = prime * result + 0
-        else:
-            result = prime * result + self.right.hashCode()
+        result = prime * result + stringHashcode(self.left)
+        result = prime * result + stringHashcode(self.right)
         return result
 
     def toString(self):

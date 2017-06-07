@@ -55,7 +55,7 @@ class AlignmentModel():
 
             for (f, e) in biText:
                 counter += 1
-                task.progress("IBM1 iter %d, %d of %d" %
+                task.progress("IBM1Old iter %d, %d of %d" %
                               (iteration, counter, len(biText),))
                 for fWord in f:
                     z = 0

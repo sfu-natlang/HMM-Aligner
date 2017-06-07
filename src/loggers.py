@@ -12,7 +12,7 @@ try:
 except all:
     Task = dummyTask
 
-task = Task("Aligner", "IBM1")
+task = Task("Aligner")
 
 
 def init_logger(logFile='aligner.log'):
