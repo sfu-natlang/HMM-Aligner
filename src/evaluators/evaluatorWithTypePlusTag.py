@@ -1,3 +1,7 @@
+from loggers import logging
+logger = logging.getLogger('EVALUATOR')
+
+
 def evaluate(bitext, result, reference):
     totalAlign = 0
     totalCertain = 0
@@ -9,8 +13,8 @@ def evaluate(bitext, result, reference):
         testAlign = result[i]
         goldAlign = reference[i]
 
-        size_f = len(bitext[i][0].strip.split())
-        size_e = len(bitext[i][1].strip.split())
+        size_f = len(bitext[i][0])
+        size_e = len(bitext[i][1])
 
         testAlign = []
         for entry in testSentence.strip.split():
