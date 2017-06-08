@@ -104,7 +104,7 @@ class AlignmentModel():
                     if t > max_t:
                         max_t = t
                         argmax = j
-                sentenceAlignment.append((i, argmax))
+                sentenceAlignment.append((i + 1, argmax + 1))
 
             result.append(sentenceAlignment)
         self.logger.info("Decoding Complete")
