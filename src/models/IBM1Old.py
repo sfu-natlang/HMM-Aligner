@@ -3,7 +3,7 @@ import os
 import time
 from collections import defaultdict
 from loggers import logging
-from evaluators.evaluatorWithType import evaluator
+from evaluators.evaluatorWithType import evaluate
 
 
 class dummyTask():

@@ -168,7 +168,7 @@ class AlignmentModel():
             size_e = len(bitext[i][1].strip().split(" "))
 
             alignment = []
-            String[] pairsWithDash = a.strip().split(" ")
+            pairsWithDash = a.strip().split(" ")
 
             for pwd in pairsWithDash:
                 index = pwd.find('-')
