@@ -39,7 +39,7 @@ class AlignmentModel():
         self.fe_count = modelIBM1.fe_count
         self.t = modelIBM1.t
         self.bitext = bitext
-        logger.info("IBM Model 1 Loaded\n")
+        logger.info("IBM Model 1 Loaded")
         return
 
     def initialiseModel(self, Len):
@@ -124,7 +124,7 @@ class AlignmentModel():
         bitext = self.bitext
         N, self.targetLengthSet = self.maxTargetSentenceLength(bitext)
 
-        logger.info("N " + str(N) + "\n")
+        logger.info("N " + str(N))
         indexMap, biword = self.mapBitextToInt(self.fe_count)
 
         L = len(bitext)
@@ -164,8 +164,8 @@ class AlignmentModel():
             counter = 0
             for (f, e) in bitext:
                 if counter % 100 == 0:
-                    logger.info("sentence: " + str(counter) +
-                                " of iteration " + str(iteration) + "\n")
+                    logger.info("sentence " + str(counter) +
+                                " of iteration " + str(iteration))
                 self.task.progress("BaumWelch iter %d, %d of %d" %
                                    (iteration, counter, len(bitext),))
                 counter += 1
@@ -210,7 +210,7 @@ class AlignmentModel():
 
             start_time = time.time()
 
-            logger.info("likelihood " + str(logLikelihood) + "\n")
+            logger.info("likelihood " + str(logLikelihood))
             N = len(totalGamma1OAO) - 1
 
             for k in range(sd_size):
@@ -223,9 +223,9 @@ class AlignmentModel():
             end_time = time.time()
 
             logger.info("time spent in the end of E-step: " +
-                        str(end_time - start_time) + "\n")
+                        str(end_time - start_time))
             logger.info("time spent in E-step: " +
-                        str(end_time - start0_time) + "\n")
+                        str(end_time - start0_time))
 
             # M-Step
             del self.a
@@ -237,7 +237,7 @@ class AlignmentModel():
             self.pi = [0.0 for x in range(twoN + 1)]
             self.t = defaultdict(float)
 
-            logger.info("set " + str(self.targetLengthSet.keys()) + "\n")
+            logger.info("set " + str(self.targetLengthSet.keys()))
             for I in self.targetLengthSet:
                 for i in range(1, I + 1):
                     for j in range(1, I + 1):
@@ -255,8 +255,8 @@ class AlignmentModel():
 
             end2_time = time.time()
             logger.info("time spent in M-step: " +
-                        str(end2_time - end_time) + "\n")
-            logger.info("iteration " + str(iteration) + " complete\n")
+                        str(end2_time - end_time))
+            logger.info("iteration " + str(iteration) + " completed")
 
         return
 
@@ -360,16 +360,18 @@ class AlignmentModel():
                     sentenceAlignment.append((i + 1, bestAlignment[i]))
 
             result.append(line)
-        logger.info("Decoding Complete")
+        logger.info("Decoding Completed")
         return result
 
     def train(self, bitext, iterations):
         self.task = Task("Aligner", "HMMOI" + str(iterations))
         self.task.progress("Training IBM model 1")
+        logger.info("Training IBM model 1")
         alignerIBM1 = AlignerIBM1()
         alignerIBM1.train(bitext, iterations)
         self.initWithIBM(alignerIBM1, bitext)
         self.task.progress("IBM model Trained")
+        logger.info("IBM model Trained")
         self.baumWelch(iterations=iterations)
         self.task.progress("finalising")
         self.multiplyOneMinusP0H()
