@@ -1,20 +1,6 @@
 import logging
 
 
-class dummyTask():
-    def __init__(self, taskName="Untitled", serial="XXXX"):
-        return
-
-    def progress(self, msg):
-        return
-try:
-    from progress import Task
-except all:
-    Task = dummyTask
-
-task = Task("Aligner")
-
-
 def init_logger(logFile='aligner.log'):
     # IBM1
     logger = logging.getLogger('IBM1')

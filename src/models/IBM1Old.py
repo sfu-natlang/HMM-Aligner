@@ -1,25 +1,34 @@
-#!/usr/bin/env python
-import optparse
 import sys
 import os
 import time
 from collections import defaultdict
+from loggers import logging
+
+
+class dummyTask():
+    def __init__(self, taskName="Untitled", serial="XXXX"):
+        return
+
+    def progress(self, msg):
+        return
+try:
+    from progress import Task
+except all:
+    Task = dummyTask
 
 
 class AlignmentModel():
     def __init__(self):
-        from loggers import logging, task
         self.t = defaultdict(float)
         self.logger = logging.getLogger('IBM1')
-        self.task = task
         return
 
-    def initWithBiText(self, biText):
+    def initWithBitext(self, bitext):
         self.f_count = defaultdict(int)
         self.e_count = defaultdict(int)
         self.fe_count = defaultdict(int)
         # Initialise f_count
-        for (f, e) in biText:
+        for (f, e) in bitext:
             for f_i in f:
                 self.f_count[f_i] += 1
                 # Initialise fe_count
@@ -37,12 +46,13 @@ class AlignmentModel():
             return self.t[(f, e)]
         return 1.0 / v
 
-    def train(self, biText, iterations=5):
+    def train(self, bitext, iterations=5):
+        task = Task("Aligner", "IBM1OI" + str(iterations))
         self.logger.info("Starting Training Process")
-        self.logger.info("Training size: " + str(len(biText)))
+        self.logger.info("Training size: " + str(len(bitext)))
         start_time = time.time()
 
-        self.initWithBiText(biText)
+        self.initWithBitext(bitext)
         initialValue = 1.0 / len(self.f_count)
         for key in self.fe_count:
             self.t[key] = initialValue
@@ -54,10 +64,10 @@ class AlignmentModel():
             self.logger.info("Starting Iteration " + str(iteration))
             counter = 0
 
-            for (f, e) in biText:
+            for (f, e) in bitext:
                 counter += 1
-                self.task.progress("IBM1Old iter %d, %d of %d" %
-                                   (iteration, counter, len(biText),))
+                task.progress("IBM1Old iter %d, %d of %d" %
+                              (iteration, counter, len(bitext),))
                 for fWord in f:
                     z = 0
                     for eWord in e:
@@ -74,13 +84,13 @@ class AlignmentModel():
                          (end_time - start_time,))
         return
 
-    def decodeToFile(self, biText, fileName):
+    def decodeToFile(self, bitext, fileName):
         self.logger.info("Start decoding to file")
-        self.logger.info("Testing size: " + str(len(biText)))
+        self.logger.info("Testing size: " + str(len(bitext)))
 
         outputFile = open(fileName, "w")
 
-        for (f, e) in biText:
+        for (f, e) in bitext:
             result = []
 
             for i in range(len(f)):
@@ -103,10 +113,10 @@ class AlignmentModel():
         self.logger.info("Decoding Complete")
         return
 
-    def decodeToStdout(self, biText):
+    def decodeToStdout(self, bitext):
         self.logger.info("Start decoding to stdout")
-        self.logger.info("Testing size: " + str(len(biText)))
-        for (f, e) in biText:
+        self.logger.info("Testing size: " + str(len(bitext)))
+        for (f, e) in bitext:
             result = []
 
             for i in range(len(f)):

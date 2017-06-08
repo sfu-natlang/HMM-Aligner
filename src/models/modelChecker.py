@@ -12,6 +12,13 @@ supportedModels = [
     "IBM1Old", "IBM1New"
 ]
 
+requiredMethods = {
+    "train": {"bitext": list,
+              "iterations": int},
+    "decodeToFile": {"bitext": list,
+                     "fileName": str},
+}
+
 
 def checkAlignmentModel(modelClass, logger=True):
     if logger:
@@ -32,7 +39,7 @@ def checkAlignmentModel(modelClass, logger=True):
         error(
             "Specified Model class needs to have a method called train, " +
             "containing at least the following arguments: " +
-            "biText(list of (str, str)), iterations(int)")
+            "bitext(list of (str, str)), iterations(int)")
         return False
 
     decodeToFileMethod = getattr(modelClass, "decodeToFile", None)
@@ -40,7 +47,7 @@ def checkAlignmentModel(modelClass, logger=True):
         error(
             "Specified Model class needs to have a method called " +
             "decodeToFileMethod, containing at least the following " +
-            "arguments: biText(list of (str, str)), iterations(int)")
+            "arguments: bitext(list of (str, str)), iterations(int)")
         return False
     return True
 

@@ -3,16 +3,8 @@ import optparse
 import sys
 import os
 import importlib
-from loggers import logging, init_logger, task
+from loggers import logging, init_logger
 from models.modelChecker import checkAlignmentModel
-
-
-class dummyTask():
-    def __init__(self, taskName="Untitled", serial="XXXX"):
-        return
-
-    def progress(self, msg):
-        return
 
 
 if __name__ == '__main__':
@@ -68,14 +60,13 @@ if __name__ == '__main__':
     testTargetPath = os.path.expanduser(
         "%s.%s" % (os.path.join(opts.datadir, opts.testData), opts.target))
 
-    trainBiText =\
+    trainBitext =\
         [[sentence.strip().split() for sentence in pair] for pair in
             zip(open(trainSourcePath), open(trainTargetPath))[:opts.trainSize]]
-    testBiText =\
+    testBitext =\
         [[sentence.strip().split() for sentence in pair] for pair in
             zip(open(testSourcePath), open(testTargetPath))[:opts.testSize]]
 
     aligner = Model()
-    aligner.train(trainBiText, opts.iter)
-    aligner.decodeToFile(testBiText, "output.wa")
-    task.terminate()
+    aligner.train(trainBitext, opts.iter)
+    aligner.decodeToFile(testBitext, "output.wa")
