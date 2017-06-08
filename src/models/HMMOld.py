@@ -1,12 +1,26 @@
-#!/usr/bin/env python
 import optparse
 import sys
 import os
 import logging
 import time
 from math import log
-from models.IBM1Old import AlignmentModel as AlignerIBM1
 from collections import defaultdict
+from models.IBM1Old import AlignmentModel as AlignerIBM1
+from loggers import logging
+
+
+class DummyTask():
+    def __init__(self, taskName="Untitled", serial="XXXX"):
+        return
+
+    def progress(self, msg):
+        return
+
+
+try:
+    from progress import Task
+except all:
+    Task = DummyTask
 
 
 class AlignmentModel():
@@ -16,14 +30,15 @@ class AlignmentModel():
         self.smoothFactor = 0.1
         self.a = None
         self.pi = None
+        self.task = None
         return
 
-    def initWithIBM(self, modelIBM1, biText):
+    def initWithIBM(self, modelIBM1, bitext):
         self.f_count = modelIBM1.f_count
         self.fe_count = modelIBM1.fe_count
         self.t = modelIBM1.t
-        self.biText = biText
-        sys.stderr.write("HMM [INFO]: IBM Model 1 Loaded\n")
+        self.bitext = bitext
+        logger.info("IBM Model 1 Loaded\n")
         return
 
     def initialiseModel(self, Len):
@@ -76,14 +91,16 @@ class AlignmentModel():
             for i in range(1, len(e) + 1):
                 total = 0
                 for j in range(1, len(e) + 1):
-                    total += betaHat[j][t + 1] * self.a[i][j][len(e)] * small_t[t][j - 1]
+                    total += (betaHat[j][t + 1] *
+                              self.a[i][j][len(e)] *
+                              small_t[t][j - 1])
                 betaHat[i][t] = alphaScale[t] * total
         return betaHat
 
-    def maxTargetSentenceLength(self, biText):
+    def maxTargetSentenceLength(self, bitext):
         maxLength = 0
         targetLengthSet = defaultdict(int)
-        for (f, e) in biText:
+        for (f, e) in bitext:
             tempLength = len(e)
             if tempLength > maxLength:
                 maxLength = tempLength
@@ -101,42 +118,56 @@ class AlignmentModel():
         return (index, biword)
 
     def baumWelch(self, iterations=5):
-        biText = self.biText
-        N, self.targetLengthSet = self.maxTargetSentenceLength(biText)
+        if not self.task:
+            self.task = Task("Aligner", "HMMBaumWelchOI" + str(iterations))
+        bitext = self.bitext
+        N, self.targetLengthSet = self.maxTargetSentenceLength(bitext)
 
-        sys.stderr.write("HMM [INFO]: N " + str(N) + "\n")
+        logger.info("N " + str(N) + "\n")
         indexMap, biword = self.mapBitextToInt(self.fe_count)
 
-        L = len(biText)
+        L = len(bitext)
         sd_size = len(indexMap)
-        totalGammaDeltaOverAllObservations_t_i = None
-        totalGammaDeltaOverAllObservations_t_overall_states_over_dest = None
+        totalGammaDeltaOAO_t_i = None
+        totalGammaDeltaOAO_t_overall_states_over_dest = None
 
         twoN = 2 * N
 
-        self.a = [[[0.0 for x in range(N + 1)] for y in range(twoN + 1)] for z in range(twoN + 1)]
+        self.a = [[[0.0 for x in range(N + 1)]
+                  for y in range(twoN + 1)]
+                  for z in range(twoN + 1)]
         self.pi = [0.0 for x in range(twoN + 1)]
 
         for iteration in range(iterations):
 
             logLikelihood = 0
 
-            totalGammaDeltaOverAllObservations_t_i = [0.0 for x in range(sd_size)]
-            totalGammaDeltaOverAllObservations_t_overall_states_over_dest = defaultdict(float)
-            totalGamma1OverAllObservations = [0.0 for x in range(N + 1)]
-            totalC_j_Minus_iOverAllObservations = [[[0.0 for x in range(N + 1)] for y in range(N + 1)] for z in range(N + 1)]
-            totalC_l_Minus_iOverAllObservations = [[0.0 for x in range(N + 1)] for y in range(N + 1)]
+            totalGammaDeltaOAO_t_i = \
+                [0.0 for x in range(sd_size)]
+            totalGammaDeltaOAO_t_overall_states_over_dest =\
+                defaultdict(float)
+            totalGamma1OAO = [0.0 for x in range(N + 1)]
+            totalC_j_Minus_iOAO = [[[0.0 for x in range(N + 1)]
+                                    for y in range(N + 1)]
+                                   for z in range(N + 1)]
+            totalC_l_Minus_iOAO = [[0.0 for x in range(N + 1)]
+                                   for y in range(N + 1)]
 
-            gamma = [[0.0 for x in range(N * 2 + 1)] for y in range(N + 1)]
-            small_t = [[0.0 for x in range(N * 2 + 1)] for y in range(N * 2 + 1)]
+            gamma = \
+                [[0.0 for x in range(N * 2 + 1)] for y in range(N + 1)]
+            small_t = \
+                [[0.0 for x in range(N * 2 + 1)] for y in range(N * 2 + 1)]
 
             start0_time = time.time()
 
-            sent_count = 0
-            for (f, e) in biText:
-                if sent_count % 100 == 0:
-                    sys.stderr.write("HMM [INFO]: sentence: " + str(sent_count) + " of iteration " + str(iteration) + "\n")
-                sent_count += 1
+            counter = 0
+            for (f, e) in bitext:
+                if counter % 100 == 0:
+                    logger.info("sentence: " + str(counter) +
+                                " of iteration " + str(iteration) + "\n")
+                self.task.progress("BaumWelch iter %d, %d of %d" %
+                                   (iteration, counter, len(bitext),))
+                counter += 1
                 c = defaultdict(float)
 
                 if iteration == 0:
@@ -153,62 +184,78 @@ class AlignmentModel():
                 for t in range(1, len(f) + 1):
                     logLikelihood += -1 * log(c_scaled[t])
                     for i in range(1, len(e) + 1):
-                        gamma[i][t] = (alpha_hat[i][t] * beta_hat[i][t]) / c_scaled[t]
-                        totalGammaDeltaOverAllObservations_t_i[indexMap[(f[t - 1], e[i - 1])]] += gamma[i][t]
+                        gamma[i][t] =\
+                            (alpha_hat[i][t] * beta_hat[i][t]) / c_scaled[t]
+
+                        totalGammaDeltaOAO_t_i[
+                            indexMap[(f[t - 1], e[i - 1])]] += gamma[i][t]
 
                 logLikelihood += -1 * log(c_scaled[len(f)])
 
                 for t in range(1, len(f)):
                     for i in range(1, len(e) + 1):
                         for j in range(1, len(e) + 1):
-                            c[j - i] += alpha_hat[i][t] * self.a[i][j][len(e)] * small_t[t][j - 1] * beta_hat[j][t + 1]
+                            c[j - i] += (alpha_hat[i][t] *
+                                         self.a[i][j][len(e)] *
+                                         small_t[t][j - 1] *
+                                         beta_hat[j][t + 1])
 
                 for i in range(1, len(e) + 1):
                     for j in range(1, len(e) + 1):
-                        totalC_j_Minus_iOverAllObservations[i][j][len(e)] += c[j - i]
-                        totalC_l_Minus_iOverAllObservations[i][len(e)] += c[j - i]
-                    totalGamma1OverAllObservations[i] += gamma[i][1]
+                        totalC_j_Minus_iOAO[i][j][len(e)] += c[j - i]
+                        totalC_l_Minus_iOAO[i][len(e)] += c[j - i]
+                    totalGamma1OAO[i] += gamma[i][1]
             # end of loop over bitext
 
             start_time = time.time()
 
-            sys.stderr.write("HMM [INFO]: likelihood " + str(logLikelihood) + "\n")
-            N = len(totalGamma1OverAllObservations) - 1
+            logger.info("likelihood " + str(logLikelihood) + "\n")
+            N = len(totalGamma1OAO) - 1
 
             for k in range(sd_size):
-                totalGammaDeltaOverAllObservations_t_i[k] += totalGammaDeltaOverAllObservations_t_i[k]
+                totalGammaDeltaOAO_t_i[k] += totalGammaDeltaOAO_t_i[k]
                 f, e = biword[k]
-                totalGammaDeltaOverAllObservations_t_overall_states_over_dest[e] += totalGammaDeltaOverAllObservations_t_i[k]
+
+                totalGammaDeltaOAO_t_overall_states_over_dest[e] +=\
+                    totalGammaDeltaOAO_t_i[k]
 
             end_time = time.time()
 
-            sys.stderr.write("HMM [INFO]: time spent in the end of E-step: " + str(end_time - start_time) + "\n")
-            sys.stderr.write("HMM [INFO]: time spent in E-step: " + str(end_time - start0_time) + "\n")
+            logger.info("time spent in the end of E-step: " +
+                        str(end_time - start_time) + "\n")
+            logger.info("time spent in E-step: " +
+                        str(end_time - start0_time) + "\n")
 
             # M-Step
             del self.a
             del self.pi
             del self.t
-            self.a = [[[0.0 for x in range(N + 1)] for y in range(twoN + 1)] for z in range(twoN + 1)]
+            self.a = [[[0.0 for x in range(N + 1)]
+                      for y in range(twoN + 1)]
+                      for z in range(twoN + 1)]
             self.pi = [0.0 for x in range(twoN + 1)]
             self.t = defaultdict(float)
 
-            sys.stderr.write("HMM [INFO]: set " + str(self.targetLengthSet.keys()) + "\n")
+            logger.info("set " + str(self.targetLengthSet.keys()) + "\n")
             for I in self.targetLengthSet:
                 for i in range(1, I + 1):
                     for j in range(1, I + 1):
-                        self.a[i][j][I] = totalC_j_Minus_iOverAllObservations[i][j][I] / (totalC_l_Minus_iOverAllObservations[i][I] + 0.0000000000000000000000000000000000001)
+                        self.a[i][j][I] = \
+                            totalC_j_Minus_iOAO[i][j][I] /\
+                            (totalC_l_Minus_iOAO[i][I] + 1e-37)
 
             for i in range(1, N + 1):
-                self.pi[i] = totalGamma1OverAllObservations[i] * (1.0 / L)
+                self.pi[i] = totalGamma1OAO[i] * (1.0 / L)
 
             for k in range(sd_size):
                 f, e = biword[k]
-                self.t[(f, e)] = totalGammaDeltaOverAllObservations_t_i[k] / (totalGammaDeltaOverAllObservations_t_overall_states_over_dest[e] + 0.0000000000000000000000000000000000001)
+                self.t[(f, e)] = totalGammaDeltaOAO_t_i[k] / \
+                    (totalGammaDeltaOAO_t_overall_states_over_dest[e] + 1e-37)
 
             end2_time = time.time()
-            sys.stderr.write("HMM [INFO]: time spent in M-step: " + str(end2_time - end_time) + "\n")
-            sys.stderr.write("HMM [INFO]: iteration " + str(iteration) + " complete\n")
+            logger.info("time spent in M-step: " +
+                        str(end2_time - end_time) + "\n")
+            logger.info("iteration " + str(iteration) + " complete\n")
 
         return
 
@@ -234,7 +281,8 @@ class AlignmentModel():
         return 1.0 / v
 
     def aProbability(self, iPrime, i, I):
-        # p(i|i',I) is smoothed to uniform distribution for now --> p(i|i',I) = 1/I
+        # p(i|i',I) is smoothed to uniform distribution for now -->
+        # p(i|i',I) = 1/I
         # we can make it interpolation form like what Och and Ney did
         if I in self.targetLengthSet:
             return self.a[iPrime][i][I]
@@ -243,9 +291,9 @@ class AlignmentModel():
     def logViterbi(self, f, e):
         '''
         This function returns alignment of given sentence in two languages
-        param f: source sentence
-        param e: target sentence
-        return: list of alignment
+        @param f: source sentence
+        @param e: target sentence
+        @return: list of alignment
         '''
         N = len(e)
         twoN = 2 * N
@@ -296,49 +344,33 @@ class AlignmentModel():
             i = i - 1
         return trace
 
-    def findBestAlignmentsForAll_AER(self, biText, fileName):
-        outputFile = open(fileName, "w")
-        alignmentList = []
-        for (f, e) in biText:
+    def decode(self, bitext):
+        logger.info("Start decoding")
+        logger.info("Testing size: " + str(len(bitext)))
+        result = []
+
+        for (f, e) in bitext:
+            sentenceAlignment = []
             N = len(e)
             bestAlignment = self.logViterbi(f, e)
-            line = ""
+
             for i in range(len(bestAlignment)):
                 if bestAlignment[i] <= len(e):
-                    line += str(i) + "-" + str(bestAlignment[i] - 1) + " "
-            alignmentList.append(line)
-            outputFile.write(line + "\n")
-            # sys.stdout.write(line + "\n")
-        outputFile.close()
-        return alignmentList
+                    sentenceAlignment.append((i + 1, bestAlignment[i]))
 
+            result.append(line)
+        logger.info("Decoding Complete")
+        return result
 
-if __name__ == '__main__':
-    sys.stderr.write("HMM Main Programme\n")
-    optparser = optparse.OptionParser()
-    optparser.add_option("-d", "--datadir", dest="datadir", default="sample-data", help="data directory (default=data)")
-    optparser.add_option("-p", "--prefix", dest="fileprefix", default="hansards", help="prefix of parallel data files (default=hansards)")
-    optparser.add_option("-e", "--english", dest="english", default="en", help="suffix of English (target language) filename (default=en)")
-    optparser.add_option("-f", "--french", dest="french", default="fr", help="suffix of French (source language) filename (default=fr)")
-    optparser.add_option("-l", "--logfile", dest="logfile", default=None, help="filename for logging output")
-    optparser.add_option("-t", "--threshold", dest="threshold", default=0.5, type="float", help="threshold for alignment (default=0.5)")
-    optparser.add_option("-n", "--num_sentences", dest="num_sents", default=sys.maxint, type="int", help="Number of sentences to use for training and alignment")
-    optparser.add_option("-v", "--num_tests", dest="num_tests", default=1000, type="int", help="Number of sentences to use for testing")
-    optparser.add_option("-i", "--iterations", dest="iter", default=5, type="int", help="Number of iterations to train")
-    (opts, _) = optparser.parse_args()
-    f_data = "%s.%s" % (os.path.join(opts.datadir, opts.fileprefix), opts.french)
-    e_data = "%s.%s" % (os.path.join(opts.datadir, opts.fileprefix), opts.english)
-
-    if opts.logfile:
-        logging.basicConfig(filename=opts.logfile, filemode='w', level=logging.INFO)
-
-    biText = [[sentence.strip().split() for sentence in pair] for pair in zip(open(f_data), open(e_data))[:opts.num_sents]]
-    biText2 = [[sentence.strip().split() for sentence in pair] for pair in zip(open(f_data), open(e_data))[:opts.num_tests]]
-
-    alignerIBM1 = AlignerIBM1()
-    alignerIBM1.train(biText, opts.iter)
-    alignerHMM = AlignmentModel()
-    alignerHMM.initWithIBM(alignerIBM1, biText)
-    alignerHMM.baumWelch()
-    alignerHMM.multiplyOneMinusP0H()
-    alignerHMM.findBestAlignmentsForAll_AER(biText2, "output_jetic_HMM")
+    def train(self, bitext, iterations):
+        self.task = Task("Aligner", "HMMOI" + str(iterations))
+        self.task.progress("Training IBM model 1")
+        alignerIBM1 = AlignerIBM1()
+        alignerIBM1.train(bitext, iterations)
+        self.initWithIBM(alignerIBM1, bitext)
+        self.task.progress("IBM model Trained")
+        self.baumWelch(iterations=iterations)
+        self.task.progress("finalising")
+        self.multiplyOneMinusP0H()
+        self.task = None
+        return
