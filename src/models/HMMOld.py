@@ -359,7 +359,7 @@ class AlignmentModel():
                 if bestAlignment[i] <= len(e):
                     sentenceAlignment.append((i + 1, bestAlignment[i]))
 
-            result.append(line)
+            result.append(sentenceAlignment)
         logger.info("Decoding Completed")
         return result
 
