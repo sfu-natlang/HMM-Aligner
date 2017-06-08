@@ -1,3 +1,13 @@
+# -*- coding: utf-8 -*-
+
+#
+# HMM model implementation(old) of HMM Aligner
+# Simon Fraser University
+# NLP Lab
+#
+# This is the implementation of HMM word aligner, it requires IBM1Old in order
+# to function properly
+#
 import optparse
 import sys
 import os
@@ -11,6 +21,7 @@ from evaluators.evaluatorWithType import evaluate
 logger = logging.getLogger('HMM')
 
 
+# This is a private module for transmitting test results. Please ignore.
 class DummyTask():
     def __init__(self, taskName="Untitled", serial="XXXX"):
         return

@@ -1,13 +1,23 @@
-# The classes here, IntPair and Pair can be replaced by tuples. Such
-# replacement will take place at a later stage of development
+# -*- coding: utf-8 -*-
+
+#
+# IBM model 1 implementation(New) of HMM Aligner
+# Simon Fraser University
+# NLP Lab
+#
+# This is the new implementation of IBM model 1 word aligner, which added some
+# additional method which are not useful.
+#
 import time
 from copy import deepcopy
 from collections import defaultdict
 from loggers import logging
 from evaluators.evaluatorWithType import evaluate
 from data.Pair import Pair, IntPair
+__version__ = "0.1a"
 
 
+# This is a private module for transmitting test results. Please ignore.
 class DummyTask():
     def __init__(self, taskName="Untitled", serial="XXXX"):
         return
@@ -145,237 +155,6 @@ class AlignmentModel():
         if (f, e) in self.t:
             return self.t[(f, e)]
         return 1.0 / v
-
-    def gradeAlignmentWithType(self, alignementTestSize, bitext, reference,
-                               systemAlignment):
-        '''
-        @param alignementTestSize: int, number of lines to do test on
-        @param bitext: String[][], test bitext
-        @param reference: ArrayList<String>, gold reference alignment.
-            Including 1-to-many alignments.
-        @param systemAlignment: ArrayList<String>, my output alignment
-        @return: float, F1 score
-        '''
-        size_a = 0
-        size_s = 0
-        size_a_and_s = 0
-        size_a_and_p = 0
-
-        for i in range(min(alignementTestSize, len(reference))):
-            # alignment of sentence i
-            a = systemAlignment[i]
-            g = reference.get[i]
-
-            size_f = len(bitext[i][0].strip().split(" "))
-            size_e = len(bitext[i][1].strip().split(" "))
-
-            alignment = []
-            pairsWithDash = a.strip().split(" ")
-
-            for pwd in pairsWithDash:
-                index = pwd.find('-')
-                if (index != -1):
-                    alignment.append((int(pwd[0, index]), int(pwd[index+1:])))
-
-            for f, e in alignment:
-                if (f > size_f or e > size_e):
-                    self.logger.error("NOT A VALID LINK")
-                    self.logger.info(i + " " +
-                                     f + " " + size_f + " " +
-                                     e + " " + size_e)
-
-            # grade
-            sure = []
-            possible = []
-            surePairsWithDash = g.strip().split(" ")
-            for spwd in surePairsWithDash:
-                index = spwd.find('-')
-                if (index != -1):
-                    engPositions = spwd[index + 1].split(",")
-                    for engPos in engPositions:
-                        sure.append((int(spwd[0:index]), int(engPos)))
-
-                index = spwd.find('?')
-                if (index != -1):
-                    possible.append((int(spwd[0:index]), int(spwd[index+1:])))
-
-            size_a += len(alignment)
-            size_s += len(sure)
-            aAnds = [item for item in alignment if item in sure]
-            size_a_and_s += len(aAnds)
-
-            aAndp = [item for item in alignment if item in possible]
-            size_a_and_p += len(aAndp) + len(aAnds)
-
-        precision = float(size_a_and_p) / size_a
-        recall = float(size_a_and_s) / size_s
-        aer = 1 - (float(size_a_and_s + size_a_and_p) / (size_a + size_s))
-        fScore = 2 * precision*recall / (precision + recall)
-        logger.info("Precision = " + str(precision))
-        logger.info("Recall    = " + str(recall))
-        logger.info("AER       = " + str(aer))
-        logger.info("F-score   = " + str(fScore))
-        return fScore
-
-    def gradeAlignmentWithTypeWAPlusTag(self, alignementTestSize, bitext,
-                                        reference, systemAlignment):
-        '''
-        @param alignementTestSize: int, number of lines to do test on
-        @param bitext: String[][], test bitext
-        @param reference: ArrayList<String>, gold reference alignment with
-            alignment types
-        @param systemAlignment: ArrayList<String>, my output alignment
-        @return: float, F1 score
-        '''
-        size_a = 0
-        size_s = 0
-        size_a_and_s = 0
-        size_a_and_p = 0
-
-        for i in range(min(alignementTestSize, len(reference))):
-            # alignment of sentence i
-            a = systemAlignment[i]
-            g = reference.get[i]
-
-            size_f = len(bitext[i][0].strip().split(" "))
-            size_e = len(bitext[i][1].strip().split(" "))
-
-            alignment = []
-            pairsWithDash = a.strip().split(" ")
-
-            for pwd in pairsWithDash:
-                index = pwd.find('-')
-
-                if (index != -1):
-                    right = pwd[index+1:]
-                    rightLength = len[right]
-                    engPos = int(right[:rightLength-5])
-                    linkLabel = right[rightLength-4: rightLength-1]
-                    alignment.append((int(pwd[0:index]), engPos, linkLabel))
-
-            for f, e, tag in alignment:
-                if (f > size_f or e > size_e):
-                    logger.error("NOT A VALID LINK")
-                    logger.info(i + " " +
-                                f + " " + size_f + " " +
-                                e + " " + size_e)
-
-            # grade
-            sure = []
-
-            surePairsWithDash = g.strip().split(" ")
-            for spwd in surePairsWithDash:
-
-                index = spwd.find('-')
-
-                if (index != -1):
-                    left = spwd[0:index]
-                    leftPositions = strip(left)
-                    if (len(leftPositions) == 1 and leftPositions[0] != ""):
-                        right = spwd[index+1:]
-                        rightLength = len(right)
-                        linkLabel = right[rightLength-4:rightLength-1]
-                        engPositions = strip(right)
-
-                        for engPos in engPositions:
-                            if (engPos != ""):
-                                sure.append(
-                                    (int(leftPositions[0]),
-                                     int(engPos),
-                                     linkLabel)
-                                )
-
-            size_a += len(alignment)
-            size_s += len(sure)
-            aAnds = [item for item in alignment if item in sure]
-            size_a_and_s += len(aAnds)
-
-            size_a_and_p += len(aAnds)
-
-        precision = float(size_a_and_p) / size_a
-        recall = float(size_a_and_s) / size_s
-        aer = 1 - (float(size_a_and_s + size_a_and_p) / (size_a + size_s))
-        fScore = 2 * precision * recall / (precision + recall)
-        logger.info("Precision = " + str(precision))
-        logger.info("Recall    = " + str(recall))
-        logger.info("AER       = " + str(aer))
-        logger.info("F-score   = " + str(fScore))
-        return fScore
-
-    def gradeAlign(self, alignementTestSize, bitext, reference,
-                   systemAlignment):
-        '''
-        @param alignementTestSize: int, number of lines to do test on
-        @param bitext: String[][], test bitext
-        @param reference: ArrayList<String>, gold reference with sure and
-            possible links
-        @param systemAlignment: ArrayList<String>, my output alignment
-        @return NaN
-        '''
-        size_a = 0
-        size_s = 0
-        size_a_and_s = 0
-        size_a_and_p = 0
-
-        for i in range(min(alignementTestSize, len(reference))):
-            # alignment of sentence i
-            a = systemAlignment[i]
-            g = reference[i]
-
-            size_f = len(bitext[i][0].strip().split(" "))
-            size_e = len(bitext[i][1].strip().split(" "))
-
-            alignment = []
-            pairsWithDash = a.strip().split(" ")
-
-            for pwd in pairsWithDash:
-                index = pwd.find('-')
-                if (index != -1):
-                    alignment.append((int(pwd[0:index]), int(pwd[index+1:])))
-
-            for f, e in alignment:
-                if (f > size_f or e > size_e):
-                    logger.error("NOT A VALID LINK")
-                    logger.info(i + " " +
-                                f + " " + size_f + " " +
-                                e + " " + size_e)
-
-            # grade
-            sure = []
-            possible = []
-            surePairsWithDash = g.strip().split(" ")
-            for spwd in surePairsWithDash:
-                index = spwd.find('-')
-                if (index != -1):
-                    sure.append((int(spwd[0:index]), int(spwd[index+1:])))
-                index = spwd.find('?')
-                if (index != -1):
-                    possible.append((int(spwd[0:index]), int(spwd[index+1:])))
-
-            size_a += len(alignment)
-            size_s += len(sure)
-            aAnds = [item for item in alignment if item in sure]
-            size_a_and_s += len(aAnds)
-
-            aAndp = [item for item in alignment if item in possible]
-            size_a_and_p += len(aAndp) + len(aAnds)
-
-        precision = float(size_a_and_p) / size_a
-        recall = float(size_a_and_s) / size_s
-        aer = 1 - (float(size_a_and_s + size_a_and_p) / (size_a + size_s))
-        logger.info("Precision = " + str(precision))
-        logger.info("Recall    = " + str(recall))
-        logger.info("AER       = " + str(aer))
-        return
-
-    def convertFileToArrayList(self, fileName):
-        '''
-        Converts a file to an ArrayList of String (line by line)
-        @param fileName: String
-        @return: ArrayList<String>, an ArrayList of String where each element
-            of the list is a line of fileName
-        '''
-        return [sentence.strip().split() for sentence in open(fileName)]
 
     def train(self, bitext, iterations=5):
         task = Task("Aligner", "IBM1NI" + str(iterations))

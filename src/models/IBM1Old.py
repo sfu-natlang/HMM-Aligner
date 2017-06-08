@@ -1,11 +1,22 @@
+# -*- coding: utf-8 -*-
+
+#
+# IBM model 1 implementation(old) of HMM Aligner
+# Simon Fraser University
+# NLP Lab
+#
+# This is the implementation of IBM model 1 word aligner.
+#
 import sys
 import os
 import time
 from collections import defaultdict
 from loggers import logging
 from evaluators.evaluatorWithType import evaluate
+__version__ = "0.1a"
 
 
+# This is a private module for transmitting test results. Please ignore.
 class DummyTask():
     def __init__(self, taskName="Untitled", serial="XXXX"):
         return

@@ -1,5 +1,16 @@
+# -*- coding: utf-8 -*-
+
+#
+# HMM model implementation(old) of HMM Aligner
+# Simon Fraser University
+# NLP Lab
+#
 # This is the model checker that checks if the model implementation fits the
-# requirement.
+# requirement. It contains information about the APIs of the models.
+# If you plan to write your own model, upon loading the model
+# checkAlignmentModel will be called to check if the selected model contains
+# necessary methods with required parameters.
+#
 import os
 import sys
 import inspect
@@ -7,6 +18,7 @@ currentdir = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
+__version__ = "0.1a"
 
 supportedModels = [
     "IBM1Old", "IBM1New", "HMMOld"
