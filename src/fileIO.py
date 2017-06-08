@@ -1,10 +1,30 @@
+# -*- coding: utf-8 -*-
+
+#
+# FileIO of HMM Aligner
+# Simon Fraser University
+# NLP Lab
+#
+# Here are all of the functions used in HMM aligner to handle file operations.
+# Which includes: reading text file, reading gold alignment files and export
+# alignment to file. Exported alignment can also be read using the same
+# function to read gold alignment files.
+#
 import os
 import sys
 import inspect
 import unittest
+__version__ = "0.1a"
 
 
 def exportToFile(result, fileName):
+    '''
+    This function is used to export alignment to file
+
+    @param result: Alignment, detailed description of this format:
+        https://github.com/sfu-natlang/HMM-Aligner/wiki/API-reference:-Alignment-Data-Format-V0.1a#alignment
+    @param fileName: str, the file to export to
+    '''
     outputFile = open(fileName, "w")
     for sentenceAlignment in result:
         line = ""
@@ -17,6 +37,15 @@ def exportToFile(result, fileName):
 
 
 def loadBitext(file1, file2, linesToLoad=sys.maxint):
+    '''
+    This function is used to read a bitext from two text files.
+
+    @param file1: str, the first file to read
+    @param file2: str, the second file to read
+    @param* linesToLoad: int, the lines to read
+    @return: Bitext, detailed of this format:
+        https://github.com/sfu-natlang/HMM-Aligner/wiki/API-reference:-Dataset-Data-Format-V0.1a#bitext
+    '''
     path1 = os.path.expanduser(file1)
     path2 = os.path.expanduser(file2)
     bitext =\
@@ -26,6 +55,16 @@ def loadBitext(file1, file2, linesToLoad=sys.maxint):
 
 
 def loadTritext(file1, file2, file3, linesToLoad=sys.maxint):
+    '''
+    This function is used to read a bitext from two text files.
+
+    @param file1: str, the first file to read
+    @param file2: str, the second file to read
+    @param file3: str, the third file to read
+    @param* linesToLoad: int, the lines to read
+    @return: Tritext, detail of this format:
+        https://github.com/sfu-natlang/HMM-Aligner/wiki/API-reference:-Dataset-Data-Format-V0.1a#tritext
+    '''
     path1 = os.path.expanduser(file1)
     path2 = os.path.expanduser(file2)
     path3 = os.path.expanduser(file3)
@@ -36,6 +75,14 @@ def loadTritext(file1, file2, file3, linesToLoad=sys.maxint):
 
 
 def loadAlignment(fileName, linesToLoad=sys.maxint):
+    '''
+    This function is used to read the GoldAlignment or Alignment from files.
+
+    @param fileName: str, the Alignment file to read
+    @param* linesToLoad: int, the lines to read
+    @return: GoldAlignment, detail of this format:
+        https://github.com/sfu-natlang/HMM-Aligner/wiki/API-reference:-Alignment-Data-Format-V0.1a#goldalignment
+    '''
     content =\
         [line.strip().split() for line in open(fileName)][:linesToLoad]
 
