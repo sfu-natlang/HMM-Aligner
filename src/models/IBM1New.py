@@ -4,6 +4,7 @@ import time
 from copy import deepcopy
 from collections import defaultdict
 from loggers import logging
+from evaluators.evaluatorWithType import evaluate
 from data.Pair import Pair, IntPair
 
 
@@ -38,6 +39,7 @@ class AlignmentModel():
 
         self.tagMap = defaultdict(int)
         self.total_f_e_h = defaultdict(float)
+        self.evaluate = evaluate
         return
 
     def initialiseTagMap(self):

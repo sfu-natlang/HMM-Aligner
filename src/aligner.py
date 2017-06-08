@@ -5,7 +5,7 @@ import os
 import importlib
 from loggers import logging, init_logger
 from models.modelChecker import checkAlignmentModel
-from fileIO import loadBitext, loadBTritext, exportToFile, loadAlignment
+from fileIO import loadBitext, loadTritext, exportToFile, loadAlignment
 
 
 if __name__ == '__main__':
@@ -57,7 +57,7 @@ if __name__ == '__main__':
 
     aligner = Model()
 
-    if trainData != "":
+    if opts.trainData != "":
         trainSource = os.path.expanduser(
             "%s.%s" % (os.path.join(opts.datadir, opts.trainData), opts.source)
         )
@@ -69,7 +69,7 @@ if __name__ == '__main__':
                 zip(open(trainSource), open(trainTarget))[:opts.trainSize]]
         aligner.train(trainBitext, opts.iter)
 
-    if testData != "":
+    if opts.testData != "":
         testSource = "%s.%s" %\
             (os.path.join(opts.datadir, opts.testData), opts.source)
         testTarget = "%s.%s" %\
@@ -83,5 +83,5 @@ if __name__ == '__main__':
 
         if opts.reference != "":
             reference = loadAlignment(opts.reference)
-            if aligner.evaluator:
-                aligner.evaluator(testBitext, alignResult, reference)
+            if aligner.evaluate:
+                aligner.evaluate(testBitext, alignResult, reference)

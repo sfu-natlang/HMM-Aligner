@@ -24,7 +24,7 @@ class AlignmentModel():
     def __init__(self):
         self.t = defaultdict(float)
         self.logger = logging.getLogger('IBM1')
-        self.evaluator = evaluator
+        self.evaluate = evaluate
         return
 
     def initWithBitext(self, bitext):
