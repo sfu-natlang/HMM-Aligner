@@ -7,6 +7,7 @@ from math import log
 from collections import defaultdict
 from models.IBM1Old import AlignmentModel as AlignerIBM1
 from loggers import logging
+logger = logging.getLogger('HMM')
 
 
 class DummyTask():
