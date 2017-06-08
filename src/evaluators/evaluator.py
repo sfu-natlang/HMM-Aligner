@@ -16,7 +16,7 @@ def evaluate(bitext, result, reference):
         size_f = len(bitext[i][0])
         size_e = len(bitext[i][1])
 
-        for entry in testSentence:
+        for entry in testAlign:
             f = int(entry[0])
             e = int(entry[1])
             if (f > size_f or e > size_e):
@@ -48,4 +48,8 @@ def evaluate(bitext, result, reference):
     logger.info("Precision = " + str(precision))
     logger.info("Recall    = " + str(recall))
     logger.info("AER       = " + str(aer))
-    return
+    return {
+        "Precision": precision,
+        "Recall": recall,
+        "AER": aer,
+    }
