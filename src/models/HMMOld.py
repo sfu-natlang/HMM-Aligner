@@ -7,7 +7,7 @@ from math import log
 from collections import defaultdict
 from models.IBM1Old import AlignmentModel as AlignerIBM1
 from loggers import logging
-from evaluators.evaluateWithType import evaluate
+from evaluators.evaluatorWithType import evaluate
 logger = logging.getLogger('HMM')
 
 
