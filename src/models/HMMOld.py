@@ -7,6 +7,7 @@ from math import log
 from collections import defaultdict
 from models.IBM1Old import AlignmentModel as AlignerIBM1
 from loggers import logging
+from evaluators.evaluateWithType import evaluate
 logger = logging.getLogger('HMM')
 
 
@@ -32,6 +33,7 @@ class AlignmentModel():
         self.a = None
         self.pi = None
         self.task = None
+        self.evaluate = evaluate
         return
 
     def initWithIBM(self, modelIBM1, bitext):
