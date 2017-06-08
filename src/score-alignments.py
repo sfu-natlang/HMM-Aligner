@@ -14,9 +14,9 @@ optparser.add_option("-t", "--threshold", dest="threshold", default=0.5, type="f
 optparser.add_option("-n", "--num_display", dest="n", default=sys.maxint, type="int", help="number of alignments to display")
 optparser.add_option("-i", "--inputfile", dest="inputfile", default=None, help="input alignments file (default=sys.stdin)")
 (opts, _) = optparser.parse_args()
-f_data = "%s.%s" % (os.path.join(opts.datadir, opts.fileprefix), opts.french)
-e_data = "%s.%s" % (os.path.join(opts.datadir, opts.fileprefix), opts.english)
-a_data = "%s.%s" % (os.path.join(opts.datadir, opts.fileprefix), opts.alignment)
+f_data = os.path.expanduser("%s.%s" % (os.path.join(opts.datadir, opts.fileprefix), opts.french))
+e_data = os.path.expanduser("%s.%s" % (os.path.join(opts.datadir, opts.fileprefix), opts.english))
+a_data = os.path.expanduser("%s.%s" % (os.path.join(opts.datadir, opts.fileprefix), opts.alignment))
 
 if opts.logfile:
     logging.basicConfig(filename=opts.logfile, filemode='w', level=logging.INFO)
