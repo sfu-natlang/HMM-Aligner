@@ -9,13 +9,16 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
 supportedModels = [
-    "IBM1Old", "IBM1New"
+    "IBM1Old", "IBM1New", "HMMOld"
 ]
 
 requiredMethods = {
-    "train": {"bitext": list,
-              "iterations": int},
-    "decode": {"bitext": list}
+    "train": {"self": "instance",
+              "bitext": "list",
+              "iterations": "int"},
+
+    "decode": {"self": "instance",
+               "bitext": "list"}
 }
 
 
@@ -33,32 +36,43 @@ def checkAlignmentModel(modelClass, logger=True):
             "models/ModelName.py")
         return False
 
-    trainMethod = getattr(modelClass, "train", None)
-    if not callable(trainMethod):
-        error(
-            "Specified Model class needs to have a method called train, " +
-            "containing at least the following arguments: " +
-            "bitext(list of (str, str)), iterations(int)")
-        return False
+    for methodName in requiredMethods:
+        method = getattr(modelClass, methodName, None)
+        if not callable(method):
+            error(
+                "Specified Model class needs to have a method called '" +
+                methodName + "', " +
+                "containing at least the following arguments: " +
+                str(requiredMethods[methodName]))
+            return False
+        args, _, _, _ = inspect.getargspec(method)
+        if [arg for arg in requiredMethods[methodName] if arg not in args]:
+            error(
+                "Specified Model class's '" + methodName + "' method should " +
+                "contain the following arguments(with exact same names): " +
+                str(requiredMethods[methodName]))
+            return False
+        if [arg for arg in args if arg not in requiredMethods[methodName]]:
+            error(
+                "Specified Model class's '" + methodName + "' method should " +
+                "contain only the following arguments: " +
+                str(requiredMethods[methodName]))
+            return False
 
-    decodeMethod = getattr(modelClass, "decode", None)
-    if not callable(decodeMethod):
-        error(
-            "Specified Model class needs to have a method called " +
-            "decode, containing at least the following " +
-            "arguments: bitext(list of (str, str)), iterations(int)")
-        return False
     return True
 
 
 if __name__ == '__main__':
     print "Launching unit test on: models.modelChecker.checkAlignmentModel"
     print "This test will test the behaviour of checkAlignmentModel on all",\
-        "supported models:\n", supportedModels
+        "supported models:", supportedModels
 
     import importlib
     for name in supportedModels:
-        Model = importlib.import_module("models." + name).AlignmentModel
+        try:
+            Model = importlib.import_module("models." + name).AlignmentModel
+        except all:
+            print "Model", name, ": failed"
         if checkAlignmentModel(Model, False):
             print "Model", name, ": passed"
         else:

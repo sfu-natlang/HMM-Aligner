@@ -5,11 +5,11 @@ import os
 import logging
 import time
 from math import log
-from method_IBM1 import AlignerIBM1
+from models.IBM1Old import AlignmentModel as AlignerIBM1
 from collections import defaultdict
 
 
-class AlignerHMM():
+class AlignmentModel():
     def __init__(self):
         self.p0H = 0.3
         self.nullEmissionProb = 0.000005
@@ -337,7 +337,7 @@ if __name__ == '__main__':
 
     alignerIBM1 = AlignerIBM1()
     alignerIBM1.train(biText, opts.iter)
-    alignerHMM = AlignerHMM()
+    alignerHMM = AlignmentModel()
     alignerHMM.initWithIBM(alignerIBM1, biText)
     alignerHMM.baumWelch()
     alignerHMM.multiplyOneMinusP0H()

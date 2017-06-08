@@ -6,7 +6,7 @@ from loggers import logging
 from evaluators.evaluatorWithType import evaluate
 
 
-class dummyTask():
+class DummyTask():
     def __init__(self, taskName="Untitled", serial="XXXX"):
         return
 
@@ -17,7 +17,7 @@ class dummyTask():
 try:
     from progress import Task
 except all:
-    Task = dummyTask
+    Task = DummyTask
 
 
 class AlignmentModel():
