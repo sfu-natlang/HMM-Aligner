@@ -5,6 +5,7 @@ import os
 import importlib
 from loggers import logging, init_logger
 from models.modelChecker import checkAlignmentModel
+from fileIO import loadBitext, loadBTritext, exportToFile, loadAlignment
 
 
 if __name__ == '__main__':
@@ -36,6 +37,10 @@ if __name__ == '__main__':
                          type="int", help="Number of iterations to train")
     optparser.add_option("-m", "--model", dest="model", default="IBM1Old",
                          help="model to use, default is IBM1Old")
+    optparser.add_option("-r", "--reference", dest="reference", default="",
+                         help="Location of reference file")
+    optparser.add_option("-o", "--outputToFile", dest="output", default="",
+                         help="Path to output file")
     (opts, _) = optparser.parse_args()
 
     # Initialise logger
@@ -50,23 +55,33 @@ if __name__ == '__main__':
         raise TypeError("Invalid Model class")
     __logger.info("Model loaded")
 
-    trainSourcePath = os.path.expanduser(
-        "%s.%s" % (os.path.join(opts.datadir, opts.trainData), opts.source))
-    trainTargetPath = os.path.expanduser(
-        "%s.%s" % (os.path.join(opts.datadir, opts.trainData), opts.target))
-
-    testSourcePath = os.path.expanduser(
-        "%s.%s" % (os.path.join(opts.datadir, opts.testData), opts.source))
-    testTargetPath = os.path.expanduser(
-        "%s.%s" % (os.path.join(opts.datadir, opts.testData), opts.target))
-
-    trainBitext =\
-        [[sentence.strip().split() for sentence in pair] for pair in
-            zip(open(trainSourcePath), open(trainTargetPath))[:opts.trainSize]]
-    testBitext =\
-        [[sentence.strip().split() for sentence in pair] for pair in
-            zip(open(testSourcePath), open(testTargetPath))[:opts.testSize]]
-
     aligner = Model()
-    aligner.train(trainBitext, opts.iter)
-    aligner.decodeToFile(testBitext, "output.wa")
+
+    if trainData != "":
+        trainSource = os.path.expanduser(
+            "%s.%s" % (os.path.join(opts.datadir, opts.trainData), opts.source)
+        )
+        trainTarget = os.path.expanduser(
+            "%s.%s" % (os.path.join(opts.datadir, opts.trainData), opts.target)
+        )
+        trainBitext =\
+            [[sentence.strip().split() for sentence in pair] for pair in
+                zip(open(trainSource), open(trainTarget))[:opts.trainSize]]
+        aligner.train(trainBitext, opts.iter)
+
+    if testData != "":
+        testSource = "%s.%s" %\
+            (os.path.join(opts.datadir, opts.testData), opts.source)
+        testTarget = "%s.%s" %\
+            (os.path.join(opts.datadir, opts.testData), opts.target)
+        testBitext = loadBitext(testSource, testTarget, opts.testSize)
+
+        alignResult = aligner.decode(testBitext)
+
+        if opts.output != "":
+            exportToFile(alignResult, opts.output)
+
+        if opts.reference != "":
+            reference = loadAlignment(opts.reference)
+            if aligner.evaluator:
+                aligner.evaluator(testBitext, alignResult, reference)

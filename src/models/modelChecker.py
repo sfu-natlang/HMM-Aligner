@@ -15,8 +15,7 @@ supportedModels = [
 requiredMethods = {
     "train": {"bitext": list,
               "iterations": int},
-    "decodeToFile": {"bitext": list,
-                     "fileName": str},
+    "decode": {"bitext": list}
 }
 
 
@@ -42,14 +41,15 @@ def checkAlignmentModel(modelClass, logger=True):
             "bitext(list of (str, str)), iterations(int)")
         return False
 
-    decodeToFileMethod = getattr(modelClass, "decodeToFile", None)
-    if not callable(decodeToFileMethod):
+    decodeMethod = getattr(modelClass, "decode", None)
+    if not callable(decodeMethod):
         error(
             "Specified Model class needs to have a method called " +
-            "decodeToFileMethod, containing at least the following " +
+            "decode, containing at least the following " +
             "arguments: bitext(list of (str, str)), iterations(int)")
         return False
     return True
+
 
 if __name__ == '__main__':
     print "Launching unit test on: models.modelChecker.checkAlignmentModel"

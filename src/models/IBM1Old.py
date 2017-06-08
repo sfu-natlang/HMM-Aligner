@@ -3,6 +3,7 @@ import os
 import time
 from collections import defaultdict
 from loggers import logging
+from evaluators.evaluatorWithType import evaluator
 
 
 class dummyTask():
@@ -11,6 +12,8 @@ class dummyTask():
 
     def progress(self, msg):
         return
+
+
 try:
     from progress import Task
 except all:
@@ -21,6 +24,7 @@ class AlignmentModel():
     def __init__(self):
         self.t = defaultdict(float)
         self.logger = logging.getLogger('IBM1')
+        self.evaluator = evaluator
         return
 
     def initWithBitext(self, bitext):
@@ -84,14 +88,13 @@ class AlignmentModel():
                          (end_time - start_time,))
         return
 
-    def decodeToFile(self, bitext, fileName):
-        self.logger.info("Start decoding to file")
+    def decode(self, bitext):
+        self.logger.info("Start decoding")
         self.logger.info("Testing size: " + str(len(bitext)))
-
-        outputFile = open(fileName, "w")
+        result = []
 
         for (f, e) in bitext:
-            result = []
+            sentenceAlignment = []
 
             for i in range(len(f)):
                 max_t = 0
@@ -101,37 +104,8 @@ class AlignmentModel():
                     if t > max_t:
                         max_t = t
                         argmax = j
-                result.append((i, argmax))
+                sentenceAlignment.append((i, argmax))
 
-            line = ""
-            for (i, j) in result:
-                line += str(i) + "-" + str(j) + " "
-
-            outputFile.write(line + "\n")
-
-        outputFile.close()
+            result.append(sentenceAlignment)
         self.logger.info("Decoding Complete")
-        return
-
-    def decodeToStdout(self, bitext):
-        self.logger.info("Start decoding to stdout")
-        self.logger.info("Testing size: " + str(len(bitext)))
-        for (f, e) in bitext:
-            result = []
-
-            for i in range(len(f)):
-                max_t = 0
-                argmax = -1
-                for j in range(len(e)):
-                    t = self.tProbability(f[i], e[j])
-                    if t > max_t:
-                        max_t = t
-                        argmax = j
-                result.append((i, argmax))
-
-            line = ""
-            for (i, j) in result:
-                line += str(i) + "-" + str(j) + " "
-            sys.stdout.write(line + "\n")
-        self.logger.info("Decoding Complete")
-        return
+        return result
