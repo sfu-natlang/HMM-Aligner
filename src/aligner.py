@@ -6,6 +6,7 @@ import importlib
 from loggers import logging, init_logger
 from models.modelChecker import checkAlignmentModel
 from fileIO import loadBitext, loadTritext, exportToFile, loadAlignment
+__version__ = "0.1a"
 
 
 if __name__ == '__main__':
