@@ -21,7 +21,7 @@ sys.path.insert(0, parentdir)
 __version__ = "0.1a"
 
 supportedModels = [
-    "IBM1Old", "IBM1New", "HMMOld"
+    "IBM1Old", "IBM1New", "HMMOld", "IBM1TypePOS"
 ]
 
 requiredMethods = {
