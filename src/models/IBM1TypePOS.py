@@ -35,8 +35,8 @@ except all:
 class AlignmentModel():
     def __init__(self):
         self.t = defaultdict(float)
-        self.logger = logging.getLogget('Model')
-        self.evaluate
+        self.logger = logging.getLogger('Model')
+        self.evaluate = evaluate
 
         self.f_count = defaultdict(int)  # key = str
         self.e_count = defaultdict(int)  # key = str
@@ -119,36 +119,32 @@ class AlignmentModel():
                             tagId = tagMap[linkLabel]
 
                             total_f_e_h[(fWord, engWord, tagId)] += 1
+            for f, e, h in total_f_e_h:
+                self.s[(f, e, h)] = total_f_e_h[(f, e, h)] / fe_count[(f, e)]
 
         return
 
     def setSProbabilities(self, fe_count, total_f_e_h):
         '''
+        This function is not utilised
         @param fe_count: int [(str, str)]
         @param total_f_e_h: float [(str, str, int)]
 
         '''
-        for key in total_f_e_h:
-            f, e, = f_e_h
-            self.s[f_e_h] = total_f_e_h[key] / fe_count[(f, e)]
+        for f, e, h in total_f_e_h:
+            self.s[(f, e, h)] = total_f_e_h[(f, e, h)] / fe_count[(f, e)]
         return
 
     def initializeCountsOfAugmentedModel(self, bitext):
-
-        self.initializeTagMap()
-
-        for (f, E) in bitext:
-
+        self.initialiseTagMap()
+        for (f, e) in bitext:
             for f_i in f:
-                f_count[f_i] += 1
-                # Setting fe_count
+                self.f_count[f_i] += 1
                 for e_i in e:
-                    fe_count[(f_i, e_i)] += 1
+                    self.fe_count[(f_i, e_i)] += 1
 
-            # setting e_count
             for e_i in e:
-                e_count[e_i] += 1
-
+                self.e_count[e_i] += 1
         return
 
     def tProbability(self, f, e):
@@ -172,7 +168,7 @@ class AlignmentModel():
         self.logger.info("Training size: " + str(len(bitext)))
         start_time = time.time()
 
-        self.initialiseCountsWithoutSets(bitext)
+        self.initializeCountsOfAugmentedModel(bitext)
         initialValue = 1.0 / len(self.f_count)
         for key in self.fe_count:
             self.t[key] = initialValue
@@ -198,16 +194,15 @@ class AlignmentModel():
                         c[(fWord, eWord)] += self.t[(fWord, eWord)] / z
                         total[eWord] += self.t[(fWord, eWord)] / z
                         for h in range(1, self.H + 1):
-                            f_e_h = (fWord, eWord, h)
                             c_feh[(fWord, eWord, h)] +=\
-                                t[fWord, eWord] *\
+                                self.t[fWord, eWord] *\
                                 self.sProbability(fWord, eWord, h) /\
-                                Z
+                                z
 
             for (f, e) in self.fe_count:
                 self.t[(f, e)] = c[(f, e)] / total[e]
             for f, e, h in c_feh:
-                self.s[f_e_h] = c_feh[(f, e, h)] / c[(f, e)]
+                self.s[(f, e, h)] = c_feh[(f, e, h)] / c[(f, e)]
 
         end_time = time.time()
         self.logger.info("Training Complete, total time(seconds): %f" %
