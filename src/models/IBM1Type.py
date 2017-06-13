@@ -60,17 +60,19 @@ class AlignmentModel():
         self.tag_e_count = defaultdict(int)
         self.tag_fe_count = defaultdict(int)
 
-        self.tagMap["SEM"] = 0
-        self.tagMap["FUN"] = 1
-        self.tagMap["PDE"] = 2
-        self.tagMap["CDE"] = 3
-        self.tagMap["MDE"] = 4
-        self.tagMap["GIS"] = 5
-        self.tagMap["GIF"] = 6
-        self.tagMap["COI"] = 7
-        self.tagMap["TIN"] = 8
-        self.tagMap["NTR"] = 9
-        self.tagMap["MTA"] = 10
+        self.tagMap = {
+            "SEM": 0,
+            "FUN": 1,
+            "PDE": 2,
+            "CDE": 3,
+            "MDE": 4,
+            "GIS": 5,
+            "GIF": 6,
+            "COI": 7,
+            "TIN": 8,
+            "NTR": 9,
+            "MTA": 10
+        }
         return
 
     def initialiseWithTritext(self, tritext, f_count, e_count, fe_count, s):
@@ -95,7 +97,7 @@ class AlignmentModel():
 
                 # Process right(target word/tags)
                 tag = right[len(right) - 4: len(right) - 1]
-                tagId = tagMap[tag]
+                tagId = self.tagMap[tag]
                 eWords = right[:len(right) - 5]
                 eWords = ''.join(c for c in eWords if c.isdigit() or c == ',')
                 eWords = eWords.split(',')
@@ -148,7 +150,7 @@ class AlignmentModel():
             for (f, e, alignment) in tagTritext:
                 counter += 1
                 self.task.progress("IBM1TypeS1 iter %d, %d of %d" %
-                                   (iteration, counter, len(bitext),))
+                                   (iteration, counter, len(tagTritext),))
                 for fTag in f:
                     z = 0
                     for eTag in e:
@@ -190,7 +192,7 @@ class AlignmentModel():
 
                 counter += 1
                 self.task.progress("IBM1TypeS2 iter %d, %d of %d" %
-                                   (iteration, counter, len(bitext),))
+                                   (iteration, counter, len(formTritext),))
 
                 for fWord, fTag in zip(f, fTags):
                     z = 0
@@ -214,7 +216,7 @@ class AlignmentModel():
     def train(self, formTritext, tagTritext, iterations=5):
         self.task = Task("Aligner", "IBM1TypeI" + str(iterations))
         self.logger.info("Model IBM1Type, Starting Training Process")
-        self.logger.info("Training size: " + str(len(tritext)))
+        self.logger.info("Training size: " + str(len(formTritext)))
 
         self.logger.info("Stage 1 Start Training with POS Tags")
         self.tag_f_count.clear()
@@ -255,7 +257,7 @@ class AlignmentModel():
                          (endTime - startTime,))
         return
 
-    def decode(self, formBitext, tagBitext):
+    def decode(self, formTritext, tagTritext):
         linkMap = ["SEM", "FUN", "PDE", "CDE",
                    "MDE", "GIS", "GIF", "COI",
                    "TIN", "NTR", "MTA"]
@@ -263,7 +265,11 @@ class AlignmentModel():
         self.logger.info("Testing size: " + str(len(bitext)))
         result = []
 
-        for (f, e, ), (fTags, eTags, ) in zip(bitext, tagBitext):
+        for form, tag in zip(formTritext, tagTritext):
+            f = form[0]
+            e = form[1]
+            fTags = tag[0]
+            eTags = tag[1]
             sentenceAlignment = []
 
             for i in range(len(f)):

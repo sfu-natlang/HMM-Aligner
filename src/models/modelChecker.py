@@ -41,8 +41,8 @@ requiredMethods2 = {
               "iterations": "int"},
 
     "decode": {"self": "instance",
-               "formBitext": "list",
-               "tagBitext": "list"}
+               "formTritext": "list",
+               "tagTritext": "list"}
 }
 
 
