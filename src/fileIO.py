@@ -14,7 +14,7 @@ import os
 import sys
 import inspect
 import unittest
-__version__ = "0.1a"
+__version__ = "0.2a"
 
 
 def exportToFile(result, fileName):
@@ -28,8 +28,12 @@ def exportToFile(result, fileName):
     outputFile = open(fileName, "w")
     for sentenceAlignment in result:
         line = ""
-        for (i, j) in sentenceAlignment:
-            line += str(i) + "-" + str(j) + " "
+        for item in sentenceAlignment:
+            if len(item) == 2:
+                line += str(item[0]) + "-" + str(item[1]) + " "
+            if len(item) == 3:
+                line += str(item[0]) + "-" + str(item[1]) +\
+                    "(" + str(item[2]) + ") "
 
         outputFile.write(line + "\n")
     outputFile.close()
