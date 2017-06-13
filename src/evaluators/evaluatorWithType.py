@@ -22,13 +22,11 @@ def evaluate(bitext, result, reference):
     totalProbableAlignment = 0
 
     for i in range(min(len(result), len(reference))):
-        testAlign = result[i]
-        goldAlign = reference[i]
-
         size_f = len(bitext[i][0])
         size_e = len(bitext[i][1])
 
-        for entry in testAlign:
+        testAlign = []
+        for entry in result[i]:
             f = int(entry[0])
             e = int(entry[1])
             if (f > size_f or e > size_e):
@@ -36,11 +34,17 @@ def evaluate(bitext, result, reference):
                 logger.info(i + " " +
                             f + " " + size_f + " " +
                             e + " " + size_e)
+            testAlign.append((f, e))
+
+        certainAlign = []
+        for entry in reference[i]["certain"]:
+            certainAlign.append((entry[0], entry[1]))
+
+        probableAlign = []
+        for entry in reference[i]["probable"]:
+            probableAlign.append((entry[0], entry[1]))
 
         # grade
-        certainAlign = goldAlign["certain"]
-        probableAlign = goldAlign["probable"]
-
         totalAlign += len(testAlign)
         totalCertain += len(certainAlign)
 

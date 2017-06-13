@@ -6,7 +6,7 @@ import importlib
 from loggers import logging, init_logger
 from models.modelChecker import checkAlignmentModel
 from fileIO import loadBitext, loadTritext, exportToFile, loadAlignment
-__version__ = "0.1a"
+__version__ = "0.2a"
 
 
 if __name__ == '__main__':
@@ -18,13 +18,22 @@ if __name__ == '__main__':
     optparser.add_option("--train", dest="trainData",
                          default="train.20k.seg.cln",
                          help="prefix of data file(default=train.20k.seg.cln)")
+    optparser.add_option("--train-tag", dest="trainTag",
+                         default="train.20k.tags",
+                         help="prefix of tag file(default=train.20k.tags)")
     optparser.add_option("--test", dest="testData",
                          default="test.seg.cln",
                          help="prefix of data file(default=test.seg.cln)")
+    optparser.add_option("--test-tag", dest="testTag",
+                         default="test.tags",
+                         help="prefix of test tag file(default=test.tags)")
     optparser.add_option("--source", dest="source", default="cn",
                          help="suffix of source language (default=cn)")
     optparser.add_option("--target", dest="target", default="en",
                          help="suffix of target language (default=en)")
+    optparser.add_option("--alignment", dest="alignment",
+                         default="wa",
+                         help="suffix of alignment file(default=wa)")
     optparser.add_option("-t", "--threshold", dest="threshold", default=0.5,
                          type="float",
                          help="threshold for alignment (default=0.5)")
@@ -52,7 +61,8 @@ if __name__ == '__main__':
     # Load model
     __logger.info("Loading model")
     Model = importlib.import_module("models." + opts.model).AlignmentModel
-    if not checkAlignmentModel(Model):
+    modelType = checkAlignmentModel(Model)
+    if modelType == -1:
         raise TypeError("Invalid Model class")
     __logger.info("Model loaded")
 
@@ -65,19 +75,66 @@ if __name__ == '__main__':
         trainTarget = os.path.expanduser(
             "%s.%s" % (os.path.join(opts.datadir, opts.trainData), opts.target)
         )
-        trainBitext =\
-            [[sentence.strip().split() for sentence in pair] for pair in
-                zip(open(trainSource), open(trainTarget))[:opts.trainSize]]
-        aligner.train(trainBitext, opts.iter)
+        if modelType == 1:
+            trainBitext = loadBitext(trainSource,
+                                     trainTarget,
+                                     opts.trainSize)
+            aligner.train(trainBitext, opts.iter)
+
+        if modelType == 2:
+            trainSourceTag = os.path.expanduser(
+                "%s.%s" % (os.path.join(opts.datadir, opts.trainTag),
+                           opts.source))
+            trainTargetTag = os.path.expanduser(
+                "%s.%s" % (os.path.join(opts.datadir, opts.trainTag),
+                           opts.target))
+            trainAlignment = os.path.expanduser(
+                "%s.%s" % (os.path.join(opts.datadir, opts.trainData),
+                           opts.alignment))
+            trainFormTritext = loadTritext(trainSource,
+                                           trainTarget,
+                                           trainAlignment,
+                                           opts.trainSize)
+
+            trainTagTritext = loadTritext(trainSourceTag,
+                                          trainTargetTag,
+                                          trainAlignment,
+                                          opts.trainSize)
+
+            aligner.train(formTritext=trainFormTritext,
+                          tagTritext=trainTagTritext,
+                          iterations=opts.iter)
 
     if opts.testData != "":
         testSource = "%s.%s" %\
             (os.path.join(opts.datadir, opts.testData), opts.source)
         testTarget = "%s.%s" %\
             (os.path.join(opts.datadir, opts.testData), opts.target)
-        testBitext = loadBitext(testSource, testTarget, opts.testSize)
 
-        alignResult = aligner.decode(testBitext)
+        if modelType == 1:
+            testBitext = loadBitext(testSource, testTarget, opts.testSize)
+            alignResult = aligner.decode(testBitext)
+        if modelType == 2:
+            testSourceTag = os.path.expanduser(
+                "%s.%s" % (os.path.join(opts.datadir, opts.testTag),
+                           opts.source))
+            testTargetTag = os.path.expanduser(
+                "%s.%s" % (os.path.join(opts.datadir, opts.testTag),
+                           opts.target))
+            testAlignment = os.path.expanduser(
+                "%s.%s" % (os.path.join(opts.datadir, opts.testData),
+                           opts.alignment))
+
+            testFormTritext = loadTritext(testSource,
+                                          testTarget,
+                                          testAlignment,
+                                          opts.trainSize)
+            testTagTritext = loadTritext(testSourceTag,
+                                         testTargetTag,
+                                         testAlignment,
+                                         opts.trainSize)
+            alignResult = aligner.decode(formTritext=testFormTritext,
+                                         tagTritext=testTagTritext)
 
         if opts.output != "":
             exportToFile(alignResult, opts.output)
