@@ -40,7 +40,7 @@ if __name__ == '__main__':
                          help="model to use, default is IBM1Old")
     optparser.add_option("-r", "--reference", dest="reference", default="",
                          help="Location of reference file")
-    optparser.add_option("-o", "--outputToFile", dest="output", default="",
+    optparser.add_option("-o", "--outputToFile", dest="output", default="o.wa",
                          help="Path to output file")
     (opts, _) = optparser.parse_args()
 
