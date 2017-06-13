@@ -168,7 +168,7 @@ class AlignmentModel():
                 self.tTag[(fTag, eTag)] = c[(fTag, eTag)] / total[eTag]
 
             for f, e, h in c_feh:
-                self.sTag[(fTag, eTaf, h)] =\
+                self.sTag[(fTag, eTag, h)] =\
                     c_feh[(fTag, eTag, h)] / c[(fTag, eTag)]
         return
 
@@ -187,8 +187,11 @@ class AlignmentModel():
             self.logger.info("Starting Iteration " + str(iteration))
             counter = 0
 
-            for (f, e, ) in formTritext:
-                fTags, eTags, = tagTritext[counter]
+            for (form, tag) in zip(formTritext, tagTritext):
+                f = form[0]
+                e = form[1]
+                fTags = tag[0]
+                eTags = tag[1]
 
                 counter += 1
                 self.task.progress("IBM1TypeS2 iter %d, %d of %d" %
@@ -250,8 +253,11 @@ class AlignmentModel():
                                    fe_count=self.fe_count,
                                    s=self.s)
 
+        self.logger.info("Stage 2 Initialisation complete")
         startTime = time.time()
-        self.trainFORM(formTritext, tagTritext, iterations=5)
+
+        self.trainFORM(formTritext, tagTritext, iterations)
+
         endTime = time.time()
         self.logger.info("Stage 2 Training Complete, total time(seconds): %f" %
                          (endTime - startTime,))
@@ -262,7 +268,7 @@ class AlignmentModel():
                    "MDE", "GIS", "GIF", "COI",
                    "TIN", "NTR", "MTA"]
         self.logger.info("Start decoding")
-        self.logger.info("Testing size: " + str(len(bitext)))
+        self.logger.info("Testing size: " + str(len(formTritext)))
         result = []
 
         for form, tag in zip(formTritext, tagTritext):
@@ -281,9 +287,9 @@ class AlignmentModel():
 
                     for h in range(len(self.tagMap)):
                         s = self.sProbability(f[i], e[j], h,
-                                              fTags(i), eTags(j))
+                                              fTags[i], eTags[j])
                         if t * s > max_ts:
-                            max_ts = t_SiDj * s_SiDj
+                            max_ts = t * s
                             argmax = j
                             bestTagID = h
 

@@ -142,4 +142,7 @@ if __name__ == '__main__':
         if opts.reference != "":
             reference = loadAlignment(opts.reference)
             if aligner.evaluate:
-                aligner.evaluate(testBitext, alignResult, reference)
+                if modelType == 1:
+                    aligner.evaluate(testBitext, alignResult, reference)
+                if modelType == 2:
+                    aligner.evaluate(testFormTritext, alignResult, reference)

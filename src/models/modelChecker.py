@@ -78,8 +78,8 @@ def checkAlignmentModel(modelClass, logger=True):
                 "Specified Model class needs to have a method called '" +
                 methodName + "', " +
                 "containing at least the following arguments(without Tag): " +
-                str(requiredMethods1[methodName]) + "or the following" +
-                "(with Tag)" + str(requiredMethods2[methodName]))
+                str(requiredMethods1[methodName]) + " or the following" +
+                "(with Tag) " + str(requiredMethods2[methodName]))
             return -1
 
         args, _, _, _ = inspect.getargspec(method)
@@ -88,8 +88,8 @@ def checkAlignmentModel(modelClass, logger=True):
             error(
                 "Specified Model class's '" + methodName + "' method should " +
                 "contain the following arguments(with exact same names): " +
-                str(requiredMethods1[methodName]) + "or the following" +
-                "(with Tag)" + str(requiredMethods2[methodName]))
+                str(requiredMethods1[methodName]) + " or the following" +
+                "(with Tag) " + str(requiredMethods2[methodName]))
             return -1
 
         if ([a for a in args if a not in requiredMethods1[methodName]] and
@@ -97,8 +97,8 @@ def checkAlignmentModel(modelClass, logger=True):
             error(
                 "Specified Model class's '" + methodName + "' method should " +
                 "contain only the following arguments: " +
-                str(requiredMethods1[methodName]) + "or the following" +
-                "(with Tag)" + str(requiredMethods2[methodName]))
+                str(requiredMethods1[methodName]) + " or the following" +
+                "(with Tag) " + str(requiredMethods2[methodName]))
             return -1
 
         if not([a for a in requiredMethods1[methodName] if a not in args] +
