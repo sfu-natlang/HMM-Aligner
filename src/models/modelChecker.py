@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #
-# HMM model implementation(old) of HMM Aligner
+# Model Checker of HMM Aligner
 # Simon Fraser University
 # NLP Lab
 #
@@ -18,13 +18,14 @@ currentdir = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
-__version__ = "0.1a"
+__version__ = "0.2a"
 
 supportedModels = [
-    "IBM1Old", "IBM1New", "HMMOld", "IBM1TypePOS"
+    "IBM1Old", "IBM1New", "HMMOld",
+    "IBM1Type"
 ]
 
-requiredMethods = {
+requiredMethods1 = {
     "train": {"self": "instance",
               "bitext": "list",
               "iterations": "int"},
@@ -33,8 +34,28 @@ requiredMethods = {
                "bitext": "list"}
 }
 
+requiredMethods2 = {
+    "train": {"self": "instance",
+              "formTritext": "list",
+              "tagTritext": "list",
+              "iterations": "int"},
+
+    "decode": {"self": "instance",
+               "formBitext": "list",
+               "tagBitext": "list"}
+}
+
 
 def checkAlignmentModel(modelClass, logger=True):
+    '''
+    There are two types of models supported, type 1 trains on bitext and
+    type 2 on a tritext of the original text and a tritext of tags(POS).
+    This function will examine the model class and determine its type.
+    If the return value is -1, then the model is unrecognisable by this
+    function.
+    @param modelClass: class, a model class
+    @return: int, model type. -1 for unrecognisable
+    '''
     if logger:
         from loggers import logging, init_logger
         error = logging.getLogger('CheckModel').error
@@ -46,32 +67,55 @@ def checkAlignmentModel(modelClass, logger=True):
         error(
             "Specified Model needs to be a class named AlignmentModel under " +
             "models/ModelName.py")
-        return False
+        return -1
 
-    for methodName in requiredMethods:
+    mode = -1
+
+    for methodName in requiredMethods1:
         method = getattr(modelClass, methodName, None)
         if not callable(method):
             error(
                 "Specified Model class needs to have a method called '" +
                 methodName + "', " +
-                "containing at least the following arguments: " +
-                str(requiredMethods[methodName]))
-            return False
+                "containing at least the following arguments(without Tag): " +
+                str(requiredMethods1[methodName]) + "or the following" +
+                "(with Tag)" + str(requiredMethods2[methodName]))
+            return -1
+
         args, _, _, _ = inspect.getargspec(method)
-        if [arg for arg in requiredMethods[methodName] if arg not in args]:
+        if ([a for a in requiredMethods1[methodName] if a not in args] and
+                [a for a in requiredMethods2[methodName] if a not in args]):
             error(
                 "Specified Model class's '" + methodName + "' method should " +
                 "contain the following arguments(with exact same names): " +
-                str(requiredMethods[methodName]))
-            return False
-        if [arg for arg in args if arg not in requiredMethods[methodName]]:
+                str(requiredMethods1[methodName]) + "or the following" +
+                "(with Tag)" + str(requiredMethods2[methodName]))
+            return -1
+
+        if ([a for a in args if a not in requiredMethods1[methodName]] and
+                [a for a in args if a not in requiredMethods2[methodName]]):
             error(
                 "Specified Model class's '" + methodName + "' method should " +
                 "contain only the following arguments: " +
-                str(requiredMethods[methodName]))
-            return False
+                str(requiredMethods1[methodName]) + "or the following" +
+                "(with Tag)" + str(requiredMethods2[methodName]))
+            return -1
 
-    return True
+        if not([a for a in requiredMethods1[methodName] if a not in args] +
+                [a for a in args if a not in requiredMethods1[methodName]]):
+            if mode == -1 or mode == 1:
+                mode = 1
+            else:
+                error("Unrecognisable model type.")
+
+        if not([a for a in requiredMethods2[methodName] if a not in args] +
+                [a for a in args if a not in requiredMethods2[methodName]]):
+            if mode == -1 or mode == 2:
+                mode = 2
+            else:
+                error("Unrecognisable model type.")
+
+    return mode
 
 
 if __name__ == '__main__':
@@ -85,7 +129,8 @@ if __name__ == '__main__':
             Model = importlib.import_module("models." + name).AlignmentModel
         except all:
             print "Model", name, ": failed"
-        if checkAlignmentModel(Model, False):
-            print "Model", name, ": passed"
+        mode = checkAlignmentModel(Model, False)
+        if mode != -1:
+            print "Model", name, ": passed, type", mode
         else:
             print "Model", name, ": failed"

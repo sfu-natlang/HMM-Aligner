@@ -56,9 +56,9 @@ class AlignmentModel():
         self.f_count = defaultdict(int)
         self.e_count = defaultdict(int)
         self.fe_count = defaultdict(int)
-        self.pos_f_count = defaultdict(int)
-        self.pos_e_count = defaultdict(int)
-        self.pos_fe_count = defaultdict(int)
+        self.tag_f_count = defaultdict(int)
+        self.tag_e_count = defaultdict(int)
+        self.tag_fe_count = defaultdict(int)
 
         self.tagMap["SEM"] = 0
         self.tagMap["FUN"] = 1
@@ -118,9 +118,9 @@ class AlignmentModel():
         return 1.0 / v
 
     def sProbability(self, fWord, eWord, h, fTag, eTag):
-        p1 = (1 - lambda) * tagDist[h] +\
+        p1 = (1 - self.lambd) * tagDist[h] +\
             self.lambd * self.s[(fWord, eWord, h)]
-        p2 = (1 - lambda) * tagDist[h] +\
+        p2 = (1 - self.lambd) * tagDist[h] +\
             self.lambd * self.sTag[(fTag, eTag, h)]
         p3 = tagDist[h]
 
@@ -130,11 +130,11 @@ class AlignmentModel():
         return self.lambd * self.sTag[(fTag, eTag, h)] +\
             (1 - self.lambd) * tagDist[h]
 
-    def trainPOSTag(self, POSTritext, iterations=5):
+    def trainTag(self, tagTritext, iterations=5):
         self.tTag.clear()
 
-        initialValue = 1.0 / len(self.pos_f_count)
-        for key in self.pos_fe_count:
+        initialValue = 1.0 / len(self.tag_f_count)
+        for key in self.tag_fe_count:
             self.tTag[key] = initialValue
 
         for iteration in range(iterations):
@@ -145,7 +145,7 @@ class AlignmentModel():
             self.logger.info("Starting Iteration " + str(iteration))
             counter = 0
 
-            for (f, e, alignment) in POSTritext:
+            for (f, e, alignment) in tagTritext:
                 counter += 1
                 self.task.progress("IBM1TypeS1 iter %d, %d of %d" %
                                    (iteration, counter, len(bitext),))
@@ -170,7 +170,7 @@ class AlignmentModel():
                     c_feh[(fTag, eTag, h)] / c[(fTag, eTag)]
         return
 
-    def trainFORM(self, FORMTritext, POSTritext, iterations=5):
+    def trainFORM(self, formTritext, tagTritext, iterations=5):
         self.t.clear()
 
         initialValue = 1.0 / len(self.f_count)
@@ -185,8 +185,8 @@ class AlignmentModel():
             self.logger.info("Starting Iteration " + str(iteration))
             counter = 0
 
-            for (f, e, ) in tritext:
-                fTags, eTags, = POStritext[counter]
+            for (f, e, ) in formTritext:
+                fTags, eTags, = tagTritext[counter]
 
                 counter += 1
                 self.task.progress("IBM1TypeS2 iter %d, %d of %d" %
@@ -211,27 +211,27 @@ class AlignmentModel():
                 self.s[(f, e, h)] = c_feh[(f, e, h)] / c[(f, e)]
         return
 
-    def train(self, tritext, POSTritext, iterations=5):
+    def train(self, formTritext, tagTritext, iterations=5):
         self.task = Task("Aligner", "IBM1TypeI" + str(iterations))
         self.logger.info("Model IBM1Type, Starting Training Process")
         self.logger.info("Training size: " + str(len(tritext)))
 
         self.logger.info("Stage 1 Start Training with POS Tags")
-        self.pos_f_count.clear()
-        self.pos_e_count.clear()
-        self.pos_fe_count.clear()
+        self.tag_f_count.clear()
+        self.tag_e_count.clear()
+        self.tag_fe_count.clear()
         self.sTag.clear()
 
-        self.initialiseWithTritext(tritext=POSTritext,
-                                   f_count=self.pos_f_count,
-                                   e_count=self.pos_e_count,
-                                   fe_count=self.pos_fe_count,
+        self.initialiseWithTritext(tritext=tagTritext,
+                                   f_count=self.tag_f_count,
+                                   e_count=self.tag_e_count,
+                                   fe_count=self.tag_fe_count,
                                    s=self.sTag)
 
         self.logger.info("Stage 1 Initialisation complete")
         startTime = time.time()
 
-        self.trainPOSTag(POSTritext, iterations)
+        self.trainTag(tagTritext, iterations)
 
         endTime = time.time()
         self.logger.info("Stage 1 Training Complete, total time(seconds): %f" %
@@ -242,20 +242,20 @@ class AlignmentModel():
         self.e_count.clear()
         self.fe_count.clear()
         self.s.clear()
-        self.initialiseWithTritext(tritext=tritext,
+        self.initialiseWithTritext(tritext=formTritext,
                                    f_count=self.f_count,
                                    e_count=self.e_count,
                                    fe_count=self.fe_count,
                                    s=self.s)
 
         startTime = time.time()
-        self.trainFORM(tritext, POSTritext, iterations=5)
+        self.trainFORM(formTritext, tagTritext, iterations=5)
         endTime = time.time()
         self.logger.info("Stage 2 Training Complete, total time(seconds): %f" %
                          (endTime - startTime,))
         return
 
-    def decode(self, bitext, POSBitext, useAlignmentType):
+    def decode(self, formBitext, tagBitext):
         linkMap = ["SEM", "FUN", "PDE", "CDE",
                    "MDE", "GIS", "GIF", "COI",
                    "TIN", "NTR", "MTA"]
@@ -263,7 +263,7 @@ class AlignmentModel():
         self.logger.info("Testing size: " + str(len(bitext)))
         result = []
 
-        for (f, e), (fTags, eTags) in zip(bitext, POSBitext):
+        for (f, e, ), (fTags, eTags, ) in zip(bitext, tagBitext):
             sentenceAlignment = []
 
             for i in range(len(f)):
