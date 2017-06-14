@@ -14,7 +14,7 @@ import os
 import sys
 import inspect
 import unittest
-__version__ = "0.1a"
+__version__ = "0.2a"
 
 
 def exportToFile(result, fileName):
@@ -28,8 +28,12 @@ def exportToFile(result, fileName):
     outputFile = open(fileName, "w")
     for sentenceAlignment in result:
         line = ""
-        for (i, j) in sentenceAlignment:
-            line += str(i) + "-" + str(j) + " "
+        for item in sentenceAlignment:
+            if len(item) == 2:
+                line += str(item[0]) + "-" + str(item[1]) + " "
+            if len(item) == 3:
+                line += str(item[0]) + "-" + str(item[1]) +\
+                    "(" + str(item[2]) + ") "
 
         outputFile.write(line + "\n")
     outputFile.close()
@@ -95,9 +99,13 @@ def loadAlignment(fileName, linesToLoad=sys.maxint):
             # Every entry is expected to be of the format: "NN-NN,NN" or
             # "NN?NN,NN", where NNs are numbers
             if entry.find('-') != -1:
+                for ch in ('(', ')', '[', ']'):
+                    entry = entry.replace(ch, '-')
                 items = entry.split('-')
                 f = int(items[0])
                 for eStr in items[1].split(','):
+                    if eStr == '':
+                        continue
                     e = int(eStr)
                     if len(items) > 2:
                         certainAlign.append((f, e, items[2]))
@@ -105,6 +113,8 @@ def loadAlignment(fileName, linesToLoad=sys.maxint):
                         certainAlign.append((f, e))
 
             elif entry.find('?') != -1:
+                for ch in ('(', ')', '[', ']'):
+                    entry = entry.replace(ch, '?')
                 items = entry.split('?')
                 f = int(items[0])
                 for eStr in items[1].split(','):

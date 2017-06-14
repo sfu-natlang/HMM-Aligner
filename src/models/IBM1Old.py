@@ -12,7 +12,7 @@ import os
 import time
 from collections import defaultdict
 from loggers import logging
-from evaluators.evaluatorWithType import evaluate
+from evaluators.evaluator import evaluate
 __version__ = "0.1a"
 
 

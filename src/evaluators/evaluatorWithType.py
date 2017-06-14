@@ -22,25 +22,36 @@ def evaluate(bitext, result, reference):
     totalProbableAlignment = 0
 
     for i in range(min(len(result), len(reference))):
-        testAlign = result[i]
-        goldAlign = reference[i]
-
         size_f = len(bitext[i][0])
         size_e = len(bitext[i][1])
 
-        for entry in testAlign:
+        testAlign = []
+        for entry in result[i]:
+            if (len(entry)) < 3:
+                logger.error("Result missing element. Expectation:(f, e, tag)")
             f = int(entry[0])
             e = int(entry[1])
+            tag = entry[2]
             if (f > size_f or e > size_e):
                 logger.error("NOT A VALID LINK")
                 logger.info(i + " " +
                             f + " " + size_f + " " +
                             e + " " + size_e)
+            testAlign.append((f, e, tag))
+
+        certainAlign = []
+        for entry in reference[i]["certain"]:
+            if (len(entry)) < 3:
+                logger.error("reference missing element.")
+            certainAlign.append((entry[0], entry[1], entry[2]))
+
+        probableAlign = []
+        for entry in reference[i]["probable"]:
+            if (len(entry)) < 3:
+                logger.error("reference missing element.")
+            probableAlign.append((entry[0], entry[1], entry[2]))
 
         # grade
-        certainAlign = goldAlign["certain"]
-        probableAlign = goldAlign["probable"]
-
         totalAlign += len(testAlign)
         totalCertain += len(certainAlign)
 

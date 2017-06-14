@@ -22,31 +22,30 @@ def evaluate(bitext, result, reference):
     totalProbableAlignment = 0
 
     for i in range(min(len(result), len(reference))):
-        testAlign = result[i]
-        goldAlign = reference[i]
-
         size_f = len(bitext[i][0])
         size_e = len(bitext[i][1])
 
         testAlign = []
-        for entry in testSentence.strip.split():
-            # Every entry is expected to be of the format: "NN-NN", where NN is
-            # a number
-            if (entry.find('-') != -1):
-                fStr, eStr, tag = pwd.split('-')
-                f = int(fStr)
-                e = int(eStr)
-                if (f > size_f or e > size_e):
-                    logger.error("NOT A VALID LINK")
-                    logger.info(i + " " +
-                                f + " " + size_f + " " +
-                                e + " " + size_e)
-                testAlign.append((f, e, tag))
+        for entry in result[i]:
+            f = int(entry[0])
+            e = int(entry[1])
+            tag = entry[2]
+            if (f > size_f or e > size_e):
+                logger.error("NOT A VALID LINK")
+                logger.info(i + " " +
+                            f + " " + size_f + " " +
+                            e + " " + size_e)
+            testAlign.append((f, e))
+
+        certainAlign = []
+        for entry in reference[i]["certain"]:
+            certainAlign.append((entry[0], entry[1], entry[2]))
+
+        probableAlign = []
+        for entry in reference[i]["probable"]:
+            probableAlign.append((entry[0], entry[1], entry[2]))
 
         # grade
-        certainAlign = goldAlign["certain"]
-        probableAlign = goldAlign["probable"]
-
         totalAlign += len(testAlign)
         totalCertain += len(certainAlign)
 
