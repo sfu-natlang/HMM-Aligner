@@ -32,8 +32,7 @@ except all:
     Task = DummyTask
 
 # Constants
-tagDist = [0,
-           0.401, 0.264, 0.004, 0.004,
+tagDist = [0.401, 0.264, 0.004, 0.004,
            0.012, 0.205, 0.031, 0.008,
            0.003, 0.086, 0.002]
 
@@ -90,6 +89,7 @@ class AlignmentModel():
             for item in alignment:
                 left, right = item.split("-")
                 fwords = ''.join(c for c in left if c.isdigit() or c == ',')
+                fwords = fwords.split(',')
                 if len(fwords) != 1:
                     continue
                 # Process source word
@@ -155,7 +155,7 @@ class AlignmentModel():
                     z = 0
                     for eTag in e:
                         z += self.tTag[(fTag, eTag)]
-                    for eWord in e:
+                    for eTag in e:
                         c[(fTag, eTag)] += self.tTag[(fTag, eTag)] / z
                         total[eTag] += self.tTag[(fTag, eTag)] / z
                         for h in range(len(self.tagMap)):
