@@ -99,6 +99,8 @@ def loadAlignment(fileName, linesToLoad=sys.maxint):
             # Every entry is expected to be of the format: "NN-NN,NN" or
             # "NN?NN,NN", where NNs are numbers
             if entry.find('-') != -1:
+                for ch in ('(', ')', '[', ']'):
+                    entry = entry.replace(ch, '-')
                 items = entry.split('-')
                 f = int(items[0])
                 for eStr in items[1].split(','):
@@ -109,6 +111,8 @@ def loadAlignment(fileName, linesToLoad=sys.maxint):
                         certainAlign.append((f, e))
 
             elif entry.find('?') != -1:
+                for ch in ('(', ')', '[', ']'):
+                    entry = entry.replace(ch, '?')
                 items = entry.split('?')
                 f = int(items[0])
                 for eStr in items[1].split(','):
