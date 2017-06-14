@@ -128,11 +128,11 @@ if __name__ == '__main__':
             testFormTritext = loadTritext(testSource,
                                           testTarget,
                                           testAlignment,
-                                          opts.trainSize)
+                                          opts.testSize)
             testTagTritext = loadTritext(testSourceTag,
                                          testTargetTag,
                                          testAlignment,
-                                         opts.trainSize)
+                                         opts.testSize)
             alignResult = aligner.decode(formTritext=testFormTritext,
                                          tagTritext=testTagTritext)
 
