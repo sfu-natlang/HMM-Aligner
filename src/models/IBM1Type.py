@@ -263,15 +263,15 @@ class AlignmentModel():
                          (endTime - startTime,))
         return
 
-    def decode(self, formTritext, tagTritext):
+    def decode(self, formBitext, tagBitext):
         linkMap = ["SEM", "FUN", "PDE", "CDE",
                    "MDE", "GIS", "GIF", "COI",
                    "TIN", "NTR", "MTA"]
         self.logger.info("Start decoding")
-        self.logger.info("Testing size: " + str(len(formTritext)))
+        self.logger.info("Testing size: " + str(len(formBitext)))
         result = []
 
-        for form, tag in zip(formTritext, tagTritext):
+        for form, tag in zip(formBitext, tagBitext):
             f = form[0]
             e = form[1]
             fTags = tag[0]

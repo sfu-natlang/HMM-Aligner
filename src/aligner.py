@@ -121,20 +121,15 @@ if __name__ == '__main__':
             testTargetTag = os.path.expanduser(
                 "%s.%s" % (os.path.join(opts.datadir, opts.testTag),
                            opts.target))
-            testAlignment = os.path.expanduser(
-                "%s.%s" % (os.path.join(opts.datadir, opts.testData),
-                           opts.alignment))
 
-            testFormTritext = loadTritext(testSource,
-                                          testTarget,
-                                          testAlignment,
-                                          opts.testSize)
-            testTagTritext = loadTritext(testSourceTag,
-                                         testTargetTag,
-                                         testAlignment,
-                                         opts.testSize)
-            alignResult = aligner.decode(formTritext=testFormTritext,
-                                         tagTritext=testTagTritext)
+            testFormBitext = loadBitext(testSource,
+                                        testTarget,
+                                        opts.testSize)
+            testTagBitext = loadBitext(testSourceTag,
+                                       testTargetTag,
+                                       opts.testSize)
+            alignResult = aligner.decode(formBitext=testFormBitext,
+                                         tagBitext=testTagBitext)
 
         if opts.output != "":
             exportToFile(alignResult, opts.output)
@@ -145,4 +140,4 @@ if __name__ == '__main__':
                 if modelType == 1:
                     aligner.evaluate(testBitext, alignResult, reference)
                 if modelType == 2:
-                    aligner.evaluate(testFormTritext, alignResult, reference)
+                    aligner.evaluate(testFormBitext, alignResult, reference)
