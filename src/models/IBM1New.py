@@ -12,7 +12,7 @@ import time
 from copy import deepcopy
 from collections import defaultdict
 from loggers import logging
-from evaluators.evaluatorWithType import evaluate
+from evaluators.evaluator import evaluate
 from data.Pair import Pair, IntPair
 __version__ = "0.1a"
 

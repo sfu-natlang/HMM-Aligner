@@ -104,6 +104,8 @@ def loadAlignment(fileName, linesToLoad=sys.maxint):
                 items = entry.split('-')
                 f = int(items[0])
                 for eStr in items[1].split(','):
+                    if eStr == '':
+                        continue
                     e = int(eStr)
                     if len(items) > 2:
                         certainAlign.append((f, e, items[2]))

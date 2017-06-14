@@ -27,22 +27,29 @@ def evaluate(bitext, result, reference):
 
         testAlign = []
         for entry in result[i]:
+            if (len(entry)) < 3:
+                logger.error("Result missing element. Expectation:(f, e, tag)")
             f = int(entry[0])
             e = int(entry[1])
+            tag = entry[2]
             if (f > size_f or e > size_e):
                 logger.error("NOT A VALID LINK")
                 logger.info(i + " " +
                             f + " " + size_f + " " +
                             e + " " + size_e)
-            testAlign.append((f, e))
+            testAlign.append((f, e, tag))
 
         certainAlign = []
         for entry in reference[i]["certain"]:
-            certainAlign.append((entry[0], entry[1]))
+            if (len(entry)) < 3:
+                logger.error("reference missing element.")
+            certainAlign.append((entry[0], entry[1], entry[2]))
 
         probableAlign = []
         for entry in reference[i]["probable"]:
-            probableAlign.append((entry[0], entry[1]))
+            if (len(entry)) < 3:
+                logger.error("reference missing element.")
+            probableAlign.append((entry[0], entry[1], entry[2]))
 
         # grade
         totalAlign += len(testAlign)

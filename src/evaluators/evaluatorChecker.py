@@ -100,5 +100,5 @@ if __name__ == '__main__':
         else:
             print "Evaluator", name, ": failed"
 
-    print "Now performing behaviour tests"
-    unittest.main()
+    # print "Now performing behaviour tests"
+    # unittest.main()
