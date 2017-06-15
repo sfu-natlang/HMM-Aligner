@@ -58,6 +58,7 @@ class TestEvaluators(unittest.TestCase):
             "Precision": 1.0,
             "Recall": 1.0,
             "AER": 0.0,
+            "F-score": 1.0
         }
         self.assertEqual(evaluate(bitext, certainAlign, noType), correctAnswer)
         return
@@ -100,5 +101,5 @@ if __name__ == '__main__':
         else:
             print "Evaluator", name, ": failed"
 
-    # print "Now performing behaviour tests"
-    # unittest.main()
+    print "Now performing behaviour tests"
+    unittest.main()
