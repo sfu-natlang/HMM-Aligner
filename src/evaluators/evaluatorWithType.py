@@ -28,7 +28,9 @@ def evaluate(bitext, result, reference):
         testAlign = []
         for entry in result[i]:
             if (len(entry)) < 3:
-                logger.error("Result missing element. Expectation:(f, e, tag)")
+                logger.warning("Result missing element." +
+                               " Expectation:(f, e, tag)")
+                entry = entry + ("",)
             f = int(entry[0])
             e = int(entry[1])
             tag = entry[2]
@@ -42,13 +44,15 @@ def evaluate(bitext, result, reference):
         certainAlign = []
         for entry in reference[i]["certain"]:
             if (len(entry)) < 3:
-                logger.error("reference missing element.")
+                logger.warning("reference missing element.")
+                entry = entry + ("",)
             certainAlign.append((entry[0], entry[1], entry[2]))
 
         probableAlign = []
         for entry in reference[i]["probable"]:
             if (len(entry)) < 3:
-                logger.error("reference missing element.")
+                logger.warning("reference missing element.")
+                entry = entry + ("",)
             probableAlign.append((entry[0], entry[1], entry[2]))
 
         # grade

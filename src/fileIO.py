@@ -99,30 +99,36 @@ def loadAlignment(fileName, linesToLoad=sys.maxint):
             # Every entry is expected to be of the format: "NN-NN,NN" or
             # "NN?NN,NN", where NNs are numbers
             if entry.find('-') != -1:
-                for ch in ('(', ')', '[', ']'):
+                for ch in (',', '(', ')', '[', ']'):
                     entry = entry.replace(ch, '-')
                 items = entry.split('-')
                 f = int(items[0])
-                for eStr in items[1].split(','):
-                    if eStr == '':
-                        continue
-                    e = int(eStr)
-                    if len(items) > 2:
-                        certainAlign.append((f, e, items[2]))
+                alignmentType = ""
+                for i in range(len(items) - 1, 0, -1):
+                    if items[i].isdigit():
+                        e = int(items[i])
+                        if alignmentType != "":
+                            certainAlign.append((f, e, alignmentType))
+                        else:
+                            certainAlign.append((f, e))
                     else:
-                        certainAlign.append((f, e))
+                        alignmentType = items[i]
 
             elif entry.find('?') != -1:
-                for ch in ('(', ')', '[', ']'):
+                for ch in (',', '(', ')', '[', ']'):
                     entry = entry.replace(ch, '?')
                 items = entry.split('?')
                 f = int(items[0])
-                for eStr in items[1].split(','):
-                    e = int(eStr)
-                    if len(items) > 2:
-                        probableAlign.append((f, e, items[2]))
+                alignmentType = ""
+                for i in range(len(items) - 1, 0, -1):
+                    if items[i].isdigit():
+                        e = int(items[i])
+                        if alignmentType != "":
+                            probableAlign.append((f, e, alignmentType))
+                        else:
+                            probableAlign.append((f, e))
                     else:
-                        probableAlign.append((f, e))
+                        alignmentType = items[i]
 
         sentenceAlignment = {"certain": certainAlign,
                              "probable": probableAlign}
