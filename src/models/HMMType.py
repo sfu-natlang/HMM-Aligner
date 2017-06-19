@@ -309,6 +309,7 @@ class AlignmentModelTag():
             logger.info("time spent in M-step: " +
                         str(end2_time - end_time))
             logger.info("iteration " + str(iteration) + " completed")
+            self.task = None
 
         return
 
