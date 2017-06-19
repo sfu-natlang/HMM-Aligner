@@ -46,7 +46,7 @@ class AlignmentModelTag():
         self.task = None
         self.evaluate = evaluate
 
-        self.tagMap = {
+        self.typeMap = {
             "SEM": 0,
             "FUN": 1,
             "PDE": 2,
@@ -59,18 +59,18 @@ class AlignmentModelTag():
             "NTR": 9,
             "MTA": 10
         }
-        self.tagDist = [0.401, 0.264, 0.004, 0.004,
-                        0.012, 0.205, 0.031, 0.008,
-                        0.003, 0.086, 0.002]
+        self.typeDist = [0.401, 0.264, 0.004, 0.004,
+                         0.012, 0.205, 0.031, 0.008,
+                         0.003, 0.086, 0.002]
         return
 
-    def initWithIBM(self, modelIBM1, bitext):
+    def initWithIBM(self, modelIBM1, tritext):
         self.f_count = modelIBM1.f_count
         self.e_count = modelIBM1.e_count
         self.fe_count = modelIBM1.fe_count
         self.total_f_e_h = modelIBM1.total_f_e_h
         self.t = modelIBM1.t
-        self.bitext = bitext
+        self.tritext = tritext
         self.s = {}
         for f, e, h in self.total_f_e_h:
             self.s[(f, e, h)] =\
@@ -135,17 +135,18 @@ class AlignmentModelTag():
                 betaHat[i][t] = alphaScale[t] * total
         return betaHat
 
-    def maxTargetSentenceLength(self, bitext):
+    def maxTargetSentenceLength(self, tritext):
         maxLength = 0
         targetLengthSet = defaultdict(int)
-        for (f, e) in bitext:
+        for item in tritext:
+            f, e = item[0:2]
             tempLength = len(e)
             if tempLength > maxLength:
                 maxLength = tempLength
             targetLengthSet[tempLength] += 1
         return (maxLength, targetLengthSet)
 
-    def mapBitextToInt(self, fe_count):
+    def mapTritextToInt(self, fe_count):
         index = defaultdict(int)
         biword = defaultdict(tuple)
         i = 0
@@ -158,13 +159,13 @@ class AlignmentModelTag():
     def baumWelch(self, iterations=5):
         if not self.task:
             self.task = Task("Aligner", "HMMBaumWelchOI" + str(iterations))
-        bitext = self.bitext
-        N, self.targetLengthSet = self.maxTargetSentenceLength(bitext)
+        tritext = self.tritext
+        N, self.targetLengthSet = self.maxTargetSentenceLength(tritext)
 
         logger.info("maxTargetSentenceLength(N) " + str(N))
-        indexMap, biword = self.mapBitextToInt(self.fe_count)
+        indexMap, biword = self.mapTritextToInt(self.fe_count)
 
-        L = len(bitext)
+        L = len(tritext)
         sd_size = len(indexMap)
         totalGammaDeltaOAO_t_i = None
         totalGammaDeltaOAO_t_overall_states_over_dest = None
@@ -200,12 +201,13 @@ class AlignmentModelTag():
             start0_time = time.time()
 
             counter = 0
-            for (f, e) in bitext:
+            for item in tritext:
+                f, e = item[0:2]
                 if counter % 100 == 0:
                     logger.info("sentence " + str(counter) +
                                 " of iteration " + str(iteration))
                 self.task.progress("BaumWelch iter %d, %d of %d" %
-                                   (iteration, counter, len(bitext),))
+                                   (iteration, counter, len(tritext),))
                 counter += 1
                 c = defaultdict(float)
 
@@ -229,10 +231,12 @@ class AlignmentModelTag():
                         totalGammaDeltaOAO_t_i[
                             indexMap[(f[t - 1], e[i - 1])]] += gamma[i][t]
 
-                        for h in range(1, len(self.tagMap) + 1):
+                        for h in range(len(self.typeMap)):
                             f_e_h = (f[t - 1], e[i - 1], h)
                             self.total_f_e_h[f_e_h] += \
-                                gamma[i][t] * self.sProbability(f_e_h)
+                                gamma[i][t] * self.sProbability(f[t - 1],
+                                                                e[i - 1],
+                                                                h)
 
                 # Setting xi(c)
                 for t in range(1, len(f)):
@@ -254,7 +258,7 @@ class AlignmentModelTag():
                         totalC_j_Minus_iOAO[i][j][len(e)] += c[j - i]
                         totalC_l_Minus_iOAO[i][len(e)] += c[j - i]
                     totalGamma1OAO[i] += gamma[i][1]
-            # end of loop over bitext
+            # end of loop over tritext
 
             start_time = time.time()
 
@@ -341,96 +345,7 @@ class AlignmentModelTag():
 
     def sProbability(self, f, e, h):
         return self.lambd * self.s[(f, e, h)] +\
-            (1 - self.lambd) * self.tagDist[h]
-
-    def logViterbi(self, f, e):
-        '''
-        This function returns alignment of given sentence in two languages
-        @param f: source sentence
-        @param e: target sentence
-        @return: list of alignment
-        '''
-        N = len(e)
-        twoN = 2 * N
-        V = [[0.0 for x in range(len(f))] for y in range(twoN + 1)]
-        ptr = [[0 for x in range(len(f))] for y in range(twoN + 1)]
-        newd = ["null" for x in range(twoN)]
-        for i in range(len(e)):
-            newd[i] = e[i]
-        for i in range(len(e), twoN):
-            newd[i] = "null"
-
-        for q in range(1, twoN + 1):
-            tPr = self.tProbability(f[0], newd[q - 1])
-            if tPr == 0 or self.pi[q] == 0:
-                V[q][0] = - sys.maxint - 1
-            else:
-                V[q][0] = log(self.pi[q]) + log(tPr)
-
-        for t in range(1, len(f)):
-            for q in range(1, twoN + 1):
-                maximum = - sys.maxint - 1
-                max_q = - sys.maxint - 1
-                tPr = self.tProbability(f[t], newd[q - 1])
-                for q_prime in range(1, twoN + 1):
-                    aPr = self.aProbability(q_prime, q, N)
-                    if (aPr != 0) and (tPr != 0):
-                        temp = V[q_prime][t - 1] + log(aPr) + log(tPr)
-                        if temp > maximum:
-                            maximum = temp
-                            max_q = q_prime
-                V[q][t] = maximum
-                ptr[q][t] = max_q
-
-        max_of_V = - sys.maxint - 1
-        q_of_max_of_V = 0
-        for q in range(1, twoN + 1):
-            if V[q][len(f) - 1] > max_of_V:
-                max_of_V = V[q][len(f) - 1]
-                q_of_max_of_V = q
-
-        trace = []
-        trace.append(q_of_max_of_V)
-        q = q_of_max_of_V
-        i = len(f) - 1
-        while (i > 0):
-            q = ptr[q][i]
-            trace = [q] + trace
-            i = i - 1
-        return trace
-
-    def decode(self, bitext):
-        logger.info("Start decoding")
-        logger.info("Testing size: " + str(len(bitext)))
-        result = []
-
-        for (f, e) in bitext:
-            sentenceAlignment = []
-            N = len(e)
-            bestAlignment = self.logViterbi(f, e)
-
-            for i in range(len(bestAlignment)):
-                if bestAlignment[i] <= len(e):
-                    sentenceAlignment.append((i + 1, bestAlignment[i]))
-
-            result.append(sentenceAlignment)
-        logger.info("Decoding Completed")
-        return result
-
-    def train(self, bitext, iterations):
-        self.task = Task("Aligner", "HMMOI" + str(iterations))
-        self.task.progress("Training IBM model 1")
-        logger.info("Training IBM model 1")
-        alignerIBM1 = AlignerIBM1()
-        alignerIBM1.train(bitext, iterations)
-        self.initWithIBM(alignerIBM1, bitext)
-        self.task.progress("IBM model Trained")
-        logger.info("IBM model Trained")
-        self.baumWelch(iterations=iterations)
-        self.task.progress("finalising")
-        self.multiplyOneMinusP0H()
-        self.task = None
-        return
+            (1 - self.lambd) * self.typeDist[h]
 
 
 class AlignmentModel():
@@ -443,7 +358,7 @@ class AlignmentModel():
         self.task = None
         self.evaluate = evaluate
 
-        self.tagMap = {
+        self.typeMap = {
             "SEM": 0,
             "FUN": 1,
             "PDE": 2,
@@ -456,18 +371,17 @@ class AlignmentModel():
             "NTR": 9,
             "MTA": 10
         }
-        self.tagDist = [0.401, 0.264, 0.004, 0.004,
-                        0.012, 0.205, 0.031, 0.008,
-                        0.003, 0.086, 0.002]
+        self.typeDist = [0.401, 0.264, 0.004, 0.004,
+                         0.012, 0.205, 0.031, 0.008,
+                         0.003, 0.086, 0.002]
         return
 
-    def initWithIBM(self, modelIBM1, bitext):
+    def initWithIBM(self, modelIBM1):
         self.f_count = modelIBM1.f_count
         self.e_count = modelIBM1.e_count
         self.fe_count = modelIBM1.fe_count
         self.total_f_e_h = modelIBM1.total_f_e_h
         self.t = modelIBM1.t
-        self.bitext = bitext
         self.s = {}
         for f, e, h in self.total_f_e_h:
             self.s[(f, e, h)] =\
@@ -532,17 +446,18 @@ class AlignmentModel():
                 betaHat[i][t] = alphaScale[t] * total
         return betaHat
 
-    def maxTargetSentenceLength(self, bitext):
+    def maxTargetSentenceLength(self, tritext):
         maxLength = 0
         targetLengthSet = defaultdict(int)
-        for (f, e) in bitext:
+        for item in bitext:
+            f, e = item[0:2]
             tempLength = len(e)
             if tempLength > maxLength:
                 maxLength = tempLength
             targetLengthSet[tempLength] += 1
         return (maxLength, targetLengthSet)
 
-    def mapBitextToInt(self, fe_count):
+    def mapTritextToInt(self, fe_count):
         index = defaultdict(int)
         biword = defaultdict(tuple)
         i = 0
@@ -552,16 +467,15 @@ class AlignmentModel():
             i += 1
         return (index, biword)
 
-    def baumWelch(self, iterations=5):
+    def baumWelch(self, formTritext, tagTritext, iterations=5):
         if not self.task:
             self.task = Task("Aligner", "HMMBaumWelchOI" + str(iterations))
-        bitext = self.bitext
-        N, self.targetLengthSet = self.maxTargetSentenceLength(bitext)
+        N, self.targetLengthSet = self.maxTargetSentenceLength(formTritext)
 
         logger.info("maxTargetSentenceLength(N) " + str(N))
-        indexMap, biword = self.mapBitextToInt(self.fe_count)
+        indexMap, biword = self.mapTritextToInt(self.fe_count)
 
-        L = len(bitext)
+        L = len(formTritext)
         sd_size = len(indexMap)
         totalGammaDeltaOAO_t_i = None
         totalGammaDeltaOAO_t_overall_states_over_dest = None
@@ -597,12 +511,15 @@ class AlignmentModel():
             start0_time = time.time()
 
             counter = 0
-            for (f, e) in bitext:
+            for itemForm, itemTag in zip(formTritext, tagTritext):
+                f, e = itemTag[0:2]
+                fTags, eTags = itemTag[0:2]
+
                 if counter % 100 == 0:
                     logger.info("sentence " + str(counter) +
                                 " of iteration " + str(iteration))
                 self.task.progress("BaumWelch iter %d, %d of %d" %
-                                   (iteration, counter, len(bitext),))
+                                   (iteration, counter, len(formTritext),))
                 counter += 1
                 c = defaultdict(float)
 
@@ -626,10 +543,14 @@ class AlignmentModel():
                         totalGammaDeltaOAO_t_i[
                             indexMap[(f[t - 1], e[i - 1])]] += gamma[i][t]
 
-                        for h in range(1, len(self.tagMap) + 1):
+                        for h in range(1, len(self.typeMap) + 1):
                             f_e_h = (f[t - 1], e[i - 1], h)
                             self.total_f_e_h[f_e_h] += \
-                                gamma[i][t] * self.sProbability(f_e_h)
+                                gamma[i][t] * self.sProbability(f[t - 1],
+                                                                e[i - 1],
+                                                                h,
+                                                                fTags[t - 1],
+                                                                eTags[i - 1])
 
                 # Setting xi(c)
                 for t in range(1, len(f)):
@@ -651,7 +572,7 @@ class AlignmentModel():
                         totalC_j_Minus_iOAO[i][j][len(e)] += c[j - i]
                         totalC_l_Minus_iOAO[i][len(e)] += c[j - i]
                     totalGamma1OAO[i] += gamma[i][1]
-            # end of loop over bitext
+            # end of loop over tritext
 
             start_time = time.time()
 
@@ -736,11 +657,62 @@ class AlignmentModel():
             return self.a[iPrime][i][I]
         return 1.0 / I
 
-    def sProbability(self, f, e, h):
-        return self.lambd * self.s[(f, e, h)] +\
-            (1 - self.lambd) * self.tagDist[h]
+    def sProbability(self, fWord, eWord, h, fTag, eTag):
+        first = self.lambd * self.s[(f, e, h)] +\
+            (1 - self.lambd) * self.typeDist[h]
+        second = self.lambd * self.sTag[(f, e, h)] +\
+            (1 - self.lambd) * self.typeDist[h]
 
-    def logViterbi(self, f, e):
+        return (self.lambda1 * first +
+                self.lambda2 * second +
+                self.lambda3 * self.typeDist[h])
+
+    def train(self, formTritext, tagTritext, iterations=5):
+        self.task = Task("Aligner", "HMMTypeI" + str(iterations))
+
+        self.task.progress("Training IBM model 1 with tags")
+        logger.info("Training IBM model 1 with tags")
+
+        alignerIBM1POSTag = AlignerIBM1()
+        alignerIBM1POSTag.train(tagTritext, iterations)
+
+        self.task.progress("IBM model with tags Trained")
+        logger.info("IBM model with tags Trained")
+
+        self.task.progress("Training HMM with tags")
+        logger.info("Training HMM with tags")
+
+        alignerHMMTag = AlignmentModelTag()
+        alignerHMMTag.initWithIBM(alignerIBM1, tagTritext)
+        alignerHMMTag.baumWelch(iterations=iterations)
+        alignerHMMTag.multiplyOneMinusP0H()
+
+        self.task.progress("HMM model with tags Trained")
+        logger.info("HMM model with tags Trained")
+
+        self.task.progress("Training IBM model with FORM")
+        logger.info("Training IBM model with FORM")
+
+        alignerIBM1 = AlignerIBM1()
+        alignerIBM1.train(formTritext, iterations)
+
+        self.task.progress("IBM model with tags Trained")
+        logger.info("IBM model with tags Trained")
+
+        self.task.progress("Training HMM")
+        logger.info("Training HMM")
+
+        self.initWithIBM(alignerIBM1, formTritext)
+        self.baumWelch(iterations=iterations)
+        self.multiplyOneMinusP0H()
+
+        self.task.progress("HMM model Trained")
+        logger.info("HMM model with Trained")
+
+        self.task = None
+        return
+
+    def logViterbi(self, f, e, fTags, eTags):
         '''
         This function returns alignment of given sentence in two languages
         @param f: source sentence
@@ -749,20 +721,41 @@ class AlignmentModel():
         '''
         N = len(e)
         twoN = 2 * N
-        V = [[0.0 for x in range(len(f))] for y in range(twoN + 1)]
-        ptr = [[0 for x in range(len(f))] for y in range(twoN + 1)]
+        V = [[[0.0 for z in range(len(self.typeMap))]
+             for x in range(len(f))]
+             for y in range(twoN + 1)]
+        ptr = [[[0 for z in range(len(self.typeMap))]
+               for x in range(len(f))]
+               for y in range(twoN + 1)]
+        ptr_h = [[[0 for z in range(len(self.typeMap))]
+                 for x in range(len(f))]
+                 for y in range(twoN + 1)]
         newd = ["null" for x in range(twoN)]
+        newdTags = ["null" for x in range(twoN)]
         for i in range(len(e)):
             newd[i] = e[i]
+            newdTags[i] = eTags[i]
         for i in range(len(e), twoN):
             newd[i] = "null"
+            newdTags[i] = "null"
 
         for q in range(1, twoN + 1):
             tPr = self.tProbability(f[0], newd[q - 1])
-            if tPr == 0 or self.pi[q] == 0:
-                V[q][0] = - sys.maxint - 1
-            else:
-                V[q][0] = log(self.pi[q]) + log(tPr)
+            for h in range(len(self.typeMap)):
+                first = (
+                    self.s[(f[0], newd[q - 1], h)] * (1 - 1e-20) +
+                    1e-20 * typeDist[h])
+                second = (
+                    self.sTag[(fTags[0]), newdTags[q - 1]] * (1 - 1e-20) +
+                    1e-20 * typeDist[h])
+                s = (self.lambda1 * first +
+                     self.lambda2 * second +
+                     self.lambda3 * self.typeDist[h])
+
+                if tPr == 0 or self.pi[q] == 0 or s == 0:
+                    V[q][0][h] = - sys.maxint - 1
+                else:
+                    V[q][0][h] = log(self.pi[q]) + log(tPr) + log(s)
 
         for t in range(1, len(f)):
             for q in range(1, twoN + 1):
@@ -771,60 +764,81 @@ class AlignmentModel():
                 tPr = self.tProbability(f[t], newd[q - 1])
                 for q_prime in range(1, twoN + 1):
                     aPr = self.aProbability(q_prime, q, N)
-                    if (aPr != 0) and (tPr != 0):
-                        temp = V[q_prime][t - 1] + log(aPr) + log(tPr)
-                        if temp > maximum:
-                            maximum = temp
-                            max_q = q_prime
+                    for h in range(len(self.typeMap)):
+                        if (aPr != 0) and (tPr != 0):
+                            temp = V[q_prime][t - 1][h] + log(aPr) + log(tPr)
+                            if temp > maximum:
+                                maximum = temp
+                                max_q = q_prime
+                                max_h = h
+
+                for h in range(len(self.typeMap)):
+                    feh = (f[t], newd[q - 1], h)
+                    taggedFeh = (fTags[t], newdTags[q - 1], h)
+                    first = self.s[(f[t], newd[q - 1], h)]
+                    second = self.sTag[(fTags[t], newdTags[q - 1], h)]
+
+                    first = first * (1 - 1e-20) + 1e-20 * tagDist[h]
+                    second = second * (1 - 1e-20) + 1e-20 * tagDist[h]
+
+                    s = (lambda1 * first +
+                         lambda2 * second +
+                         lambda3 * self.typeDist[h])
+
+                    if s != 0:
+                        temp_s = log(s)
+                        V[q][t][h] = maximum + temp_s
+                        ptr[q][t][h] = max_q
+                        ptr_h[q][t][h] = max_h
+
                 V[q][t] = maximum
                 ptr[q][t] = max_q
 
         max_of_V = - sys.maxint - 1
         q_of_max_of_V = 0
+        h_of_max_of_V = 0
         for q in range(1, twoN + 1):
-            if V[q][len(f) - 1] > max_of_V:
-                max_of_V = V[q][len(f) - 1]
-                q_of_max_of_V = q
+            for h in range(len(self.typeMap)):
+                if V[q][len(f) - 1][h] > max_of_V:
+                    max_of_V = V[q][len(f) - 1][h]
+                    q_of_max_of_V = q
+                    h_of_max_of_V = h
 
         trace = []
+        bestLinkTrace = []
         trace.append(q_of_max_of_V)
+        bestLinkTrace.append(h_of_max_of_V)
+
         q = q_of_max_of_V
         i = len(f) - 1
-        while (i > 0):
-            q = ptr[q][i]
-            trace = [q] + trace
-            i = i - 1
-        return trace
+        h = h_of_max_of_V
 
-    def decode(self, bitext):
+        while (i > 0):
+            qOld = q
+            hOld = h
+
+            q = ptr[qOld][i][hOld]
+            h = ptr_h[qOld][i][hOld]
+            trace = [q] + trace
+            bestLinkTrace = [h] + trace
+            i = i - 1
+        return trace, bestLinkTrace
+
+    def decode(self, formBitext, tagBitext):
         logger.info("Start decoding")
         logger.info("Testing size: " + str(len(bitext)))
         result = []
 
-        for (f, e) in bitext:
+        for (f, e), (fTags, eTags) in zip(formBitext, tagBitext):
             sentenceAlignment = []
             N = len(e)
-            bestAlignment = self.logViterbi(f, e)
+            bestAlign, bestAlignType = self.logViterbi(f, e, fTags, eTags)
 
-            for i in range(len(bestAlignment)):
-                if bestAlignment[i] <= len(e):
-                    sentenceAlignment.append((i + 1, bestAlignment[i]))
+            for i in range(len(bestAlign)):
+                if bestAlign[i] <= len(e):
+                    sentenceAlignment.append(
+                        (i + 1, bestAlign[i], bestAlignType[i]))
 
             result.append(sentenceAlignment)
         logger.info("Decoding Completed")
         return result
-
-    def train(self, bitext, iterations):
-        self.task = Task("Aligner", "HMMOI" + str(iterations))
-        self.task.progress("Training IBM model 1")
-        logger.info("Training IBM model 1")
-        alignerIBM1 = AlignerIBM1()
-        alignerIBM1.train(bitext, iterations)
-        self.initWithIBM(alignerIBM1, bitext)
-        self.task.progress("IBM model Trained")
-        logger.info("IBM model Trained")
-        self.baumWelch(iterations=iterations)
-        self.task.progress("finalising")
-        self.multiplyOneMinusP0H()
-        self.task = None
-        return

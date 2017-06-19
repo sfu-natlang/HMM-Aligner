@@ -74,7 +74,8 @@ class AlignmentModel():
         '''
         self.initialiseTagMap()
 
-        for (f, e) in bitext:
+        for item in bitext:
+            f, e = item[0:2]
             # Initialise f_count
             for f_i in f:
                 self.f_count[f_i] += 1
@@ -174,7 +175,8 @@ class AlignmentModel():
             self.logger.info("Starting Iteration " + str(iteration))
             counter = 0
 
-            for (f, e) in bitext:
+            for item in bitext:
+                f, e = item[0:2]
                 counter += 1
                 task.progress("IBM1New iter %d, %d of %d" %
                               (iteration, counter, len(bitext),))
@@ -199,7 +201,8 @@ class AlignmentModel():
         self.logger.info("Testing size: " + str(len(bitext)))
         result = []
 
-        for (f, e) in bitext:
+        for item in bitext:
+            f, e = item[0:2]
             sentenceAlignment = []
 
             for i in range(len(f)):
