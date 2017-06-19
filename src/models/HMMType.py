@@ -44,7 +44,11 @@ class AlignmentModelTag():
         self.a = None
         self.pi = None
         self.task = None
-        self.evaluate = evaluate
+
+        self.lambd = 1 - 1e-20
+        self.lambda1 = 0.9999999999
+        self.lambda2 = 9.999900827395436E-11
+        self.lambda3 = 1.000000082740371E-15
 
         self.typeMap = {
             "SEM": 0,
@@ -71,7 +75,7 @@ class AlignmentModelTag():
         self.total_f_e_h = modelIBM1.total_f_e_h
         self.t = modelIBM1.t
         self.tritext = tritext
-        self.s = {}
+        self.s = defaultdict(float)
         for f, e, h in self.total_f_e_h:
             self.s[(f, e, h)] =\
                 self.total_f_e_h[(f, e, h)] /\
@@ -158,7 +162,7 @@ class AlignmentModelTag():
 
     def baumWelch(self, iterations=5):
         if not self.task:
-            self.task = Task("Aligner", "HMMBaumWelchOI" + str(iterations))
+            self.task = Task("Aligner", "HMMBWTagI" + str(iterations))
         tritext = self.tritext
         N, self.targetLengthSet = self.maxTargetSentenceLength(tritext)
 
@@ -182,7 +186,7 @@ class AlignmentModelTag():
             logLikelihood = 0
 
             totalGammaDeltaOAO_t_i = \
-                [0.0 for x in range(sd_size)]
+                [1e-63 for x in range(sd_size)]
             totalGammaDeltaOAO_t_overall_states_over_dest =\
                 defaultdict(float)
             totalGamma1OAO = [0.0 for x in range(N + 1)]
@@ -247,12 +251,6 @@ class AlignmentModelTag():
                                          small_t[t][j - 1] *
                                          beta_hat[j][t + 1])
 
-                for d in range(-len(e) - 1, len(e) + 1):
-                    for t in range(1, len(f) + 1):
-                        for i in range(len(e) + 1):
-                            if (i + d <= len(e) and i + d >= 1):
-                                c[d] += xi[i][i + d][t]
-
                 for i in range(1, len(e) + 1):
                     for j in range(1, len(e) + 1):
                         totalC_j_Minus_iOAO[i][j][len(e)] += c[j - i]
@@ -305,7 +303,7 @@ class AlignmentModelTag():
 
             for f, e, h in self.total_f_e_h:
                 self.s[(f, e, h)] = (self.total_f_e_h[(f, e, h)] /
-                                     totalGammaDeltaOAO_t_i[(f, e)])
+                                     totalGammaDeltaOAO_t_i[indexMap[(f, e)]])
 
             end2_time = time.time()
             logger.info("time spent in M-step: " +
@@ -358,6 +356,11 @@ class AlignmentModel():
         self.task = None
         self.evaluate = evaluate
 
+        self.lambd = 1 - 1e-20
+        self.lambda1 = 0.9999999999
+        self.lambda2 = 9.999900827395436E-11
+        self.lambda3 = 1.000000082740371E-15
+
         self.typeMap = {
             "SEM": 0,
             "FUN": 1,
@@ -382,7 +385,7 @@ class AlignmentModel():
         self.fe_count = modelIBM1.fe_count
         self.total_f_e_h = modelIBM1.total_f_e_h
         self.t = modelIBM1.t
-        self.s = {}
+        self.s = defaultdict(float)
         for f, e, h in self.total_f_e_h:
             self.s[(f, e, h)] =\
                 self.total_f_e_h[(f, e, h)] /\
@@ -407,7 +410,7 @@ class AlignmentModel():
     def forwardWithTScaled(self, f, e, small_t):
         alphaScale = [0.0 for x in range(len(f) + 1)]
         alpha = [[0.0 for x in range(len(f) + 1)] for y in range(len(e) + 1)]
-        alphaSum = 0
+        alphaSum = 1e-63
 
         for i in range(1, len(e) + 1):
             alpha[i][1] = self.pi[i] * small_t[0][i - 1]
@@ -418,7 +421,7 @@ class AlignmentModel():
             alpha[i][1] *= alphaScale[1]
 
         for t in range(2, len(f) + 1):
-            alphaSum = 0
+            alphaSum = 1e-63
             for j in range(1, len(e) + 1):
                 total = 0
                 for i in range(1, len(e) + 1):
@@ -449,7 +452,7 @@ class AlignmentModel():
     def maxTargetSentenceLength(self, tritext):
         maxLength = 0
         targetLengthSet = defaultdict(int)
-        for item in bitext:
+        for item in tritext:
             f, e = item[0:2]
             tempLength = len(e)
             if tempLength > maxLength:
@@ -469,7 +472,7 @@ class AlignmentModel():
 
     def baumWelch(self, formTritext, tagTritext, iterations=5):
         if not self.task:
-            self.task = Task("Aligner", "HMMBaumWelchOI" + str(iterations))
+            self.task = Task("Aligner", "HMMBWTypeI" + str(iterations))
         N, self.targetLengthSet = self.maxTargetSentenceLength(formTritext)
 
         logger.info("maxTargetSentenceLength(N) " + str(N))
@@ -492,7 +495,7 @@ class AlignmentModel():
             logLikelihood = 0
 
             totalGammaDeltaOAO_t_i = \
-                [0.0 for x in range(sd_size)]
+                [1e-63 for x in range(sd_size)]
             totalGammaDeltaOAO_t_overall_states_over_dest =\
                 defaultdict(float)
             totalGamma1OAO = [0.0 for x in range(N + 1)]
@@ -543,7 +546,7 @@ class AlignmentModel():
                         totalGammaDeltaOAO_t_i[
                             indexMap[(f[t - 1], e[i - 1])]] += gamma[i][t]
 
-                        for h in range(1, len(self.typeMap) + 1):
+                        for h in range(len(self.typeMap)):
                             f_e_h = (f[t - 1], e[i - 1], h)
                             self.total_f_e_h[f_e_h] += \
                                 gamma[i][t] * self.sProbability(f[t - 1],
@@ -560,12 +563,6 @@ class AlignmentModel():
                                          self.a[i][j][len(e)] *
                                          small_t[t][j - 1] *
                                          beta_hat[j][t + 1])
-
-                for d in range(-len(e) - 1, len(e) + 1):
-                    for t in range(1, len(f) + 1):
-                        for i in range(len(e) + 1):
-                            if (i + d <= len(e) and i + d >= 1):
-                                c[d] += xi[i][i + d][t]
 
                 for i in range(1, len(e) + 1):
                     for j in range(1, len(e) + 1):
@@ -619,7 +616,7 @@ class AlignmentModel():
 
             for f, e, h in self.total_f_e_h:
                 self.s[(f, e, h)] = (self.total_f_e_h[(f, e, h)] /
-                                     totalGammaDeltaOAO_t_i[(f, e)])
+                                     totalGammaDeltaOAO_t_i[indexMap[(f, e)]])
 
             end2_time = time.time()
             logger.info("time spent in M-step: " +
@@ -658,9 +655,9 @@ class AlignmentModel():
         return 1.0 / I
 
     def sProbability(self, fWord, eWord, h, fTag, eTag):
-        first = self.lambd * self.s[(f, e, h)] +\
+        first = self.lambd * self.s[(fWord, eWord, h)] +\
             (1 - self.lambd) * self.typeDist[h]
-        second = self.lambd * self.sTag[(f, e, h)] +\
+        second = self.lambd * self.sTag[(fTag, eTag, h)] +\
             (1 - self.lambd) * self.typeDist[h]
 
         return (self.lambda1 * first +
@@ -683,9 +680,10 @@ class AlignmentModel():
         logger.info("Training HMM with tags")
 
         alignerHMMTag = AlignmentModelTag()
-        alignerHMMTag.initWithIBM(alignerIBM1, tagTritext)
+        alignerHMMTag.initWithIBM(alignerIBM1POSTag, tagTritext)
         alignerHMMTag.baumWelch(iterations=iterations)
         alignerHMMTag.multiplyOneMinusP0H()
+        self.sTag = alignerHMMTag.s
 
         self.task.progress("HMM model with tags Trained")
         logger.info("HMM model with tags Trained")
@@ -702,8 +700,8 @@ class AlignmentModel():
         self.task.progress("Training HMM")
         logger.info("Training HMM")
 
-        self.initWithIBM(alignerIBM1, formTritext)
-        self.baumWelch(iterations=iterations)
+        self.initWithIBM(alignerIBM1)
+        self.baumWelch(formTritext, tagTritext, iterations=iterations)
         self.multiplyOneMinusP0H()
 
         self.task.progress("HMM model Trained")
@@ -743,16 +741,18 @@ class AlignmentModel():
             tPr = self.tProbability(f[0], newd[q - 1])
             for h in range(len(self.typeMap)):
                 first = (
-                    self.s[(f[0], newd[q - 1], h)] * (1 - 1e-20) +
-                    1e-20 * typeDist[h])
+                    self.s[(f[0], newd[q - 1], h)] * self.lambd +
+                    (1 - self.lambd) * self.typeDist[h])
                 second = (
-                    self.sTag[(fTags[0]), newdTags[q - 1]] * (1 - 1e-20) +
-                    1e-20 * typeDist[h])
+                    self.sTag[(fTags[0]), newdTags[q - 1]] * self.lambd +
+                    (1 - self.lambd) * self.typeDist[h])
                 s = (self.lambda1 * first +
                      self.lambda2 * second +
                      self.lambda3 * self.typeDist[h])
 
-                if tPr == 0 or self.pi[q] == 0 or s == 0:
+                if q >= len(self.pi):
+                    V[q][0][h] = - sys.maxint - 1
+                elif tPr == 0 or self.pi[q] == 0 or s == 0:
                     V[q][0][h] = - sys.maxint - 1
                 else:
                     V[q][0][h] = log(self.pi[q]) + log(tPr) + log(s)
@@ -761,6 +761,7 @@ class AlignmentModel():
             for q in range(1, twoN + 1):
                 maximum = - sys.maxint - 1
                 max_q = - sys.maxint - 1
+                max_h = 0
                 tPr = self.tProbability(f[t], newd[q - 1])
                 for q_prime in range(1, twoN + 1):
                     aPr = self.aProbability(q_prime, q, N)
@@ -773,26 +774,16 @@ class AlignmentModel():
                                 max_h = h
 
                 for h in range(len(self.typeMap)):
-                    feh = (f[t], newd[q - 1], h)
-                    taggedFeh = (fTags[t], newdTags[q - 1], h)
-                    first = self.s[(f[t], newd[q - 1], h)]
-                    second = self.sTag[(fTags[t], newdTags[q - 1], h)]
-
-                    first = first * (1 - 1e-20) + 1e-20 * tagDist[h]
-                    second = second * (1 - 1e-20) + 1e-20 * tagDist[h]
-
-                    s = (lambda1 * first +
-                         lambda2 * second +
-                         lambda3 * self.typeDist[h])
-
+                    s = self.sProbability(f[t],
+                                          newd[q - 1],
+                                          h,
+                                          fTags[t],
+                                          newdTags[q - 1])
                     if s != 0:
                         temp_s = log(s)
                         V[q][t][h] = maximum + temp_s
                         ptr[q][t][h] = max_q
                         ptr_h[q][t][h] = max_h
-
-                V[q][t] = maximum
-                ptr[q][t] = max_q
 
         max_of_V = - sys.maxint - 1
         q_of_max_of_V = 0
@@ -826,7 +817,7 @@ class AlignmentModel():
 
     def decode(self, formBitext, tagBitext):
         logger.info("Start decoding")
-        logger.info("Testing size: " + str(len(bitext)))
+        logger.info("Testing size: " + str(len(formBitext)))
         result = []
 
         for (f, e), (fTags, eTags) in zip(formBitext, tagBitext):
