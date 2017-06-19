@@ -22,7 +22,7 @@ __version__ = "0.2a"
 
 supportedModels = [
     "IBM1Old", "IBM1New", "HMMOld",
-    "IBM1Type"
+    "IBM1Type", "HMMType"
 ]
 
 requiredMethods1 = {
