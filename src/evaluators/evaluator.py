@@ -65,6 +65,7 @@ def evaluate(bitext, result, reference):
     logger.info("Precision = " + str(precision))
     logger.info("Recall    = " + str(recall))
     logger.info("AER       = " + str(aer))
+    logger.info("F-score   = " + str(fScore))
     return {
         "Precision": precision,
         "Recall": recall,
