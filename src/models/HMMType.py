@@ -806,6 +806,9 @@ class AlignmentModel():
         return trace, bestLinkTrace
 
     def decode(self, formBitext, tagBitext):
+        linkMap = ["SEM", "FUN", "PDE", "CDE",
+                   "MDE", "GIS", "GIF", "COI",
+                   "TIN", "NTR", "MTA"]
         logger.info("Start decoding")
         logger.info("Testing size: " + str(len(formBitext)))
         result = []
@@ -818,7 +821,7 @@ class AlignmentModel():
             for i in range(len(bestAlign)):
                 if bestAlign[i] <= len(e):
                     sentenceAlignment.append(
-                        (i + 1, bestAlign[i], bestAlignType[i]))
+                        (i + 1, bestAlign[i], linkMap[bestAlignType[i]]))
 
             result.append(sentenceAlignment)
         logger.info("Decoding Completed")
