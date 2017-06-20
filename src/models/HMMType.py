@@ -689,8 +689,8 @@ class AlignmentModel():
         alignerIBM1 = AlignerIBM1()
         alignerIBM1.train(formTritext, iterations)
 
-        self.task.progress("IBM model with tags Trained")
-        logger.info("IBM model with tags Trained")
+        self.task.progress("IBM model with FORM Trained")
+        logger.info("IBM model with FORM Trained")
 
         self.task.progress("Training HMM")
         logger.info("Training HMM")
@@ -700,7 +700,7 @@ class AlignmentModel():
         self.multiplyOneMinusP0H()
 
         self.task.progress("HMM model Trained")
-        logger.info("HMM model with Trained")
+        logger.info("HMM model Trained")
 
         self.task = None
         return
@@ -754,7 +754,7 @@ class AlignmentModel():
                 max_h = 0
                 tPr = self.tProbability(f[t], newd[q - 1])
                 for q_prime in range(1, twoN + 1):
-                    aPr = self.aProbability(q_prime, q, N)
+                    aPr = self.aProbability(q_prime, q, len(e))
                     for h in range(len(self.typeMap)):
                         if (aPr != 0) and (tPr != 0):
                             temp = V[q_prime][t - 1][h] + log(aPr) + log(tPr)
@@ -801,7 +801,7 @@ class AlignmentModel():
             q = ptr[qOld][i][hOld]
             h = ptr_h[qOld][i][hOld]
             trace = [q] + trace
-            bestLinkTrace = [h] + trace
+            bestLinkTrace = [h] + bestLinkTrace
             i = i - 1
         return trace, bestLinkTrace
 
