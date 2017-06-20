@@ -140,7 +140,6 @@ class AlignmentModel():
         logger.info("N " + str(N))
         indexMap, biword = self.mapBitextToInt(self.fe_count)
 
-        L = len(bitext)
         sd_size = len(indexMap)
         totalGammaDeltaOAO_t_i = None
         totalGammaDeltaOAO_t_overall_states_over_dest = None
@@ -153,6 +152,7 @@ class AlignmentModel():
         self.pi = [0.0 for x in range(twoN + 1)]
 
         for iteration in range(iterations):
+            logger.info("HMMBWTypeI Iteration " + str(iteration))
 
             logLikelihood = 0
 
@@ -176,9 +176,6 @@ class AlignmentModel():
 
             counter = 0
             for (f, e) in bitext:
-                if counter % 100 == 0:
-                    logger.info("sentence " + str(counter) +
-                                " of iteration " + str(iteration))
                 self.task.progress("BaumWelch iter %d, %d of %d" %
                                    (iteration, counter, len(bitext),))
                 counter += 1
@@ -227,7 +224,6 @@ class AlignmentModel():
             N = len(totalGamma1OAO) - 1
 
             for k in range(sd_size):
-                totalGammaDeltaOAO_t_i[k] += totalGammaDeltaOAO_t_i[k]
                 f, e = biword[k]
 
                 totalGammaDeltaOAO_t_overall_states_over_dest[e] +=\
@@ -259,7 +255,7 @@ class AlignmentModel():
                             (totalC_l_Minus_iOAO[i][I] + 1e-37)
 
             for i in range(1, N + 1):
-                self.pi[i] = totalGamma1OAO[i] * (1.0 / L)
+                self.pi[i] = totalGamma1OAO[i] * (1.0 / len(bitext))
 
             for k in range(sd_size):
                 f, e = biword[k]
@@ -321,7 +317,9 @@ class AlignmentModel():
 
         for q in range(1, twoN + 1):
             tPr = self.tProbability(f[0], newd[q - 1])
-            if tPr == 0 or self.pi[q] == 0:
+            if q >= len(self.pi):
+                V[q][0] = - sys.maxint - 1
+            elif tPr == 0 or self.pi[q] == 0:
                 V[q][0] = - sys.maxint - 1
             else:
                 V[q][0] = log(self.pi[q]) + log(tPr)

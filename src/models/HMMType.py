@@ -182,6 +182,7 @@ class AlignmentModelTag():
         self.pi = [0.0 for x in range(twoN + 1)]
 
         for iteration in range(iterations):
+            logger.info("HMMBWTypeI Iteration " + str(iteration))
 
             logLikelihood = 0
 
@@ -207,9 +208,6 @@ class AlignmentModelTag():
             counter = 0
             for item in tritext:
                 f, e = item[0:2]
-                if counter % 100 == 0:
-                    logger.info("sentence " + str(counter) +
-                                " of iteration " + str(iteration))
                 self.task.progress("BaumWelch iter %d, %d of %d" %
                                    (iteration, counter, len(tritext),))
                 counter += 1
@@ -264,7 +262,6 @@ class AlignmentModelTag():
             N = len(totalGamma1OAO) - 1
 
             for k in range(sd_size):
-                totalGammaDeltaOAO_t_i[k] += totalGammaDeltaOAO_t_i[k]
                 f, e = biword[k]
 
                 totalGammaDeltaOAO_t_overall_states_over_dest[e] +=\
@@ -309,8 +306,8 @@ class AlignmentModelTag():
             logger.info("time spent in M-step: " +
                         str(end2_time - end_time))
             logger.info("iteration " + str(iteration) + " completed")
-            self.task = None
 
+        self.task = None
         return
 
     def multiplyOneMinusP0H(self):
@@ -492,6 +489,7 @@ class AlignmentModel():
         self.pi = [0.0 for x in range(twoN + 1)]
 
         for iteration in range(iterations):
+            logger.info("HMMBWTypeI Iteration " + str(iteration))
 
             logLikelihood = 0
 
@@ -516,12 +514,9 @@ class AlignmentModel():
 
             counter = 0
             for itemForm, itemTag in zip(formTritext, tagTritext):
-                f, e = itemTag[0:2]
+                f, e = itemForm[0:2]
                 fTags, eTags = itemTag[0:2]
 
-                if counter % 100 == 0:
-                    logger.info("sentence " + str(counter) +
-                                " of iteration " + str(iteration))
                 self.task.progress("BaumWelch iter %d, %d of %d" %
                                    (iteration, counter, len(formTritext),))
                 counter += 1
@@ -578,7 +573,6 @@ class AlignmentModel():
             N = len(totalGamma1OAO) - 1
 
             for k in range(sd_size):
-                totalGammaDeltaOAO_t_i[k] += totalGammaDeltaOAO_t_i[k]
                 f, e = biword[k]
 
                 totalGammaDeltaOAO_t_overall_states_over_dest[e] +=\
@@ -741,16 +735,11 @@ class AlignmentModel():
         for q in range(1, twoN + 1):
             tPr = self.tProbability(f[0], newd[q - 1])
             for h in range(len(self.typeMap)):
-                first = (
-                    self.s[(f[0], newd[q - 1], h)] * self.lambd +
-                    (1 - self.lambd) * self.typeDist[h])
-                second = (
-                    self.sTag[(fTags[0]), newdTags[q - 1]] * self.lambd +
-                    (1 - self.lambd) * self.typeDist[h])
-                s = (self.lambda1 * first +
-                     self.lambda2 * second +
-                     self.lambda3 * self.typeDist[h])
-
+                s = self.sProbability(f[0],
+                                      newd[q - 1],
+                                      h,
+                                      fTags[0],
+                                      newdTags[q - 1])
                 if q >= len(self.pi):
                     V[q][0][h] = - sys.maxint - 1
                 elif tPr == 0 or self.pi[q] == 0 or s == 0:
