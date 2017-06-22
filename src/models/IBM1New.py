@@ -13,7 +13,6 @@ from copy import deepcopy
 from collections import defaultdict
 from loggers import logging
 from evaluators.evaluator import evaluate
-from data.Pair import Pair, IntPair
 __version__ = "0.1a"
 
 
@@ -50,103 +49,66 @@ class AlignmentModel():
         self.tagMap = defaultdict(int)
         self.total_f_e_h = defaultdict(float)
         self.evaluate = evaluate
+
+        self.tagMap = {
+            "SEM": 0,
+            "FUN": 1,
+            "PDE": 2,
+            "CDE": 3,
+            "MDE": 4,
+            "GIS": 5,
+            "GIF": 6,
+            "COI": 7,
+            "TIN": 8,
+            "NTR": 9,
+            "MTA": 10
+        }
         return
 
-    def initialiseTagMap(self):
-        self.tagMap["SEM"] = 1
-        self.tagMap["FUN"] = 2
-        self.tagMap["PDE"] = 3
-        self.tagMap["CDE"] = 4
-        self.tagMap["MDE"] = 5
-        self.tagMap["GIS"] = 6
-        self.tagMap["GIF"] = 7
-        self.tagMap["COI"] = 8
-        self.tagMap["TIN"] = 9
-        self.tagMap["NTR"] = 10
-        self.tagMap["MTA"] = 11
-        return
+    def initialiseCounts(self, bitext):
+        self.total_f_e_h = defaultdict(float)
+        self.s = defaultdict(float)
 
-    def initialiseCountsWithoutSets(self, bitext):
-        '''
-        Initialises source count, target count and source-target count tables
-        (maps)
-        @param bitext: bitext of source-target
-        '''
-        self.initialiseTagMap()
-
-        for (f, e) in bitext:
-            # Initialise f_count
+        for item in bitext:
+            f, e = item[0:2]
+            # Initialise f_count, fe_count, e_count
             for f_i in f:
                 self.f_count[f_i] += 1
-                # Initialise fe_count
                 for e_j in e:
                     self.fe_count[(f_i, e_j)] += 1
-
-            # Initialise e_count
-            for e_j in e:
-                self.e_count[e_j] += 1
-        return
-
-    def initialiseCounts(self, tritext, testSize):
-        '''
-        This method computes source and target counts as well as (source,
-        target, alignment type) counts
-        (f,e,h) counts are stored in total_f_e_h
-        HMMWithAlignmentType initializes its s parameter from total_f_e_h
-
-        @param tritext: string[][]
-        @param testSize: int
-        '''
-        def strip(e_word):
-            '''
-            @param Word: string
-            @return: list of strings
-            '''
-            indices = ""
-            for i in range(len(e_word)):
-                e_i = e_word[i]
-                if ('0' <= e_i <= '9' or e_i == ','):
-                    indices += e_i
-            return indices.split(",")
-
-        initialiseTagMap(self)
-        sentenceNumber = 1
-        for (f, e, wa) in tritext:
-            # Initialise f_count
-            for f_i in f:
-                self.f_count[f_i] += 1
-                # Initialise fe_count
-                for e_j in e:
-                    self.fe_count[(f_i, e_j)] += 1
-
-            # Initialise e_count
             for e_j in e:
                 self.e_count[e_j] += 1
 
-            # setting total_f_e_h count
-            if (sentenceNumber > len(tritext)):
-                for alm in wa:
-                    left, right = alm.split("-")
-                    leftPositions = strip(left)
-                    if (len(leftPositions) == 1 and leftPositions[0] != ""):
+            # Initialise total_f_e_h count if given tritext. This step is
+            # important for HMM
+            if len(item) > 2:
+                alignment = item[2]
+            else:
+                alignment = []
+            for item in alignment:
+                left, right = item.split("-")
+                fwords = ''.join(c for c in left if c.isdigit() or c == ',')
+                fwords = fwords.split(',')
+                if len(fwords) != 1:
+                    continue
+                # Process source word
+                fWord = f[int(fwords[0]) - 1]
 
-                        fWordPos = int(leftPositions[0])
-                        fWord = f[fWordPos - 1]
+                # Process right(target word/tags)
+                tag = right[len(right) - 4: len(right) - 1]
+                tagId = self.tagMap[tag]
+                eWords = right[:len(right) - 5]
+                eWords = ''.join(c for c in eWords if c.isdigit() or c == ',')
+                eWords = eWords.split(',')
 
-                        rightLength = right.length()
+                if (eWords[0] != ""):
+                    for eStr in eWords:
+                        eWord = e[int(eStr) - 1]
+                        self.total_f_e_h[(fWord, eWord, tagId)] += 1
 
-                        linkLabel = right[len(right) - 4: len(right) - 1]
-                        engIndices = strip(right[0:len(right) - 5])
-
-                        if (engIndices[0] != ""):
-                            for wordIndex in engIndices:
-                                engWordPos = int(wordIndex)
-                                engWord = E[engWordPos - 1]
-                                tagId = tagMap[linkLabel]
-
-                                total_f_e_h[(fWord, engWord, tagId)] += 1
-
-            sentenceNumber += 1
+        for f, e, h in self.total_f_e_h:
+            self.s[(f, e, h)] =\
+                self.total_f_e_h[(f, e, h)] / self.fe_count[(f, e)]
 
         return
 
@@ -162,7 +124,7 @@ class AlignmentModel():
         self.logger.info("Training size: " + str(len(bitext)))
         start_time = time.time()
 
-        self.initialiseCountsWithoutSets(bitext)
+        self.initialiseCounts(bitext)
         initialValue = 1.0 / len(self.f_count)
         for key in self.fe_count:
             self.t[key] = initialValue
@@ -174,7 +136,8 @@ class AlignmentModel():
             self.logger.info("Starting Iteration " + str(iteration))
             counter = 0
 
-            for (f, e) in bitext:
+            for item in bitext:
+                f, e = item[0:2]
                 counter += 1
                 task.progress("IBM1New iter %d, %d of %d" %
                               (iteration, counter, len(bitext),))
@@ -199,7 +162,8 @@ class AlignmentModel():
         self.logger.info("Testing size: " + str(len(bitext)))
         result = []
 
-        for (f, e) in bitext:
+        for item in bitext:
+            f, e = item[0:2]
             sentenceAlignment = []
 
             for i in range(len(f)):

@@ -32,9 +32,9 @@ def evaluate(bitext, result, reference):
             tag = entry[2]
             if (f > size_f or e > size_e):
                 logger.error("NOT A VALID LINK")
-                logger.info(i + " " +
-                            f + " " + size_f + " " +
-                            e + " " + size_e)
+                logger.info(str(i) + " " +
+                            str(f) + " " + str(size_f) + " " +
+                            str(e) + " " + str(size_e))
             testAlign.append((f, e))
 
         certainAlign = []
