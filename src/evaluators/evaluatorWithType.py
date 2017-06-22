@@ -71,7 +71,10 @@ def evaluate(bitext, result, reference):
     aer = 1 -\
         ((float(totalCertainAlignment + totalProbableAlignment) /
          (totalAlign + totalCertain)))
-    fScore = 2 * precision * recall / (precision + recall)
+    if (precision + recall) == 0:
+        fScore = 0
+    else:
+        fScore = 2 * precision * recall / (precision + recall)
 
     logger.info("Precision = " + str(precision))
     logger.info("Recall    = " + str(recall))
