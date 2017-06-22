@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
 #
-# HMM model implementation(old) of HMM Aligner
+# HMM model with Alignment Type of HMM Aligner
 # Simon Fraser University
 # NLP Lab
 #
-# This is the implementation of HMM word aligner, it requires IBM1Old in order
-# to function properly
+# This is the implementation of HMM word aligner with alignment type and POS
+# tag, it requires IBM1New in order to function properly
 #
 import optparse
 import sys
