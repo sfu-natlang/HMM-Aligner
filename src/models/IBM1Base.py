@@ -71,10 +71,11 @@ class AlignmentModelBase():
         return
 
     def tProbability(self, f, e):
-        v = 163303
-        if (f, e) in self.t:
-            return self.t[(f, e)]
-        return 1.0 / v
+        tmp = self.t[(f, e)]
+        if tmp == 0:
+            return 0.000006123586217
+        else:
+            return tmp
 
     def EM(self, bitext, iterations, modelName="IBM1Base"):
         task = Task("Aligner", modelName + str(iterations))
@@ -99,7 +100,7 @@ class AlignmentModelBase():
                 for fWord in f:
                     z = 0
                     for eWord in e:
-                        z += self.t[(fWord, eWord)]
+                        z += self.tProbability(fWord, eWord)
                     for eWord in e:
                         self._updateCount(fWord, eWord, z)
 
