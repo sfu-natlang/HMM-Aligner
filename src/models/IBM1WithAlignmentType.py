@@ -84,6 +84,16 @@ class AlignmentModel(IBM1Base):
                 z
         return
 
+    def _updateCountTag(self, fWord, eWord, z):
+        self.c[(fWord[0], eWord[0])] += self.tProbability(fWord, eWord) / z
+        self.total[eWord[0]] += self.tProbability(fWord, eWord) / z
+        for h in range(len(self.typeMap)):
+            self.c_feh[(fWord[0], eWord[0], h)] +=\
+                self.tProbability(fWord, eWord) *\
+                self.sProbability(fWord, eWord, h) /\
+                z
+        return
+
     def _updateEndOfIteration(self):
         for (f, e) in self.fe_count:
             self.t[(f, e)] = self.c[(f, e)] / self.total[e]
@@ -140,6 +150,7 @@ class AlignmentModel(IBM1Base):
     def train(self, formTritext, tagTritext, iterations=5):
         self.logger.info("Stage 1 Start Training with POS Tags")
 
+        self.initialiseModel(tagTritext)
         self.EM(tagTritext, iterations, 'IBM1TypeS1')
 
         self.sTag = self.s
@@ -147,8 +158,8 @@ class AlignmentModel(IBM1Base):
         self.logger.info("Stage 1 Complete")
 
         self.tProbability = self.tProbabilityWithTag
-
         self.sProbability = self.sProbabilityWithTag
+        self._updateCount = self._updateCountTag
 
         tritext = []
         for (f, e, a1), (fTag, eTag, a2) in zip(formTritext, tagTritext):
@@ -156,6 +167,7 @@ class AlignmentModel(IBM1Base):
 
         self.logger.info("Stage 2 Start Training with POS Tags")
 
+        self.initialiseModel(formTritext)
         self.EM(tritext, iterations, 'IBM1TypeS2')
 
         self.logger.info("Stage 2 Complete")

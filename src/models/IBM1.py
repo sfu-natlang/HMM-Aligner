@@ -21,6 +21,7 @@ class AlignmentModel(IBM1Base):
         return
 
     def train(self, bitext, iterations=5):
+        self.initialiseModel(bitext)
         self.EM(bitext, iterations, 'IBM1')
         return
 
