@@ -11,6 +11,7 @@ from collections import defaultdict
 from loggers import logging
 from models.IBM1Base import AlignmentModelBase as IBM1Base
 from evaluators.evaluator import evaluate
+__version__ = "0.1a"
 
 
 class AlignmentModel(IBM1Base):

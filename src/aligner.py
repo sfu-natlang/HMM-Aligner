@@ -8,7 +8,7 @@ from ConfigParser import SafeConfigParser
 from loggers import logging, init_logger
 from models.modelChecker import checkAlignmentModel
 from fileIO import loadBitext, loadTritext, exportToFile, loadAlignment
-__version__ = "0.3a"
+__version__ = "0.4a"
 
 
 if __name__ == '__main__':
@@ -29,7 +29,7 @@ if __name__ == '__main__':
         'trainSize': 20357,
         'testSize': 1956,
         'iterations': 5,
-        'model': "IBM1Old",
+        'model': "IBM1",
         'output': 'o.wa'
     }
 
@@ -232,7 +232,4 @@ if __name__ == '__main__':
         if config['reference'] != "":
             reference = loadAlignment(config['reference'])
             if aligner.evaluate:
-                if modelType == 1:
-                    aligner.evaluate(testBitext, alignResult, reference)
-                if modelType == 2:
-                    aligner.evaluate(testFormBitext, alignResult, reference)
+                aligner.evaluate(alignResult, reference)
