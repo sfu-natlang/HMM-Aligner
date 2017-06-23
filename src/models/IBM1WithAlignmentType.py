@@ -37,7 +37,7 @@ class AlignmentModel(IBM1Base):
 
     def initialiseModel(self, tritext):
         IBM1Base.initialiseModel(self, tritext)
-        self.total_f_e_h = defaultdict(float)
+        total_f_e_h = defaultdict(float)
         self.s = defaultdict(float)
 
         for (f, e, alignment) in tritext:
@@ -61,11 +61,11 @@ class AlignmentModel(IBM1Base):
                 if (eWords[0] != ""):
                     for eStr in eWords:
                         eWord = e[int(eStr) - 1]
-                        self.total_f_e_h[(fWord, eWord, tagId)] += 1
+                        total_f_e_h[(fWord, eWord, tagId)] += 1
 
-        for f, e, h in self.total_f_e_h:
-            self.s[str((f, e, h))] =\
-                self.total_f_e_h[(f, e, h)] / self.fe_count[(f, e)]
+        for f, e, h in total_f_e_h:
+            self.s[(f, e, h)] =\
+                total_f_e_h[(f, e, h)] / self.fe_count[(f, e)]
         return
 
     def _beginningOfIteration(self):
