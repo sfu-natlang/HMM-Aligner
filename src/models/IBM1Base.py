@@ -41,13 +41,21 @@ class AlignmentModelBase():
         @var self.total_f_e_h: float defaultdict with (str, str, int) as index
         '''
         self.t = defaultdict(float)
-        self.logger = logging.getLogger('IBM1BASE')
         self.f_count = defaultdict(int)
         self.e_count = defaultdict(int)
         self.fe_count = defaultdict(int)
+        self.logger = logging.getLogger('IBM1BASE')
         return
 
     def initialiseModel(self, bitext):
+        # We don't use .clear() here for reusability of models.
+        # Sometimes one would need one or more of the following parts for other
+        # Purposes. We wouldn't want to accidentally clear them up.
+        self.t = defaultdict(float)
+        self.f_count = defaultdict(int)
+        self.e_count = defaultdict(int)
+        self.fe_count = defaultdict(int)
+
         for item in bitext:
             f, e = item[0:2]
             for f_i in f:
