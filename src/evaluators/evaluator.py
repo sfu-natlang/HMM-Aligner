@@ -11,10 +11,10 @@ from loggers import logging, init_logger
 if __name__ == '__main__':
     init_logger('evaluator.log')
 logger = logging.getLogger('EVALUATOR')
-__version__ = "0.1a"
+__version__ = "0.3a"
 
 
-def evaluate(bitext, result, reference):
+def evaluate(result, reference):
     totalAlign = 0
     totalCertain = 0
 
@@ -22,18 +22,10 @@ def evaluate(bitext, result, reference):
     totalProbableAlignment = 0
 
     for i in range(min(len(result), len(reference))):
-        size_f = len(bitext[i][0])
-        size_e = len(bitext[i][1])
-
         testAlign = []
         for entry in result[i]:
             f = int(entry[0])
             e = int(entry[1])
-            if (f > size_f or e > size_e):
-                logger.error("NOT A VALID LINK")
-                logger.info(str(i) + " " +
-                            str(f) + " " + str(size_f) + " " +
-                            str(e) + " " + str(size_e))
             testAlign.append((f, e))
 
         certainAlign = []
@@ -80,10 +72,6 @@ def evaluate(bitext, result, reference):
 if __name__ == '__main__':
     # Parsing the options
     optparser = optparse.OptionParser()
-    optparser.add_option("--source", dest="source",
-                         help="location of source file")
-    optparser.add_option("--target", dest="target",
-                         help="location of target file")
     optparser.add_option("-v", "--testSize", dest="testSize", default=1956,
                          type="int",
                          help="Number of sentences to use for testing")
@@ -93,19 +81,14 @@ if __name__ == '__main__':
                          help="Location of alignment file")
     (opts, _) = optparser.parse_args()
 
-    if not opts.source:
-        logger.error("source file missing")
-    if not opts.target:
-        logger.error("target file missing")
     if not opts.reference:
         logger.error("reference file missing")
     if not opts.alignment:
         logger.error("alignment file missing")
 
-    bitext = loadBitext(opts.source, opts.target, opts.testSize)
     alignment = loadAlignment(opts.alignment, opts.testSize)
     goldAlignment = loadAlignment(opts.reference, opts.testSize)
 
     testAlignment = [sentence["certain"] for sentence in alignment]
 
-    evaluate(bitext, testAlignment, goldAlignment)
+    evaluate(testAlignment, goldAlignment)

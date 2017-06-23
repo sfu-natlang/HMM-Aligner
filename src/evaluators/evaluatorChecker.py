@@ -9,13 +9,13 @@ currentdir = os.path.dirname(
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 from fileIO import loadBitext, loadTritext, exportToFile, loadAlignment
+__version__ = "0.3a"
 
 supportedEvaluators = [
     "evaluator", "evaluatorWithType"
 ]
 
-requiredArguments = {"bitext": "list",
-                     "result": "list",
+requiredArguments = {"result": "list",
                      "reference": "int"}
 
 
@@ -48,8 +48,6 @@ def checkEvaluator(func, logger=True):
 class TestEvaluators(unittest.TestCase):
 
     def testEvaluatorRegular(self):
-        bitext = loadBitext("../support/ut_source.txt",
-                            "../support/ut_target.txt")
         noProb = loadAlignment("../support/ut_align_no_prob.a")
         noType = loadAlignment("../support/ut_align_no_type.a")
         certainAlign = [sentence["certain"] for sentence in noProb]
@@ -60,12 +58,10 @@ class TestEvaluators(unittest.TestCase):
             "AER": 0.0,
             "F-score": 1.0
         }
-        self.assertEqual(evaluate(bitext, certainAlign, noType), correctAnswer)
+        self.assertEqual(evaluate(certainAlign, noType), correctAnswer)
         return
 
     def testEvaluatorWithType(self):
-        bitext = loadBitext("../support/ut_align_no_tag.cn",
-                            "../support/ut_align_no_tag.en")
         original = loadAlignment("../support/ut_align_no_tag.a")
         clean = loadAlignment("../support/ut_align_no_tag_clean.a")
         cleanAll = \
@@ -77,11 +73,7 @@ class TestEvaluators(unittest.TestCase):
             "AER": 0.0,
             "F-score": 1.0
         }
-        self.assertEqual(evaluate(bitext, cleanAll, original), correctAnswer)
-        return
-
-    def testEvaluatorWithTypePlusTag(self):
-        raise NotImplementedError
+        self.assertEqual(evaluate(cleanAll, original), correctAnswer)
         return
 
 
