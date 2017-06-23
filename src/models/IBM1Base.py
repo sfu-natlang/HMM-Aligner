@@ -83,10 +83,6 @@ class AlignmentModelBase():
         self.logger.info("Training size: " + str(len(bitext)))
         start_time = time.time()
 
-        self.initialiseModel(bitext)
-
-        self.logger.info("Initialisation Complete")
-
         for iteration in range(iterations):
             self._beginningOfIteration()
             self.logger.info("Starting Iteration " + str(iteration))
