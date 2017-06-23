@@ -167,7 +167,7 @@ class AlignmentModel():
             for (fTag, eTag) in self.fe_count:
                 self.tTag[(fTag, eTag)] = c[(fTag, eTag)] / total[eTag]
 
-            for f, e, h in c_feh:
+            for fTag, eTag, h in c_feh:
                 self.sTag[(fTag, eTag, h)] =\
                     c_feh[(fTag, eTag, h)] / c[(fTag, eTag)]
         return

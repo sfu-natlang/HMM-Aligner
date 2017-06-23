@@ -91,7 +91,7 @@ if __name__ == '__main__':
             "-v", "--testSize", dest="testSize", type=int,
             help="Number of sentences to use for testing")
         ap.add_argument(
-            "-i", "--iterations", dest="iter", type=int,
+            "-i", "--iterations", dest="iterations", type=int,
             help="Number of iterations to train")
         ap.add_argument(
             "-m", "--model", dest="model",
