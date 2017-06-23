@@ -24,18 +24,15 @@ class AlignmentModel(IBM1Base):
         self.lambda2 = 9.999900827395436E-11
         self.lambda3 = 1.000000082740371E-15
 
-        self.typeMap = {
-            "SEM": 0,
-            "FUN": 1,
-            "PDE": 2,
-            "CDE": 3,
-            "MDE": 4,
-            "GIS": 5,
-            "GIF": 6,
-            "COI": 7,
-            "TIN": 8,
-            "NTR": 9,
-            "MTA": 10}
+        self.typeMap = {"SEM": 0, "FUN": 1, "PDE": 2, "CDE": 3,
+                        "MDE": 4, "GIS": 5, "GIF": 6, "COI": 7,
+                        "TIN": 8, "NTR": 9, "MTA": 10}
+        self.tagDist = [0.401, 0.264, 0.004, 0.004,
+                        0.012, 0.205, 0.031, 0.008,
+                        0.003, 0.086, 0.002]
+        self.linkMap = ["SEM", "FUN", "PDE", "CDE",
+                        "MDE", "GIS", "GIF", "COI",
+                        "TIN", "NTR", "MTA"]
         return
 
     def initialiseModel(self, tritext):
@@ -71,7 +68,104 @@ class AlignmentModel(IBM1Base):
                 self.total_f_e_h[(f, e, h)] / self.fe_count[(f, e)]
         return
 
+    def _beginningOfIteration(self):
+        self.c = defaultdict(float)
+        self.total = defaultdict(float)
+        self.c_feh = defaultdict(float)
+        return
 
+    def _updateCount(self, fWord, eWord, z):
+        self.c[(fWord, eWord)] += self.tProbability(fWord, eWord) / z
+        self.total[eWord] += self.tProbability(fWord, eWord) / z
+        for h in range(len(self.typeMap)):
+            self.c_feh[(fWord, eWord, h)] +=\
+                self.tProbability(fWord, eWord) *\
+                self.sProbabilityTag(fWord, eWord, h) /\
+                z
+        return
+
+    def _updateEndOfIteration(self):
+        for (f, e) in self.fe_count:
+            self.t[(f, e)] = self.c[(f, e)] / self.total[e]
+        for f, e, h in self.c_feh:
+            self.s[(f, e, h)] =\
+                self.c_feh[(f, e, h)] / self.c[(f, e)]
+        return
+
+    def sProbabilityWithTag(self, f, e, h):
+        fWord, fTag = f
+        eWord, eTag = e
+        p1 = (1 - self.lambd) * self.tagDist[h] +\
+            self.lambd * self.s[(fWord, eWord, h)]
+        p2 = (1 - self.lambd) * self.tagDist[h] +\
+            self.lambd * self.sTag[(fTag, eTag, h)]
+        p3 = self.tagDist[h]
+
+        return self.lambda1 * p1 + self.lambda2 * p2 + self.lambda3 * p3
+
+    def sProbability(self, f, e, h):
+        return self.lambd * self.s[(f, e, h)] +\
+            (1 - self.lambd) * self.typeDist[h]
+
+    def tProbabilityWithTag(self, f, e):
+        tmp = self.t[(f[0], e[0])]
+        if tmp == 0:
+            return 0.000006123586217
+        else:
+            return tmp
+
+    def decodeSentence(self, sentence):
+        # This is the standard sentence decoder for IBM model 1
+        # What happens there is that for every source f word, we find the
+        # target e word with the highest tr(e|f) score here, which is
+        # tProbability(f[i], e[j])
+        f, e = sentence
+        sentenceAlignment = []
+        for i in range(len(f)):
+            max_t = 0
+            argmax = -1
+            bestType = -1
+            for j in range(len(e)):
+                t = self.tProbability(f[i], e[j])
+                for h in range(len(self.typeMap)):
+                    s = self.sProbability(f[i], e[j], h)
+                    if t * s > max_ts:
+                        max_ts = t * s
+                        argmax = j
+                        bestType = h
+            sentenceAlignment.append(
+                (i + 1, argmax + 1, self.linkMap[bestTagID]))
+        return sentenceAlignment
 
     def train(self, formTritext, tagTritext, iterations=5):
         self.logger.info("Stage 1 Start Training with POS Tags")
+
+        self.EM(tagTritext, iterations, 'IBM1TypeS1')
+
+        self.sTag = self.s
+
+        self.logger.info("Stage 1 Complete")
+
+        self.tProbability = self.tProbabilityWithTag
+
+        self.sProbability = self.sProbabilityWithTag
+
+        tritext = []
+        for (f, e, a1), (fTag, eTag, a2) in zip(formTritext, tagTritext):
+            tritext.append((zip(f, fTag), zip(e, eTag), a1))
+
+        self.logger.info("Stage 1 Start Training with POS Tags")
+
+        self.EM(tritext, iterations, 'IBM1TypeS2')
+
+        self.logger.info("Stage 1 Complete")
+        return
+
+    def decode(self, formBitext, tagBitext):
+        bitext = []
+        for form, tag in zip(formBitext, tagBitext):
+            f, e = form[0:2]
+            fTag, eTag = tag[0:2]
+            bitext.append((zip(f, fTag), zip(e, eTag)))
+
+        return IBM1Base.decode(self, bitext)

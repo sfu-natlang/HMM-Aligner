@@ -30,8 +30,8 @@ class AlignmentModel(IBM1Base):
         return
 
     def _updateCount(self, fWord, eWord, z):
-        self.c[(fWord, eWord)] += self.t[(fWord, eWord)] / z
-        self.total[eWord] += self.t[(fWord, eWord)] / z
+        self.c[(fWord, eWord)] += self.tProbability(fWord, eWord) / z
+        self.total[eWord] += self.tProbability(fWord, eWord) / z
         return
 
     def _updateEndOfIteration(self):
