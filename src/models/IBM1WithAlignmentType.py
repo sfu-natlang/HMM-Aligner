@@ -27,9 +27,9 @@ class AlignmentModel(IBM1Base):
         self.typeMap = {"SEM": 0, "FUN": 1, "PDE": 2, "CDE": 3,
                         "MDE": 4, "GIS": 5, "GIF": 6, "COI": 7,
                         "TIN": 8, "NTR": 9, "MTA": 10}
-        self.tagDist = [0.401, 0.264, 0.004, 0.004,
-                        0.012, 0.205, 0.031, 0.008,
-                        0.003, 0.086, 0.002]
+        self.typeDist = [0.401, 0.264, 0.004, 0.004,
+                         0.012, 0.205, 0.031, 0.008,
+                         0.003, 0.086, 0.002]
         self.linkMap = ["SEM", "FUN", "PDE", "CDE",
                         "MDE", "GIS", "GIF", "COI",
                         "TIN", "NTR", "MTA"]
@@ -80,7 +80,7 @@ class AlignmentModel(IBM1Base):
         for h in range(len(self.typeMap)):
             self.c_feh[(fWord, eWord, h)] +=\
                 self.tProbability(fWord, eWord) *\
-                self.sProbabilityTag(fWord, eWord, h) /\
+                self.sProbability(fWord, eWord, h) /\
                 z
         return
 
@@ -95,11 +95,11 @@ class AlignmentModel(IBM1Base):
     def sProbabilityWithTag(self, f, e, h):
         fWord, fTag = f
         eWord, eTag = e
-        p1 = (1 - self.lambd) * self.tagDist[h] +\
+        p1 = (1 - self.lambd) * self.typeDist[h] +\
             self.lambd * self.s[(fWord, eWord, h)]
-        p2 = (1 - self.lambd) * self.tagDist[h] +\
+        p2 = (1 - self.lambd) * self.typeDist[h] +\
             self.lambd * self.sTag[(fTag, eTag, h)]
-        p3 = self.tagDist[h]
+        p3 = self.typeDist[h]
 
         return self.lambda1 * p1 + self.lambda2 * p2 + self.lambda3 * p3
 
@@ -122,7 +122,7 @@ class AlignmentModel(IBM1Base):
         f, e = sentence
         sentenceAlignment = []
         for i in range(len(f)):
-            max_t = 0
+            max_ts = 0
             argmax = -1
             bestType = -1
             for j in range(len(e)):
@@ -134,7 +134,7 @@ class AlignmentModel(IBM1Base):
                         argmax = j
                         bestType = h
             sentenceAlignment.append(
-                (i + 1, argmax + 1, self.linkMap[bestTagID]))
+                (i + 1, argmax + 1, self.linkMap[bestType]))
         return sentenceAlignment
 
     def train(self, formTritext, tagTritext, iterations=5):
@@ -154,11 +154,11 @@ class AlignmentModel(IBM1Base):
         for (f, e, a1), (fTag, eTag, a2) in zip(formTritext, tagTritext):
             tritext.append((zip(f, fTag), zip(e, eTag), a1))
 
-        self.logger.info("Stage 1 Start Training with POS Tags")
+        self.logger.info("Stage 2 Start Training with POS Tags")
 
         self.EM(tritext, iterations, 'IBM1TypeS2')
 
-        self.logger.info("Stage 1 Complete")
+        self.logger.info("Stage 2 Complete")
         return
 
     def decode(self, formBitext, tagBitext):
