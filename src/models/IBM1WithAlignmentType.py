@@ -19,30 +19,34 @@ class AlignmentModel(IBM1Base):
         IBM1Base.__init__(self)
         self.logger = logging.getLogger('IBM1')
         self.evaluate = evaluate
+        self.s = defaultdict(float)
+        self.sTag = defaultdict(float)
+
+        self.typeList = []
+        self.typeIndex = {}
+        self.typeDist = []
 
         self.lambd = 1 - 1e-20
         self.lambda1 = 0.9999999999
         self.lambda2 = 9.999900827395436E-11
         self.lambda3 = 1.000000082740371E-15
 
-        self.typeMap = {"SEM": 0, "FUN": 1, "PDE": 2, "CDE": 3,
-                        "MDE": 4, "GIS": 5, "GIF": 6, "COI": 7,
-                        "TIN": 8, "NTR": 9, "MTA": 10}
-        self.typeDist = [0.401, 0.264, 0.004, 0.004,
-                         0.012, 0.205, 0.031, 0.008,
-                         0.003, 0.086, 0.002]
-        self.linkMap = ["SEM", "FUN", "PDE", "CDE",
-                        "MDE", "GIS", "GIF", "COI",
-                        "TIN", "NTR", "MTA"]
+        self.loadTypeDist = {"SEM": .401, "FUN": .264, "PDE": .004,
+                             "CDE": .004, "MDE": .012, "GIS": .205,
+                             "GIF": .031, "COI": .008, "TIN": .003,
+                             "NTR": .086, "MTA": .002}
         return
 
-    def initialiseModel(self, tritext):
+    def initialiseModel(self, tritext, loadTypeDist={}):
+        self.logger.info("Initialising IBM model")
         IBM1Base.initialiseModel(self, tritext)
-        total_f_e_h = defaultdict(float)
+        total_f_e_type = defaultdict(float)
         self.s = defaultdict(float)
+        typeDist = defaultdict(float)
+        typeTotalCount = 0
 
         for (f, e, alignment) in tritext:
-            # Initialise total_f_e_h count
+            # Initialise total_f_e_type count
             for item in alignment:
                 left, right = item.split("-")
                 fwords = ''.join(c for c in left if c.isdigit() or c == ',')
@@ -54,7 +58,6 @@ class AlignmentModel(IBM1Base):
 
                 # Process right(target word/types)
                 tag = right[len(right) - 4: len(right) - 1]
-                tagId = self.typeMap[tag]
                 eWords = right[:len(right) - 5]
                 eWords = ''.join(c for c in eWords if c.isdigit() or c == ',')
                 eWords = eWords.split(',')
@@ -62,11 +65,31 @@ class AlignmentModel(IBM1Base):
                 if (eWords[0] != ""):
                     for eStr in eWords:
                         eWord = e[int(eStr) - 1]
-                        total_f_e_h[(fWord, eWord, tagId)] += 1
+                        total_f_e_type[(fWord, eWord, tag)] += 1
 
-        for f, e, h in total_f_e_h:
-            self.s[(f, e, h)] =\
-                total_f_e_h[(f, e, h)] / self.fe_count[(f, e)]
+                        typeDist[tag] += 1
+                        typeTotalCount += 1
+
+        # Calculate alignment type distribution
+        for typ in typeDist:
+            typeDist[typ] /= typeTotalCount
+        # Manually override alignment type distribution
+        for typ in loadTypeDist:
+            typeDist[typ] = loadTypeDist[typ]
+
+        # Create typeIndex and typeList
+        self.typeList = []
+        self.typeIndex = {}
+        for typ in typeDist:
+            self.typeList.append(typ)
+            self.typeIndex[typ] = len(self.typeList) - 1
+        self.typeDist = []
+        for h in range(len(self.typeList)):
+            self.typeDist.append(typeDist[self.typeList[h]])
+
+        for f, e, typ in total_f_e_type:
+            self.s[(f, e, self.typeIndex[typ])] =\
+                total_f_e_type[(f, e, typ)] / self.fe_count[(f, e)]
         return
 
     def _beginningOfIteration(self):
@@ -78,7 +101,7 @@ class AlignmentModel(IBM1Base):
     def _updateCount(self, fWord, eWord, z):
         self.c[(fWord, eWord)] += self.tProbability(fWord, eWord) / z
         self.total[eWord] += self.tProbability(fWord, eWord) / z
-        for h in range(len(self.typeMap)):
+        for h in range(len(self.typeIndex)):
             self.c_feh[(fWord, eWord, h)] +=\
                 self.tProbability(fWord, eWord) *\
                 self.sProbability(fWord, eWord, h) /\
@@ -88,7 +111,7 @@ class AlignmentModel(IBM1Base):
     def _updateCountTag(self, fWord, eWord, z):
         self.c[(fWord[0], eWord[0])] += self.tProbability(fWord, eWord) / z
         self.total[eWord[0]] += self.tProbability(fWord, eWord) / z
-        for h in range(len(self.typeMap)):
+        for h in range(len(self.typeIndex)):
             self.c_feh[(fWord[0], eWord[0], h)] +=\
                 self.tProbability(fWord, eWord) *\
                 self.sProbability(fWord, eWord, h) /\
@@ -138,25 +161,26 @@ class AlignmentModel(IBM1Base):
             bestType = -1
             for j in range(len(e)):
                 t = self.tProbability(f[i], e[j])
-                for h in range(len(self.typeMap)):
+                for h in range(len(self.typeIndex)):
                     s = self.sProbability(f[i], e[j], h)
                     if t * s > max_ts:
                         max_ts = t * s
                         argmax = j
                         bestType = h
             sentenceAlignment.append(
-                (i + 1, argmax + 1, self.linkMap[bestType]))
+                (i + 1, argmax + 1, self.typeList[bestType]))
         return sentenceAlignment
 
     def train(self, formTritext, tagTritext, iterations=5):
         self.logger.info("Stage 1 Start Training with POS Tags")
+        self.logger.info("Initialising")
 
-        self.initialiseModel(tagTritext)
+        self.initialiseModel(tagTritext, self.loadTypeDist)
+        self.logger.info("Initialisation complete")
+
         self.EM(tagTritext, iterations, 'IBM1TypeS1')
-
         self.sTag = self.s
-
-        self.logger.info("Stage 1 Complete")
+        self.logger.info("Stage 1 Complete, preparing for stage 2")
 
         self.tProbability = self.tProbabilityWithTag
         self.sProbability = self.sProbabilityWithTag
@@ -167,10 +191,12 @@ class AlignmentModel(IBM1Base):
             tritext.append((zip(f, fTag), zip(e, eTag), a1))
 
         self.logger.info("Stage 2 Start Training with POS Tags")
+        self.logger.info("Initialising")
 
-        self.initialiseModel(formTritext)
+        self.initialiseModel(formTritext, self.loadTypeDist)
+        self.logger.info("Initialisation complete")
+
         self.EM(tritext, iterations, 'IBM1TypeS2')
-
         self.logger.info("Stage 2 Complete")
         return
 
