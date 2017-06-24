@@ -51,7 +51,10 @@ class AlignmentModelBase():
             return
         self.logger.info("Loading model from " + fileName)
         fileName = os.path.expanduser(fileName)
-        pklFile = gzip.open(fileName, 'rb')
+        if fileName.endswith("pklz"):
+            pklFile = gzip.open(fileName, 'rb')
+        else:
+            pklFile = open(fileName, 'rb')
         loadedComponents = pickle.load(pklFile)
         pklFile.close()
         # check model name and version
@@ -91,7 +94,6 @@ class AlignmentModelBase():
             self.logger.warning("Destination not specified, model will not" +
                                 " be saved")
             return
-        self.logger.info("Saving model to " + fileName)
         entity = vars(self)
         component = {}
         # check model name and version
@@ -103,7 +105,14 @@ class AlignmentModelBase():
             if componentName not in entity:
                 raise RuntimeError("object in _savedModelFile doesn't exist")
             component[componentName] = entity[componentName]
-        output = gzip.open(fileName, 'wb')
+        if fileName.endswith("pklz"):
+            output = gzip.open(fileName, 'wb')
+        elif fileName.endswith("pkl"):
+            output = open(fileName, 'wb')
+        else:
+            fileName = fileName + ".pkl"
+            output = open(fileName + ".pkl", 'wb')
+        self.logger.info("Saving model to " + fileName)
         pickle.dump(component, output)
         output.close()
         self.logger.info("Model saved")
