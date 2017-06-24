@@ -12,6 +12,7 @@
 import pickle
 import gzip
 import os
+from collections import defaultdict
 from loggers import logging
 __version__ = "0.4a"
 
@@ -55,38 +56,35 @@ class AlignmentModelBase():
             pklFile = gzip.open(fileName, 'rb')
         else:
             pklFile = open(fileName, 'rb')
-        loadedComponents = pickle.load(pklFile)
-        pklFile.close()
+
+        modelName = pickle.load(pklFile)
+        modelVersion = pickle.load(pklFile)
+        if not isinstance(modelName, str) or not isinstance(modelVersion, str):
+            raise RuntimeError("Incorrect model file format")
+
+        msg = modelName + " v" + modelVersion
+        self.logger.info("model identified as: " + msg)
+
+        entity = vars(self)
         # check model name and version
-        if "modelName" in vars(self):
-            if "modelName" not in loadedComponents:
-                raise RuntimeError("Current model requires model file for " +
-                                   self.modelName + " model, while the model" +
-                                   " of the model file is not specified.")
-            if loadedComponents["modelName"] != self.modelName:
+        if "modelName" in entity:
+            if modelName != self.modelName:
                 raise RuntimeError("Current model requires model file for " +
                                    self.modelName + " model, while the model" +
                                    " of the model file is " +
-                                   loadedComponents["modelName"])
-            if "supportedVersion" in vars(self) and "version" in vars(self):
-                if "version" not in loadedComponents:
-                    raise RuntimeError("Unsupported version of model file")
-                if loadedComponents["version"] not in self.supportedVersion:
+                                   modelName)
+            if "supportedVersion" in entity:
+                if modelVersion not in self.supportedVersion:
                     raise RuntimeError("Unsupported version of model file")
 
-        entity = vars(self)
+        # load components
         for componentName in self.modelComponents:
             if componentName not in entity:
-                raise RuntimeError("object in _savedModelFile doesn't exist" +
-                                   " in specified model file")
-            entity[componentName] = loadedComponents[componentName]
+                raise RuntimeError("object doesn't exist in this class")
+            entity[componentName] = pickle.load(pklFile)
 
-        msg = ""
-        if "modelName" in loadedComponents:
-            msg += loadedComponents["modelName"]
-        if "version" in loadedComponents:
-            msg += " v" + loadedComponents["version"]
-        self.logger.info("Model loaded: " + msg)
+        pklFile.close()
+        self.logger.info("Model loaded")
         return
 
     def saveModel(self, fileName=""):
@@ -95,16 +93,6 @@ class AlignmentModelBase():
                                 " be saved")
             return
         entity = vars(self)
-        component = {}
-        # check model name and version
-        if "modelName" in vars(self):
-            component["modelName"] = self.modelName
-            if "version" in vars(self):
-                component["version"] = self.version
-        for componentName in self.modelComponents:
-            if componentName not in entity:
-                raise RuntimeError("object in _savedModelFile doesn't exist")
-            component[componentName] = entity[componentName]
         if fileName.endswith("pklz"):
             output = gzip.open(fileName, 'wb')
         elif fileName.endswith("pkl"):
@@ -113,7 +101,38 @@ class AlignmentModelBase():
             fileName = fileName + ".pkl"
             output = open(fileName + ".pkl", 'wb')
         self.logger.info("Saving model to " + fileName)
-        pickle.dump(component, output)
+
+        # dump model name and version
+        if "modelName" in vars(self):
+            pickle.dump(self.modelName, output)
+        else:
+            pickle.dump("Unspecified Model", output)
+        if "version" in vars(self):
+            pickle.dump(self.version, output)
+        else:
+            pickle.dump("???", output)
+
+        # dump components
+        for componentName in self.modelComponents:
+            if componentName not in entity:
+                raise RuntimeError("object in _savedModelFile doesn't exist")
+
+            # Remove zero valued entires from defaultdict
+            if isinstance(entity[componentName], defaultdict) or\
+               isinstance(entity[componentName], dict):
+                self.logger.info("component: " + componentName +
+                                 ", size before trim: " +
+                                 str(len(entity[componentName])))
+                emptyKeys =\
+                    [k for k in entity[componentName]
+                     if entity[componentName][key] == 0]
+                for key in emptyKeys:
+                    del entity[componentName][key]
+                self.logger.info("component: " + componentName +
+                                 ", size after trim: " +
+                                 str(len(entity[componentName])))
+            pickle.dump(entity[componentName], output)
+
         output.close()
         self.logger.info("Model saved")
         return
