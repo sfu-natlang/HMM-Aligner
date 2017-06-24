@@ -11,11 +11,13 @@ from collections import defaultdict
 from loggers import logging
 from models.IBM1Base import AlignmentModelBase as IBM1Base
 from evaluators.evaluator import evaluate
-__version__ = "0.2a"
+__version__ = "0.4a"
 
 
 class AlignmentModel(IBM1Base):
     def __init__(self):
+        self.modelName = "IBM1WithPOSTagAndAlignmentType"
+        self.version = "0.1b"
         self.logger = logging.getLogger('IBM1')
         self.evaluate = evaluate
         self.s = defaultdict(float)
@@ -30,17 +32,16 @@ class AlignmentModel(IBM1Base):
         self.lambda2 = 9.999900827395436E-11
         self.lambda3 = 1.000000082740371E-15
 
-        self.modelComponents = ["t", "s", "sTag",
-                                "typeList", "typeIndex", "typeDist",
-                                "lambd", "lambda1", "lambda2", "lambda3"]
-        self._savedModelFile = "model_IBM1WithAlignmentType_N100.pklz"
-
-        IBM1Base.__init__(self)
-
         self.loadTypeDist = {"SEM": .401, "FUN": .264, "PDE": .004,
                              "CDE": .004, "MDE": .012, "GIS": .205,
                              "GIF": .031, "COI": .008, "TIN": .003,
                              "NTR": .086, "MTA": .002}
+
+        self.modelComponents = ["t", "s", "sTag",
+                                "typeList", "typeIndex", "typeDist",
+                                "lambd", "lambda1", "lambda2", "lambda3"]
+        self._savedModelFile = ""
+        IBM1Base.__init__(self)
         return
 
     def initialiseModel(self, tritext, loadTypeDist={}):

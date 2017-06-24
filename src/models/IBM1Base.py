@@ -1,21 +1,18 @@
 # -*- coding: utf-8 -*-
 
 #
-# IBM model 1 implementation(New) of HMM Aligner
+# IBM model 1 base of HMM Aligner
 # Simon Fraser University
 # NLP Lab
 #
-# This is the new implementation of IBM model 1 word aligner, which added some
-# additional method which are not useful.
+# This is the base model for IBM1
 #
 import time
-import pickle
-import gzip
 from copy import deepcopy
 from collections import defaultdict
 from loggers import logging
-from evaluators.evaluator import evaluate
-__version__ = "0.1a"
+from models.modelBase import AlignmentModelBase as Base
+__version__ = "0.4a"
 
 
 # This is a private module for transmitting test results. Please ignore.
@@ -33,64 +30,14 @@ except all:
     Task = DummyTask
 
 
-class AlignmentModelBase():
+class AlignmentModelBase(Base):
     def __init__(self):
-        '''
-        @var self.f_count: integer defaultdict with string as index
-        @var self.e_count: integer defaultdict with string as index
-        @var self.fe_count: integer defaultdict with (str, str) as index
-        @var self.tagMap: integer defaultdict with string as index
-        @var self.total_f_e_h: float defaultdict with (str, str, int) as index
-        '''
         self.t = defaultdict(float)
         if "logger" not in vars(self):
             self.logger = logging.getLogger('IBM1BASE')
         if "modelComponents" not in vars(self):
             self.modelComponents = ["t"]
-        if "_savedModelFile" in vars(self):
-            self.loadModel(self._savedModelFile)
-        return
-
-    def loadModel(self, fileName=None):
-        if fileName is None:
-            fileName = self._savedModelFile
-        if fileName == "":
-            self.logger.warning("Destination not specified, model will not" +
-                                " be loaded")
-            return
-        self.logger.info("Loading model from " + fileName)
-        pklFile = gzip.open(fileName, 'rb')
-        loadedComponents = pickle.load(pklFile)
-        pklFile.close()
-
-        entity = vars(self)
-        for componentName in self.modelComponents:
-            if componentName not in entity:
-                raise RuntimeError("object in _savedModelFile doesn't exist")
-            if componentName not in entity:
-                raise RuntimeError("object in _savedModelFile doesn't exist" +
-                                   " in specified model file")
-            entity[componentName] = loadedComponents[componentName]
-
-        self.logger.info("Model loaded")
-        return
-
-    def dumpModel(self, fileName=""):
-        if fileName == "":
-            self.logger.warning("Destination not specified, model will not" +
-                                " be saved")
-            return
-        self.logger.info("Saving model to " + fileName)
-        entity = vars(self)
-        component = {}
-        for componentName in self.modelComponents:
-            if componentName not in entity:
-                raise RuntimeError("object in _savedModelFile doesn't exist")
-            component[componentName] = entity[componentName]
-        output = gzip.open(fileName, 'wb')
-        pickle.dump(component, output)
-        output.close()
-        self.logger.info("Model saved")
+        Base.__init__(self)
         return
 
     def initialiseModel(self, bitext):

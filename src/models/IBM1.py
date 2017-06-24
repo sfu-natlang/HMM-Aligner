@@ -11,15 +11,18 @@ from collections import defaultdict
 from loggers import logging
 from models.IBM1Base import AlignmentModelBase as IBM1Base
 from evaluators.evaluator import evaluate
-__version__ = "0.1a"
+__version__ = "0.4a"
 
 
 class AlignmentModel(IBM1Base):
     def __init__(self):
-        self._savedModelFile = ""
-        IBM1Base.__init__(self)
+        self.modelName = "IBM1WithPOSTagAndAlignmentType"
+        self.version = "0.1b"
         self.logger = logging.getLogger('IBM1')
         self.evaluate = evaluate
+
+        self._savedModelFile = ""
+        IBM1Base.__init__(self)
         return
 
     def train(self, bitext, iterations=5):
