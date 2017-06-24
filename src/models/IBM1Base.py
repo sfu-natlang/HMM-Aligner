@@ -9,6 +9,8 @@
 # additional method which are not useful.
 #
 import time
+import pickle
+import gzip
 from copy import deepcopy
 from collections import defaultdict
 from loggers import logging
@@ -41,10 +43,54 @@ class AlignmentModelBase():
         @var self.total_f_e_h: float defaultdict with (str, str, int) as index
         '''
         self.t = defaultdict(float)
-        self.f_count = defaultdict(int)
-        self.e_count = defaultdict(int)
-        self.fe_count = defaultdict(int)
-        self.logger = logging.getLogger('IBM1BASE')
+        if "logger" not in vars(self):
+            self.logger = logging.getLogger('IBM1BASE')
+        if "modelComponents" not in vars(self):
+            self.modelComponents = ["t"]
+        if "_savedModelFile" in vars(self):
+            self.loadModel(self._savedModelFile)
+        return
+
+    def loadModel(self, fileName=None):
+        if fileName is None:
+            fileName = self._savedModelFile
+        if fileName == "":
+            self.logger.warning("Destination not specified, model will not" +
+                                " be loaded")
+            return
+        self.logger.info("Loading model from " + fileName)
+        pklFile = gzip.open(fileName, 'rb')
+        loadedComponents = pickle.load(pklFile)
+        pklFile.close()
+
+        entity = vars(self)
+        for componentName in self.modelComponents:
+            if componentName not in entity:
+                raise RuntimeError("object in _savedModelFile doesn't exist")
+            if componentName not in entity:
+                raise RuntimeError("object in _savedModelFile doesn't exist" +
+                                   " in specified model file")
+            entity[componentName] = loadedComponents[componentName]
+
+        self.logger.info("Model loaded")
+        return
+
+    def dumpModel(self, fileName=""):
+        if fileName == "":
+            self.logger.warning("Destination not specified, model will not" +
+                                " be saved")
+            return
+        self.logger.info("Saving model to " + fileName)
+        entity = vars(self)
+        component = {}
+        for componentName in self.modelComponents:
+            if componentName not in entity:
+                raise RuntimeError("object in _savedModelFile doesn't exist")
+            component[componentName] = entity[componentName]
+        output = gzip.open(fileName, 'wb')
+        pickle.dump(component, output)
+        output.close()
+        self.logger.info("Model saved")
         return
 
     def initialiseModel(self, bitext):
@@ -105,6 +151,7 @@ class AlignmentModelBase():
         end_time = time.time()
         self.logger.info("Training Complete, total time(seconds): %f" %
                          (end_time - start_time,))
+        self.endOfEM()
         return
 
     def decode(self, bitext):
@@ -185,3 +232,16 @@ class AlignmentModelBase():
         #     self.t[(f, e)] = self.c[(f, e)] / self.total[e]
         # return
         raise NotImplementedError
+
+    def endOfEM(self):
+        '''
+        At the end of the EM algorithm, it removes all unnecessary parts of the
+        model to save memory space and make it easier for dumping the model.
+        '''
+        del self.f_count
+        del self.e_count
+        del self.fe_count
+        del self.c
+        del self.total
+        self.dumpModel("model.pklz")
+        return

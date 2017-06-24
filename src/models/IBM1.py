@@ -16,6 +16,7 @@ __version__ = "0.1a"
 
 class AlignmentModel(IBM1Base):
     def __init__(self):
+        self._savedModelFile = ""
         IBM1Base.__init__(self)
         self.logger = logging.getLogger('IBM1')
         self.evaluate = evaluate

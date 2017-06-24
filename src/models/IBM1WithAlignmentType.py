@@ -16,7 +16,6 @@ __version__ = "0.2a"
 
 class AlignmentModel(IBM1Base):
     def __init__(self):
-        IBM1Base.__init__(self)
         self.logger = logging.getLogger('IBM1')
         self.evaluate = evaluate
         self.s = defaultdict(float)
@@ -30,6 +29,13 @@ class AlignmentModel(IBM1Base):
         self.lambda1 = 0.9999999999
         self.lambda2 = 9.999900827395436E-11
         self.lambda3 = 1.000000082740371E-15
+
+        self.modelComponents = ["t", "s", "sTag",
+                                "typeList", "typeIndex", "typeDist",
+                                "lambd", "lambda1", "lambda2", "lambda3"]
+        self._savedModelFile = "model_IBM1WithAlignmentType_N100.pklz"
+
+        IBM1Base.__init__(self)
 
         self.loadTypeDist = {"SEM": .401, "FUN": .264, "PDE": .004,
                              "CDE": .004, "MDE": .012, "GIS": .205,
@@ -126,7 +132,7 @@ class AlignmentModel(IBM1Base):
                 self.c_feh[(f, e, h)] / self.c[(f, e)]
         return
 
-    def sProbabilityWithTag(self, f, e, h):
+    def sProbability(self, f, e, h):
         fWord, fTag = f
         eWord, eTag = e
         p1 = (1 - self.lambd) * self.typeDist[h] +\
@@ -137,12 +143,19 @@ class AlignmentModel(IBM1Base):
 
         return self.lambda1 * p1 + self.lambda2 * p2 + self.lambda3 * p3
 
-    def sProbability(self, f, e, h):
+    def sProbabilityTag(self, f, e, h):
         return self.lambd * self.s[(f, e, h)] +\
             (1 - self.lambd) * self.typeDist[h]
 
-    def tProbabilityWithTag(self, f, e):
+    def tProbability(self, f, e):
         tmp = self.t[(f[0], e[0])]
+        if tmp == 0:
+            return 0.000006123586217
+        else:
+            return tmp
+
+    def tProbabilityTag(self, f, e):
+        tmp = self.t[(f, e)]
         if tmp == 0:
             return 0.000006123586217
         else:
@@ -176,14 +189,18 @@ class AlignmentModel(IBM1Base):
         self.logger.info("Initialising")
 
         self.initialiseModel(tagTritext, self.loadTypeDist)
+        tmpTProb = self.tProbability
+        self.tProbability = self.tProbabilityTag
+        tmpSProb = self.sProbability
+        self.sProbability = self.sProbabilityTag
         self.logger.info("Initialisation complete")
 
         self.EM(tagTritext, iterations, 'IBM1TypeS1')
         self.sTag = self.s
         self.logger.info("Stage 1 Complete, preparing for stage 2")
 
-        self.tProbability = self.tProbabilityWithTag
-        self.sProbability = self.sProbabilityWithTag
+        self.tProbability = tmpTProb
+        self.sProbability = tmpSProb
         self._updateCount = self._updateCountTag
 
         tritext = []
