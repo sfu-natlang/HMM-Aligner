@@ -16,7 +16,7 @@ __version__ = "0.4a"
 
 class AlignmentModel(IBM1Base):
     def __init__(self):
-        self.modelName = "IBM1WithPOSTagAndAlignmentType"
+        self.modelName = "IBM1"
         self.version = "0.1b"
         self.logger = logging.getLogger('IBM1')
         self.evaluate = evaluate
