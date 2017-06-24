@@ -12,8 +12,9 @@ import os
 import time
 from collections import defaultdict
 from loggers import logging
+from models.modelBase import AlignmentModelBase as Base
 from evaluators.evaluator import evaluate
-__version__ = "0.1a"
+__version__ = "0.4a"
 
 
 # This is a private module for transmitting test results. Please ignore.
@@ -31,11 +32,12 @@ except all:
     Task = DummyTask
 
 
-class AlignmentModel():
+class AlignmentModel(Base):
     def __init__(self):
         self.t = defaultdict(float)
         self.logger = logging.getLogger('IBM1')
         self.evaluate = evaluate
+        Base.__init__(self)
         return
 
     def initWithBitext(self, bitext):

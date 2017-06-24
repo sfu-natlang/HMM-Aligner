@@ -1,4 +1,12 @@
-#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+#
+# HMM Aligner
+# Simon Fraser University
+# NLP Lab
+#
+# This is the main programme of the HMM aligner
+#
 import sys
 import os
 import importlib
@@ -8,7 +16,7 @@ from ConfigParser import SafeConfigParser
 from loggers import logging, init_logger
 from models.modelChecker import checkAlignmentModel
 from fileIO import loadBitext, loadTritext, exportToFile, loadAlignment
-__version__ = "0.4a"
+__version__ = "0.5a"
 
 
 if __name__ == '__main__':
@@ -30,7 +38,10 @@ if __name__ == '__main__':
         'testSize': 1956,
         'iterations': 5,
         'model': "IBM1",
-        'output': 'o.wa'
+        'output': 'o.wa',
+
+        'loadModel': "",
+        'saveModel': ""
     }
 
     configFileDataSection = {
@@ -105,6 +116,12 @@ if __name__ == '__main__':
         ap.add_argument(
             "-c", "--config", dest="config",
             help="Path to config file")
+        ap.add_argument(
+            "-s", "--saveModel", dest="saveModel",
+            help="Where to save the model")
+        ap.add_argument(
+            "-l", "--loadModel", dest="loadModel",
+            help="Specify the model file to load")
         args = ap.parse_args()
 
     # Process config file
@@ -146,8 +163,10 @@ if __name__ == '__main__':
     __logger.info("Model loaded")
 
     aligner = Model()
+    if config['loadModel'] != "":
+        aligner.loadModel(config['loadModel'])
 
-    if config['trainData'] != "":
+    elif config['trainData'] != "":
         trainSource = os.path.expanduser(
             "%s.%s" % (os.path.join(config['dataDir'], config['trainData']),
                        config['sourceLanguage'])
@@ -191,6 +210,11 @@ if __name__ == '__main__':
             aligner.train(formTritext=trainFormTritext,
                           tagTritext=trainTagTritext,
                           iterations=config['iterations'])
+    else:
+        aligner.loadModel(aligner._savedModelFile)
+
+    if config['saveModel'] != "":
+        aligner.saveModel(config['saveModel'])
 
     if config['testData'] != "":
         testSource = os.path.expanduser(

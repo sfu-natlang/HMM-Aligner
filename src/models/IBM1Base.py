@@ -64,11 +64,14 @@ class AlignmentModelBase(Base):
         return
 
     def tProbability(self, f, e):
-        tmp = self.t[(f, e)]
-        if tmp == 0:
-            return 0.000006123586217
+        if (f, e) in self.t:
+            tmp = self.t[(f, e)]
+            if tmp == 0:
+                return 0.000006123586217
+            else:
+                return tmp
         else:
-            return tmp
+            return 0.000006123586217
 
     def EM(self, bitext, iterations, modelName="IBM1Base"):
         task = Task("Aligner", modelName + str(iterations))
@@ -190,5 +193,4 @@ class AlignmentModelBase(Base):
         del self.fe_count
         del self.c
         del self.total
-        self.dumpModel("model.pklz")
         return

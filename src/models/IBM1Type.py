@@ -13,8 +13,9 @@ import os
 import time
 from collections import defaultdict
 from loggers import logging
+from models.modelBase import AlignmentModelBase as Base
 from evaluators.evaluator import evaluate
-__version__ = "0.2a"
+__version__ = "0.4a"
 
 
 # This is a private module for transmitting test results. Please ignore.
@@ -37,7 +38,7 @@ tagDist = [0.401, 0.264, 0.004, 0.004,
            0.003, 0.086, 0.002]
 
 
-class AlignmentModel():
+class AlignmentModel(Base):
     def __init__(self):
         self.logger = logging.getLogger('Model')
         self.evaluate = evaluate
@@ -72,6 +73,8 @@ class AlignmentModel():
             "NTR": 9,
             "MTA": 10
         }
+        self.modelComponents = ["t", "s", "sTag"]
+        Base.__init__(self)
         return
 
     def initialiseWithTritext(self, tritext, f_count, e_count, fe_count, s):

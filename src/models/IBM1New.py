@@ -12,8 +12,9 @@ import time
 from copy import deepcopy
 from collections import defaultdict
 from loggers import logging
+from models.modelBase import AlignmentModelBase as Base
 from evaluators.evaluator import evaluate
-__version__ = "0.1a"
+__version__ = "0.4a"
 
 
 # This is a private module for transmitting test results. Please ignore.
@@ -31,7 +32,7 @@ except all:
     Task = DummyTask
 
 
-class AlignmentModel():
+class AlignmentModel(Base):
     def __init__(self):
         '''
         @var self.f_count: integer defaultdict with string as index
@@ -63,6 +64,7 @@ class AlignmentModel():
             "NTR": 9,
             "MTA": 10
         }
+        Base.__init__(self)
         return
 
     def initialiseCounts(self, bitext):

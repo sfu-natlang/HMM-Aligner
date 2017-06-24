@@ -40,7 +40,6 @@ class AlignmentModel(IBM1Base):
         self.modelComponents = ["t", "s", "sTag",
                                 "typeList", "typeIndex", "typeDist",
                                 "lambd", "lambda1", "lambda2", "lambda3"]
-        self._savedModelFile = ""
         IBM1Base.__init__(self)
         return
 
@@ -149,18 +148,24 @@ class AlignmentModel(IBM1Base):
             (1 - self.lambd) * self.typeDist[h]
 
     def tProbability(self, f, e):
-        tmp = self.t[(f[0], e[0])]
-        if tmp == 0:
-            return 0.000006123586217
+        if (f[0], e[0]) in self.t:
+            tmp = self.t[(f[0], e[0])]
+            if tmp == 0:
+                return 0.000006123586217
+            else:
+                return tmp
         else:
-            return tmp
+            return 0.000006123586217
 
     def tProbabilityTag(self, f, e):
-        tmp = self.t[(f, e)]
-        if tmp == 0:
-            return 0.000006123586217
+        if (f, e) in self.t:
+            tmp = self.t[(f, e)]
+            if tmp == 0:
+                return 0.000006123586217
+            else:
+                return tmp
         else:
-            return tmp
+            return 0.000006123586217
 
     def decodeSentence(self, sentence):
         # This is the standard sentence decoder for IBM model 1

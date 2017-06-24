@@ -11,6 +11,7 @@
 #
 import pickle
 import gzip
+import os
 from loggers import logging
 __version__ = "0.4a"
 
@@ -37,8 +38,8 @@ class AlignmentModelBase():
             self.logger = logging.getLogger('MODEL')
         if "modelComponents" not in vars(self):
             self.modelComponents = []
-        if "_savedModelFile" in vars(self):
-            self.loadModel(self._savedModelFile)
+        if "_savedModelFile" not in vars(self):
+            self._savedModelFile = ""
         return
 
     def loadModel(self, fileName=None):
@@ -49,6 +50,7 @@ class AlignmentModelBase():
                                 " be loaded")
             return
         self.logger.info("Loading model from " + fileName)
+        fileName = os.path.expanduser(fileName)
         pklFile = gzip.open(fileName, 'rb')
         loadedComponents = pickle.load(pklFile)
         pklFile.close()
@@ -84,7 +86,7 @@ class AlignmentModelBase():
         self.logger.info("Model loaded: " + msg)
         return
 
-    def dumpModel(self, fileName=""):
+    def saveModel(self, fileName=""):
         if fileName == "":
             self.logger.warning("Destination not specified, model will not" +
                                 " be saved")

@@ -21,7 +21,6 @@ class AlignmentModel(IBM1Base):
         self.logger = logging.getLogger('IBM1')
         self.evaluate = evaluate
 
-        self._savedModelFile = ""
         IBM1Base.__init__(self)
         return
 

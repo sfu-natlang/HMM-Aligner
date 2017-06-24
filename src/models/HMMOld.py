@@ -17,8 +17,10 @@ from math import log
 from collections import defaultdict
 from models.IBM1Old import AlignmentModel as AlignerIBM1
 from loggers import logging
+from models.modelBase import AlignmentModelBase as Base
 from evaluators.evaluator import evaluate
 logger = logging.getLogger('HMM')
+__version__ = "0.4a"
 
 
 # This is a private module for transmitting test results. Please ignore.
@@ -36,7 +38,7 @@ except all:
     Task = DummyTask
 
 
-class AlignmentModel():
+class AlignmentModel(Base):
     def __init__(self):
         self.p0H = 0.3
         self.nullEmissionProb = 0.000005
@@ -45,6 +47,8 @@ class AlignmentModel():
         self.pi = None
         self.task = None
         self.evaluate = evaluate
+        self.modelComponents = ["t", "pi", "a"]
+        Base.__init__(self)
         return
 
     def initWithIBM(self, modelIBM1, bitext):
