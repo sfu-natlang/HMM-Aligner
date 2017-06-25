@@ -6,7 +6,7 @@ currentdir = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
-from fileIO import loadBitext, loadTritext, exportToFile, loadAlignment
+from fileIO import exportToFile, loadAlignment
 from loggers import logging, init_logger
 if __name__ == '__main__':
     init_logger('evaluator.log')

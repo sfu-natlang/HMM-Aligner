@@ -24,9 +24,9 @@ class AlignmentModel(IBM1Base):
         IBM1Base.__init__(self)
         return
 
-    def train(self, bitext, iterations=5):
-        self.initialiseModel(bitext)
-        self.EM(bitext, iterations, 'IBM1')
+    def train(self, dataset, iterations=5):
+        self.initialiseModel(dataset)
+        self.EM(dataset, iterations, 'IBM1')
         return
 
     def _beginningOfIteration(self):
@@ -35,8 +35,11 @@ class AlignmentModel(IBM1Base):
         return
 
     def _updateCount(self, fWord, eWord, z):
-        self.c[(fWord, eWord)] += self.tProbability(fWord, eWord) / z
-        self.total[eWord] += self.tProbability(fWord, eWord) / z
+        f = fWord[0]
+        e = eWord[0]
+        self.c[(f, e)] +=\
+            self.tProbability(fWord, eWord) / z
+        self.total[e] += self.tProbability(fWord, eWord) / z
         return
 
     def _updateEndOfIteration(self):

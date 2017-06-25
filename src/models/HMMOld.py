@@ -15,7 +15,7 @@ import logging
 import time
 from math import log
 from collections import defaultdict
-from models.IBM1Old import AlignmentModel as AlignerIBM1
+from models.IBM1New import AlignmentModel as AlignerIBM1
 from loggers import logging
 from models.modelBase import AlignmentModelBase as Base
 from evaluators.evaluator import evaluate

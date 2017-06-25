@@ -15,7 +15,7 @@ import StringIO
 from ConfigParser import SafeConfigParser
 from loggers import logging, init_logger
 from models.modelChecker import checkAlignmentModel
-from fileIO import loadBitext, loadTritext, exportToFile, loadAlignment
+from fileIO import loadDataset, exportToFile, loadAlignment
 __version__ = "0.5a"
 
 
@@ -176,10 +176,10 @@ if __name__ == '__main__':
                        config['targetLanguage'])
         )
         if modelType == 1:
-            trainBitext = loadBitext(trainSource,
-                                     trainTarget,
-                                     config['trainSize'])
-            aligner.train(trainBitext, config['iterations'])
+            trainDataset = loadDataset([trainSource],
+                                       [trainTarget],
+                                       linesToLoad=config['trainSize'])
+            aligner.train(trainDataset, config['iterations'])
 
         if modelType == 2:
             trainSourceTag = os.path.expanduser(
@@ -227,8 +227,10 @@ if __name__ == '__main__':
         )
 
         if modelType == 1:
-            testBitext = loadBitext(testSource, testTarget, config['testSize'])
-            alignResult = aligner.decode(testBitext)
+            testDataset = loadDataset([testSource],
+                                      [testTarget],
+                                      linesToLoad=config['testSize'])
+            alignResult = aligner.decode(testDataset)
         if modelType == 2:
             testSourceTag = os.path.expanduser(
                 "%s.%s" % (os.path.join(config['dataDir'],

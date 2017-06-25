@@ -99,7 +99,7 @@ class AlignmentModelBase():
             output = open(fileName, 'wb')
         else:
             fileName = fileName + ".pkl"
-            output = open(fileName + ".pkl", 'wb')
+            output = open(fileName, 'wb')
         self.logger.info("Saving model to " + fileName)
 
         # dump model name and version

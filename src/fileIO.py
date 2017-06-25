@@ -40,7 +40,7 @@ def exportToFile(result, fileName):
     return
 
 
-def loadBitext(file1, file2, linesToLoad=sys.maxint):
+def _loadBitext(file1, file2, linesToLoad=sys.maxint):
     '''
     This function is used to read a bitext from two text files.
 
@@ -58,7 +58,7 @@ def loadBitext(file1, file2, linesToLoad=sys.maxint):
     return bitext
 
 
-def loadTritext(file1, file2, file3, linesToLoad=sys.maxint):
+def _loadTritext(file1, file2, file3, linesToLoad=sys.maxint):
     '''
     This function is used to read a bitext from two text files.
 
@@ -171,20 +171,20 @@ def loadAlignment(fileName, linesToLoad=sys.maxint):
 class TestFileIO(unittest.TestCase):
 
     def testLoadBitext(self):
-        bitext1 = loadBitext("support/ut_source.txt", "support/ut_target.txt")
-        bitext2 = loadBitext("support/ut_target.txt", "support/ut_source.txt")
+        bitext1 = _loadBitext("support/ut_source.txt", "support/ut_target.txt")
+        bitext2 = _loadBitext("support/ut_target.txt", "support/ut_source.txt")
         for (f1, e1), (e2, f2) in zip(bitext1, bitext2):
             self.assertSequenceEqual(f1, f2)
             self.assertSequenceEqual(e1, e2)
         return
 
     def testLoadTritext(self):
-        tritext1 = loadTritext("support/ut_source.txt",
-                               "support/ut_target.txt",
-                               "support/ut_target.txt")
-        tritext2 = loadTritext("support/ut_target.txt",
-                               "support/ut_source.txt",
-                               "support/ut_target.txt")
+        tritext1 = _loadTritext("support/ut_source.txt",
+                                "support/ut_target.txt",
+                                "support/ut_target.txt")
+        tritext2 = _loadTritext("support/ut_target.txt",
+                                "support/ut_source.txt",
+                                "support/ut_target.txt")
         for (f1, e1, t1), (f2, e2, t2) in zip(tritext1, tritext2):
             self.assertSequenceEqual(f1, e2)
             self.assertSequenceEqual(e1, t1)
@@ -196,8 +196,8 @@ class TestFileIO(unittest.TestCase):
         alignment = loadAlignment("support/ut_align_no_prob.a")
         certainAlign = [sentence["certain"] for sentence in alignment]
         exportToFile(certainAlign, "support/ut_align_no_prob.exported.wa")
-        compare = loadBitext("support/ut_align_no_prob.a",
-                             "support/ut_align_no_prob.exported.wa")
+        compare = _loadBitext("support/ut_align_no_prob.a",
+                              "support/ut_align_no_prob.exported.wa")
         for (s1, s2) in compare:
             self.assertItemsEqual(s1, s2)
         return

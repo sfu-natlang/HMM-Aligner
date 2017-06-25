@@ -22,17 +22,16 @@ from models.modelBase import AlignmentModelBase as Base
 __version__ = "0.4a"
 
 supportedModels = [
-    "IBM1Old", "IBM1New", "HMMOld", "IBM1",
-    "IBM1Type", "HMMType", "IBM1WithAlignmentType"
+    "IBM1"
 ]
 
 requiredMethods1 = {
     "train": {"self": "instance",
-              "bitext": "list",
+              "dataset": "list",
               "iterations": "int"},
 
     "decode": {"self": "instance",
-               "bitext": "list"}
+               "dataset": "list"}
 }
 
 requiredMethods2 = {

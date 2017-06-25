@@ -40,7 +40,7 @@ class AlignmentModelBase(Base):
         Base.__init__(self)
         return
 
-    def initialiseModel(self, bitext):
+    def initialiseModel(self, dataset):
         # We don't use .clear() here for reusability of models.
         # Sometimes one would need one or more of the following parts for other
         # Purposes. We wouldn't want to accidentally clear them up.
@@ -49,14 +49,14 @@ class AlignmentModelBase(Base):
         self.e_count = defaultdict(int)
         self.fe_count = defaultdict(int)
 
-        for item in bitext:
+        for item in dataset:
             f, e = item[0:2]
             for f_i in f:
-                self.f_count[f_i] += 1
+                self.f_count[f_i[0]] += 1
                 for e_j in e:
-                    self.fe_count[(f_i, e_j)] += 1
+                    self.fe_count[(f_i[0], e_j[0])] += 1
             for e_j in e:
-                self.e_count[e_j] += 1
+                self.e_count[e_j[0]] += 1
 
         initialValue = 1.0 / len(self.f_count)
         for key in self.fe_count:
@@ -64,8 +64,8 @@ class AlignmentModelBase(Base):
         return
 
     def tProbability(self, f, e):
-        if (f, e) in self.t:
-            tmp = self.t[(f, e)]
+        if (f[0], e[0]) in self.t:
+            tmp = self.t[(f[0], e[0])]
             if tmp == 0:
                 return 0.000006123586217
             else:
@@ -73,10 +73,10 @@ class AlignmentModelBase(Base):
         else:
             return 0.000006123586217
 
-    def EM(self, bitext, iterations, modelName="IBM1Base"):
+    def EM(self, dataset, iterations, modelName="IBM1Base"):
         task = Task("Aligner", modelName + str(iterations))
         self.logger.info("Starting Training Process")
-        self.logger.info("Training size: " + str(len(bitext)))
+        self.logger.info("Training size: " + str(len(dataset)))
         start_time = time.time()
 
         for iteration in range(iterations):
@@ -84,11 +84,11 @@ class AlignmentModelBase(Base):
             self.logger.info("Starting Iteration " + str(iteration))
             counter = 0
 
-            for item in bitext:
+            for item in dataset:
                 f, e = item[0:2]
                 counter += 1
                 task.progress(modelName + " iter %d, %d of %d" %
-                              (iteration, counter, len(bitext),))
+                              (iteration, counter, len(dataset),))
                 for fWord in f:
                     z = 0
                     for eWord in e:
@@ -104,12 +104,12 @@ class AlignmentModelBase(Base):
         self.endOfEM()
         return
 
-    def decode(self, bitext):
+    def decode(self, dataset):
         self.logger.info("Start decoding")
-        self.logger.info("Testing size: " + str(len(bitext)))
+        self.logger.info("Testing size: " + str(len(dataset)))
         result = []
 
-        for sentence in bitext:
+        for sentence in dataset:
 
             sentenceAlignment = self.decodeSentence(sentence)
 
@@ -122,7 +122,7 @@ class AlignmentModelBase(Base):
         # What happens there is that for every source f word, we find the
         # target e word with the highest tr(e|f) score here, which is
         # tProbability(f[i], e[j])
-        f, e = sentence
+        f, e, alignment = sentence
         sentenceAlignment = []
         for i in range(len(f)):
             max_t = 0
@@ -161,9 +161,9 @@ class AlignmentModelBase(Base):
               C(f)    is self.total[f]
         '''
 
-        # self.c[(fWord, eWord)] += self.t[(fWord, eWord)] / z
-        # self.total[eWord] += self.t[(fWord, eWord)] / z
-        # return
+        # self.c[(fWord[0], eWord[0])] +=\
+        #     self.tProbability(fWord[0], eWord[0]) / z
+        # self.total[eWord[0]] += self.tProbability(fWord[0], eWord[0]) / z
         raise NotImplementedError
 
     def _updateEndOfIteration(self):
@@ -177,9 +177,9 @@ class AlignmentModelBase(Base):
         All of the pairs of words (f, e) can be found in self.fe_count
         '''
 
-        # for (f, e) in self.c:
+        # for (f[0], e[0]) in self.c:
         #     # Change the following line to add smoothing
-        #     self.t[(f, e)] = self.c[(f, e)] / self.total[e]
+        #     self.t[(f[0], e[0])] = self.c[(f[0], e[0])] / self.total[e[0]]
         # return
         raise NotImplementedError
 
