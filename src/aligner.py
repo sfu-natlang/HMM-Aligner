@@ -157,8 +157,7 @@ if __name__ == '__main__':
     # Load model
     __logger.info("Loading model: " + config['model'])
     Model = importlib.import_module("models." + config['model']).AlignmentModel
-    modelType = checkAlignmentModel(Model)
-    if modelType == -1:
+    if not checkAlignmentModel(Model):
         raise TypeError("Invalid Model class")
     __logger.info("Model loaded")
 
@@ -175,13 +174,10 @@ if __name__ == '__main__':
             "%s.%s" % (os.path.join(config['dataDir'], config['trainData']),
                        config['targetLanguage'])
         )
-        if modelType == 1:
-            trainDataset = loadDataset([trainSource],
-                                       [trainTarget],
-                                       linesToLoad=config['trainSize'])
-            aligner.train(trainDataset, config['iterations'])
+        trainSourceFiles = [trainSource]
+        trainTargetFiles = [trainTarget]
 
-        if modelType == 2:
+        if config['trainDataTag'] != '':
             trainSourceTag = os.path.expanduser(
                 "%s.%s" % (os.path.join(config['dataDir'],
                                         config['trainDataTag']
@@ -192,24 +188,23 @@ if __name__ == '__main__':
                                         config['trainDataTag']
                                         ), config['targetLanguage'])
             )
+            trainSourceFiles = [trainSource, trainSourceTag]
+            trainTargetFiles = [trainTarget, trainTargetTag]
+
+        if config['trainAlignment'] != '':
             trainAlignment = os.path.expanduser(
                 "%s.%s" % (os.path.join(config['dataDir'],
                                         config['trainData']
                                         ), config['trainAlignment'])
             )
-            trainFormTritext = loadTritext(trainSource,
-                                           trainTarget,
-                                           trainAlignment,
-                                           config['trainSize'])
+        else:
+            trainAlignment = ''
+        trainDataset = loadDataset(trainSourceFiles,
+                                   trainTargetFiles,
+                                   trainAlignment,
+                                   linesToLoad=config['trainSize'])
+        aligner.train(trainDataset, config['iterations'])
 
-            trainTagTritext = loadTritext(trainSourceTag,
-                                          trainTargetTag,
-                                          trainAlignment,
-                                          config['trainSize'])
-
-            aligner.train(formTritext=trainFormTritext,
-                          tagTritext=trainTagTritext,
-                          iterations=config['iterations'])
     else:
         aligner.loadModel(aligner._savedModelFile)
 
@@ -225,13 +220,9 @@ if __name__ == '__main__':
             "%s.%s" % (os.path.join(config['dataDir'], config['testData']),
                        config['targetLanguage'])
         )
-
-        if modelType == 1:
-            testDataset = loadDataset([testSource],
-                                      [testTarget],
-                                      linesToLoad=config['testSize'])
-            alignResult = aligner.decode(testDataset)
-        if modelType == 2:
+        testSourceFiles = [testSource]
+        testTargetFiles = [testTarget]
+        if config['testDataTag'] != '':
             testSourceTag = os.path.expanduser(
                 "%s.%s" % (os.path.join(config['dataDir'],
                                         config['testDataTag']
@@ -242,15 +233,13 @@ if __name__ == '__main__':
                                         config['testDataTag']
                                         ), config['targetLanguage'])
             )
+            testSourceFiles = [testSource, testSourceTag]
+            testTargetFiles = [testTarget, testTargetTag]
 
-            testFormBitext = loadBitext(testSource,
-                                        testTarget,
-                                        config['testSize'])
-            testTagBitext = loadBitext(testSourceTag,
-                                       testTargetTag,
-                                       config['testSize'])
-            alignResult = aligner.decode(formBitext=testFormBitext,
-                                         tagBitext=testTagBitext)
+        testDataset = loadDataset(testSourceFiles,
+                                  testTargetFiles,
+                                  linesToLoad=config['testSize'])
+        alignResult = aligner.decode(testDataset)
 
         if config['output'] != "":
             exportToFile(alignResult, config['output'])

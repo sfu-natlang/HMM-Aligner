@@ -22,6 +22,7 @@ class AlignmentModel(IBM1Base):
         self.evaluate = evaluate
         self.s = defaultdict(float)
         self.sTag = defaultdict(float)
+        self.index = 0
 
         self.typeList = []
         self.typeIndex = {}
@@ -43,38 +44,30 @@ class AlignmentModel(IBM1Base):
         IBM1Base.__init__(self)
         return
 
-    def initialiseModel(self, tritext, loadTypeDist={}):
+    def initialiseModel(self, dataset, loadTypeDist={}):
+        # self.index = 0 for text, 1 for POS Tag
+        index = self.index
         self.logger.info("Initialising IBM model")
-        IBM1Base.initialiseModel(self, tritext)
+        IBM1Base.initialiseModel(self, dataset, index)
         total_f_e_type = defaultdict(float)
-        self.s = defaultdict(float)
+        # if index == 0 initialise self.s, otherwise initialise self.sTag
+        if index == 0:
+            self.s = defaultdict(float)
+            s = self.s
+        else:
+            self.sTag = defaultdict(float)
+            s = self.sTag
         typeDist = defaultdict(float)
         typeTotalCount = 0
 
-        for (f, e, alignment) in tritext:
+        for (f, e, alignment) in dataset:
             # Initialise total_f_e_type count
-            for item in alignment:
-                left, right = item.split("-")
-                fwords = ''.join(c for c in left if c.isdigit() or c == ',')
-                fwords = fwords.split(',')
-                if len(fwords) != 1:
-                    continue
-                # Process source word
-                fWord = f[int(fwords[0]) - 1]
-
-                # Process right(target word/types)
-                tag = right[len(right) - 4: len(right) - 1]
-                eWords = right[:len(right) - 5]
-                eWords = ''.join(c for c in eWords if c.isdigit() or c == ',')
-                eWords = eWords.split(',')
-
-                if (eWords[0] != ""):
-                    for eStr in eWords:
-                        eWord = e[int(eStr) - 1]
-                        total_f_e_type[(fWord, eWord, tag)] += 1
-
-                        typeDist[tag] += 1
-                        typeTotalCount += 1
+            for (f_i, e_i, typ) in alignment:
+                fWord = f[f_i - 1]
+                eWord = e[e_i - 1]
+                total_f_e_type[(fWord[index], eWord[index], typ)] += 1
+                typeDist[typ] += 1
+                typeTotalCount += 1
 
         # Calculate alignment type distribution
         for typ in typeDist:
@@ -94,7 +87,7 @@ class AlignmentModel(IBM1Base):
             self.typeDist.append(typeDist[self.typeList[h]])
 
         for f, e, typ in total_f_e_type:
-            self.s[(f, e, self.typeIndex[typ])] =\
+            s[(f, e, self.typeIndex[typ])] =\
                 total_f_e_type[(f, e, typ)] / self.fe_count[(f, e)]
         return
 
@@ -105,20 +98,12 @@ class AlignmentModel(IBM1Base):
         return
 
     def _updateCount(self, fWord, eWord, z):
-        self.c[(fWord, eWord)] += self.tProbability(fWord, eWord) / z
-        self.total[eWord] += self.tProbability(fWord, eWord) / z
+        self.c[(fWord[self.index], eWord[self.index])] +=\
+            self.tProbability(fWord, eWord) / z
+        self.total[eWord[self.index]] +=\
+            self.tProbability(fWord, eWord) / z
         for h in range(len(self.typeIndex)):
-            self.c_feh[(fWord, eWord, h)] +=\
-                self.tProbability(fWord, eWord) *\
-                self.sProbability(fWord, eWord, h) /\
-                z
-        return
-
-    def _updateCountTag(self, fWord, eWord, z):
-        self.c[(fWord[0], eWord[0])] += self.tProbability(fWord, eWord) / z
-        self.total[eWord[0]] += self.tProbability(fWord, eWord) / z
-        for h in range(len(self.typeIndex)):
-            self.c_feh[(fWord[0], eWord[0], h)] +=\
+            self.c_feh[(fWord[self.index], eWord[self.index], h)] +=\
                 self.tProbability(fWord, eWord) *\
                 self.sProbability(fWord, eWord, h) /\
                 z
@@ -127,59 +112,47 @@ class AlignmentModel(IBM1Base):
     def _updateEndOfIteration(self):
         for (f, e) in self.c:
             self.t[(f, e)] = self.c[(f, e)] / self.total[e]
-        for f, e, h in self.c_feh:
-            self.s[(f, e, h)] =\
-                self.c_feh[(f, e, h)] / self.c[(f, e)]
+        if self.index == 0:
+            for f, e, h in self.c_feh:
+                self.s[(f, e, h)] =\
+                    self.c_feh[(f, e, h)] / self.c[(f, e)]
+        else:
+            for f, e, h in self.c_feh:
+                self.sTag[(f, e, h)] =\
+                    self.c_feh[(f, e, h)] / self.c[(f, e)]
         return
 
     def sProbability(self, f, e, h):
         fWord, fTag = f
         eWord, eTag = e
-        p1 = (1 - self.lambd) * self.typeDist[h] +\
-            self.lambd * self.s[(fWord, eWord, h)]
-        p2 = (1 - self.lambd) * self.typeDist[h] +\
-            self.lambd * self.sTag[(fTag, eTag, h)]
-        p3 = self.typeDist[h]
+        if self.index == 0:
+            p1 = (1 - self.lambd) * self.typeDist[h] +\
+                self.lambd * self.s[(fWord, eWord, h)]
+            p2 = (1 - self.lambd) * self.typeDist[h] +\
+                self.lambd * self.sTag[(fTag, eTag, h)]
+            p3 = self.typeDist[h]
 
-        return self.lambda1 * p1 + self.lambda2 * p2 + self.lambda3 * p3
-
-    def sProbabilityTag(self, f, e, h):
-        return self.lambd * self.s[(f, e, h)] +\
-            (1 - self.lambd) * self.typeDist[h]
+            return self.lambda1 * p1 + self.lambda2 * p2 + self.lambda3 * p3
+        else:
+            return self.lambd * self.sTag[(fTag, eTag, h)] +\
+                (1 - self.lambd) * self.typeDist[h]
 
     def tProbability(self, f, e):
-        if (f[0], e[0]) in self.t:
-            tmp = self.t[(f[0], e[0])]
-            if tmp == 0:
-                return 0.000006123586217
-            else:
-                return tmp
-        else:
-            return 0.000006123586217
-
-    def tProbabilityTag(self, f, e):
-        if (f, e) in self.t:
-            tmp = self.t[(f, e)]
-            if tmp == 0:
-                return 0.000006123586217
-            else:
-                return tmp
-        else:
-            return 0.000006123586217
+        return IBM1Base.tProbability(self, f, e, self.index)
 
     def decodeSentence(self, sentence):
         # This is the standard sentence decoder for IBM model 1
         # What happens there is that for every source f word, we find the
         # target e word with the highest tr(e|f) score here, which is
         # tProbability(f[i], e[j])
-        f, e = sentence
+        f, e, decodeSentence = sentence
         sentenceAlignment = []
         for i in range(len(f)):
             max_ts = 0
             argmax = -1
             bestType = -1
             for j in range(len(e)):
-                t = self.tProbability(f[i], e[j])
+                t = self.tProbability(f, e)
                 for h in range(len(self.typeIndex)):
                     s = self.sProbability(f[i], e[j], h)
                     if t * s > max_ts:
@@ -190,44 +163,24 @@ class AlignmentModel(IBM1Base):
                 (i + 1, argmax + 1, self.typeList[bestType]))
         return sentenceAlignment
 
-    def train(self, formTritext, tagTritext, iterations=5):
+    def train(self, dataset, iterations=5):
         self.logger.info("Stage 1 Start Training with POS Tags")
         self.logger.info("Initialising")
 
-        self.initialiseModel(tagTritext, self.loadTypeDist)
-        tmpTProb = self.tProbability
-        self.tProbability = self.tProbabilityTag
-        tmpSProb = self.sProbability
-        self.sProbability = self.sProbabilityTag
+        self.index = 1
+        self.initialiseModel(dataset, self.loadTypeDist)
         self.logger.info("Initialisation complete")
 
-        self.EM(tagTritext, iterations, 'IBM1TypeS1')
-        self.sTag = self.s
+        self.EM(dataset, iterations, 'IBM1TypeS1')
         self.logger.info("Stage 1 Complete, preparing for stage 2")
 
-        self.tProbability = tmpTProb
-        self.sProbability = tmpSProb
-        self._updateCount = self._updateCountTag
-
-        tritext = []
-        for (f, e, a1), (fTag, eTag, a2) in zip(formTritext, tagTritext):
-            tritext.append((zip(f, fTag), zip(e, eTag), a1))
-
-        self.logger.info("Stage 2 Start Training with POS Tags")
+        self.index = 0
+        self.logger.info("Stage 2 Start Training with FORM")
         self.logger.info("Initialising")
 
-        self.initialiseModel(formTritext, self.loadTypeDist)
+        self.initialiseModel(dataset, self.loadTypeDist)
         self.logger.info("Initialisation complete")
 
-        self.EM(tritext, iterations, 'IBM1TypeS2')
+        self.EM(dataset, iterations, 'IBM1TypeS2')
         self.logger.info("Stage 2 Complete")
         return
-
-    def decode(self, formBitext, tagBitext):
-        bitext = []
-        for form, tag in zip(formBitext, tagBitext):
-            f, e = form[0:2]
-            fTag, eTag = tag[0:2]
-            bitext.append((zip(f, fTag), zip(e, eTag)))
-
-        return IBM1Base.decode(self, bitext)

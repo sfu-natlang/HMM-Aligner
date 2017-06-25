@@ -22,10 +22,10 @@ from models.modelBase import AlignmentModelBase as Base
 __version__ = "0.4a"
 
 supportedModels = [
-    "IBM1"
+    "IBM1", "IBM1WithAlignmentType"
 ]
 
-requiredMethods1 = {
+requiredMethods = {
     "train": {"self": "instance",
               "dataset": "list",
               "iterations": "int"},
@@ -34,27 +34,14 @@ requiredMethods1 = {
                "dataset": "list"}
 }
 
-requiredMethods2 = {
-    "train": {"self": "instance",
-              "formTritext": "list",
-              "tagTritext": "list",
-              "iterations": "int"},
-
-    "decode": {"self": "instance",
-               "formBitext": "list",
-               "tagBitext": "list"}
-}
-
 
 def checkAlignmentModel(modelClass, logger=True):
     '''
-    There are two types of models supported, type 1 trains on bitext and
-    type 2 on a tritext of the original text and a tritext of tags(POS).
-    This function will examine the model class and determine its type.
-    If the return value is -1, then the model is unrecognisable by this
+    This function will examine the model class.
+    If the return value is False, then the model is unrecognisable by this
     function.
     @param modelClass: class, a model class
-    @return: int, model type. -1 for unrecognisable
+    @return: bool. False for unrecognisable
     '''
     if logger:
         from loggers import logging, init_logger
@@ -67,13 +54,13 @@ def checkAlignmentModel(modelClass, logger=True):
         error(
             "Specified Model needs to be a class named AlignmentModel under " +
             "models/ModelName.py")
-        return -1
+        return False
 
     if not issubclass(modelClass, Base):
         error(
             "Specified Model needs to be a subclass of " +
             "models.modelBase.AlignmentModelBase ")
-        return -1
+        return False
 
     try:
         model = modelClass()
@@ -81,11 +68,9 @@ def checkAlignmentModel(modelClass, logger=True):
         error(
             "Specified Model instance cannot be created by calling " +
             "AlignmentModel()")
-        return -1
+        return False
 
-    mode = -1
-
-    for methodName in requiredMethods1:
+    for methodName in requiredMethods:
         method = getattr(modelClass, methodName, None)
         if not callable(method):
             error(
@@ -94,40 +79,28 @@ def checkAlignmentModel(modelClass, logger=True):
                 "containing at least the following arguments(without Tag): " +
                 str(requiredMethods1[methodName]) + " or the following" +
                 "(with Tag) " + str(requiredMethods2[methodName]))
-            return -1
+            return False
 
         args, _, _, _ = inspect.getargspec(method)
-        if ([a for a in requiredMethods1[methodName] if a not in args] and
-                [a for a in requiredMethods2[methodName] if a not in args]):
+        if [a for a in requiredMethods[methodName] if a not in args]:
             error(
                 "Specified Model class's '" + methodName + "' method should " +
                 "contain the following arguments(with exact same names): " +
-                str(requiredMethods1[methodName]) + " or the following" +
-                "(with Tag) " + str(requiredMethods2[methodName]))
-            return -1
+                str(requiredMethods[methodName]))
+            return False
 
-        if ([a for a in args if a not in requiredMethods1[methodName]] and
-                [a for a in args if a not in requiredMethods2[methodName]]):
+        if [a for a in args if a not in requiredMethods[methodName]]:
             error(
                 "Specified Model class's '" + methodName + "' method should " +
                 "contain only the following arguments: " +
-                str(requiredMethods1[methodName]) + " or the following" +
-                "(with Tag) " + str(requiredMethods2[methodName]))
-            return -1
+                str(requiredMethods1[methodName]))
+            return False
 
-        if not([a for a in requiredMethods1[methodName] if a not in args] +
-                [a for a in args if a not in requiredMethods1[methodName]]):
-            if mode == -1 or mode == 1:
-                mode = 1
-            else:
-                error("Unrecognisable model type.")
-
-        if not([a for a in requiredMethods2[methodName] if a not in args] +
-                [a for a in args if a not in requiredMethods2[methodName]]):
-            if mode == -1 or mode == 2:
-                mode = 2
-            else:
-                error("Unrecognisable model type.")
+        if not [a for a in requiredMethods[methodName] if a not in args]:
+            return True
+        else:
+            error("Unrecognisable model type.")
+            return False
 
     return mode
 
@@ -144,7 +117,7 @@ if __name__ == '__main__':
         except all:
             print "Model", name, ": failed"
         mode = checkAlignmentModel(Model, False)
-        if mode != -1:
-            print "Model", name, ": passed, type", mode
+        if mode:
+            print "Model", name, ": passed"
         else:
             print "Model", name, ": failed"
