@@ -14,7 +14,7 @@ import os
 import sys
 import inspect
 import unittest
-__version__ = "0.2a"
+__version__ = "0.3a"
 
 
 def exportToFile(result, fileName):
@@ -78,6 +78,65 @@ def loadTritext(file1, file2, file3, linesToLoad=sys.maxint):
     return tritext
 
 
+def processAlignmentEntry(entry, listToAddTo, splitChar='-'):
+    if entry.find(splitChar) != -1:
+        for ch in (',', '(', ')', '[', ']'):
+            entry = entry.replace(ch, splitChar)
+        items = entry.split(splitChar)
+        f = int(items[0])
+        alignmentType = ""
+        for i in range(len(items) - 1, 0, -1):
+            if items[i].isdigit():
+                e = int(items[i])
+                if alignmentType != "":
+                    listToAddTo.append((f, e, alignmentType))
+                else:
+                    listToAddTo.append((f, e))
+            else:
+                alignmentType = items[i]
+    return
+
+
+def loadDataset(fFiles, eFiles, alignmentFile="", linesToLoad=sys.maxint):
+    '''
+    This function is used to read a Dataset files.
+
+    @param fFiles: list of str, the file containing source language files,
+        including FORM, POS, etc.,
+    @param eFiles: list of str, the file containing target language files,
+        including FORM, POS, etc.,
+    @param alignmentFile: str, the alignmentFile
+    @param* linesToLoad: int, the lines to read
+    @return: Dataset, detail of this format:
+        https://github.com/sfu-natlang/HMM-Aligner/wiki/API-reference:-Dataset-Data-Format-V0.2a#tritext
+    '''
+    fContents =\
+        [zip(*[fContent.strip().split() for fContent in contents])
+         for contents in zip(*[open(os.path.expanduser(fFile))
+                             for fFile in fFiles])[:linesToLoad]]
+    eContents =\
+        [zip(*[eContent.strip().split() for eContent in contents])
+         for contents in zip(*[open(os.path.expanduser(eFile))
+                             for eFile in eFiles])[:linesToLoad]]
+
+    if alignmentFile:
+        alignment =\
+            [sentence[0].strip().split() for sentence in
+                zip(open(os.path.expanduser(alignmentFile)))[:linesToLoad]]
+
+        for i in range(len(alignment)):
+            entries = alignment[i]
+            result = []
+            for entry in entries:
+                processAlignmentEntry(entry, result)
+            alignment[i] = result
+    else:
+        alignment = [[] for i in range(min(linesToLoad,
+                                           len(fContents),
+                                           len(eContents)))]
+    return zip(fContents, eContents, alignment)
+
+
 def loadAlignment(fileName, linesToLoad=sys.maxint):
     '''
     This function is used to read the GoldAlignment or Alignment from files.
@@ -96,39 +155,11 @@ def loadAlignment(fileName, linesToLoad=sys.maxint):
         certainAlign = []
         probableAlign = []
         for entry in sentence:
-            # Every entry is expected to be of the format: "NN-NN,NN" or
-            # "NN?NN,NN", where NNs are numbers
             if entry.find('-') != -1:
-                for ch in (',', '(', ')', '[', ']'):
-                    entry = entry.replace(ch, '-')
-                items = entry.split('-')
-                f = int(items[0])
-                alignmentType = ""
-                for i in range(len(items) - 1, 0, -1):
-                    if items[i].isdigit():
-                        e = int(items[i])
-                        if alignmentType != "":
-                            certainAlign.append((f, e, alignmentType))
-                        else:
-                            certainAlign.append((f, e))
-                    else:
-                        alignmentType = items[i]
+                processAlignmentEntry(entry, certainAlign, splitChar='-')
 
             elif entry.find('?') != -1:
-                for ch in (',', '(', ')', '[', ']'):
-                    entry = entry.replace(ch, '?')
-                items = entry.split('?')
-                f = int(items[0])
-                alignmentType = ""
-                for i in range(len(items) - 1, 0, -1):
-                    if items[i].isdigit():
-                        e = int(items[i])
-                        if alignmentType != "":
-                            probableAlign.append((f, e, alignmentType))
-                        else:
-                            probableAlign.append((f, e))
-                    else:
-                        alignmentType = items[i]
+                processAlignmentEntry(entry, probableAlign, splitChar='?')
 
         sentenceAlignment = {"certain": certainAlign,
                              "probable": probableAlign}
