@@ -125,7 +125,7 @@ class AlignmentModel(IBM1Base):
         return
 
     def _updateEndOfIteration(self):
-        for (f, e) in self.fe_count:
+        for (f, e) in self.c:
             self.t[(f, e)] = self.c[(f, e)] / self.total[e]
         for f, e, h in self.c_feh:
             self.s[(f, e, h)] =\

@@ -177,7 +177,7 @@ class AlignmentModelBase(Base):
         All of the pairs of words (f, e) can be found in self.fe_count
         '''
 
-        # for (f, e) in self.fe_count:
+        # for (f, e) in self.c:
         #     # Change the following line to add smoothing
         #     self.t[(f, e)] = self.c[(f, e)] / self.total[e]
         # return
