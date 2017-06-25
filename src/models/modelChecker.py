@@ -18,7 +18,8 @@ currentdir = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
-__version__ = "0.2a"
+from models.modelBase import AlignmentModelBase as Base
+__version__ = "0.4a"
 
 supportedModels = [
     "IBM1Old", "IBM1New", "HMMOld", "IBM1",
@@ -67,6 +68,20 @@ def checkAlignmentModel(modelClass, logger=True):
         error(
             "Specified Model needs to be a class named AlignmentModel under " +
             "models/ModelName.py")
+        return -1
+
+    if not issubclass(modelClass, Base):
+        error(
+            "Specified Model needs to be a subclass of " +
+            "models.modelBase.AlignmentModelBase ")
+        return -1
+
+    try:
+        model = modelClass()
+    except all:
+        error(
+            "Specified Model instance cannot be created by calling " +
+            "AlignmentModel()")
         return -1
 
     mode = -1

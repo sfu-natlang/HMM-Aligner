@@ -118,13 +118,12 @@ class AlignmentModelBase():
                 raise RuntimeError("object in _savedModelFile doesn't exist")
 
             # Remove zero valued entires from defaultdict
-            if isinstance(entity[componentName], defaultdict) or\
-               isinstance(entity[componentName], dict):
+            if isinstance(entity[componentName], defaultdict):
                 self.logger.info("component: " + componentName +
                                  ", size before trim: " +
                                  str(len(entity[componentName])))
                 emptyKeys =\
-                    [k for k in entity[componentName]
+                    [key for key in entity[componentName]
                      if entity[componentName][key] == 0]
                 for key in emptyKeys:
                     del entity[componentName][key]
