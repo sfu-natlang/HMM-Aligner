@@ -50,7 +50,7 @@ class AlignmentModel(Base):
         self.pi = None
         self.task = None
         self.evaluate = evaluate
-        self.modelComponents = ["t", "pi", "a"]
+        self.modelComponents = ["t", "pi", "a", "eLengthSet"]
         Base.__init__(self)
         return
 
@@ -59,216 +59,168 @@ class AlignmentModel(Base):
         # a: transition parameter
         # pi: initial parameter
         tmp = 1.0 / Len
-        for z in range(doubleLen + 1):
-            for y in range(doubleLen + 1):
+        for z in range(Len):
+            for y in range(Len):
                 for x in range(Len + 1):
-                    self.a[z][y][x] = tmp
+                    self.a[x][z][y] = tmp
         tmp = 1.0 / doubleLen
-        for x in range(doubleLen + 1):
+        for x in range(Len):
             self.pi[x] = tmp
         return
 
-    def forwardBackward(self, f, e, small_t):
-        alphaScale = [0.0 for x in range(len(f) + 1)]
-        alpha = [[0.0 for x in range(len(f) + 1)] for y in range(len(e) + 1)]
+    def forwardBackward(self, f, e, tSmall, a):
+        alpha = [[0.0 for x in range(len(e))] for y in range(len(f))]
+        alphaScale = [0.0 for x in range(len(f))]
         alphaSum = 0
 
-        for i in range(1, len(e) + 1):
-            alpha[i][1] = self.pi[i] * small_t[0][i - 1]
-            alphaSum += alpha[i][1]
+        for j in range(len(e)):
+            alpha[0][j] = self.pi[j] * tSmall[0][j]
+            alphaSum += alpha[0][j]
 
-        alphaScale[1] = 1 / alphaSum
-        for i in range(1, len(e) + 1):
-            alpha[i][1] *= alphaScale[1]
+        alphaScale[0] = 1 / alphaSum
+        for j in range(len(e)):
+            alpha[0][j] *= alphaScale[0]
 
-        for t in range(2, len(f) + 1):
+        for i in range(1, len(f)):
             alphaSum = 0
-            for j in range(1, len(e) + 1):
+            for j in range(len(e)):
                 total = 0
-                for i in range(1, len(e) + 1):
-                    total += alpha[i][t - 1] * self.a[i][j][len(e)]
-                alpha[j][t] = small_t[t - 1][j - 1] * total
-                alphaSum += alpha[j][t]
+                for prev_j in range(len(e)):
+                    total += alpha[i - 1][prev_j] * a[prev_j][j]
+                alpha[i][j] = tSmall[i][j] * total
+                alphaSum += alpha[i][j]
 
-            alphaScale[t] = 1.0 / alphaSum
-            for i in range(1, len(e) + 1):
-                alpha[i][t] = alphaScale[t] * alpha[i][t]
+            alphaScale[i] = 1.0 / alphaSum
+            for j in range(len(e)):
+                alpha[i][j] = alphaScale[i] * alpha[i][j]
 
-        beta = [[0.0 for x in range(len(f) + 1)] for y in range(len(e) + 1)]
-        for i in range(1, len(e) + 1):
-            beta[i][len(f)] = alphaScale[len(f)]
-        for t in range(len(f) - 1, 0, -1):
-            for i in range(1, len(e) + 1):
+        beta = [[0.0 for x in range(len(e))] for y in range(len(f))]
+        for j in range(len(e)):
+            beta[len(f) - 1][j] = alphaScale[len(f) - 1]
+
+        for i in range(len(f) - 2, -1, -1):
+            for j in range(len(e)):
                 total = 0
-                for j in range(1, len(e) + 1):
-                    total += (beta[j][t + 1] *
-                              self.a[i][j][len(e)] *
-                              small_t[t][j - 1])
-                beta[i][t] = alphaScale[t] * total
+                for next_j in range(len(e)):
+                    total += (beta[i + 1][next_j] * a[j][next_j] *
+                              tSmall[i + 1][next_j])
+                beta[i][j] = alphaScale[i] * total
         return alpha, alphaScale, beta
 
     def maxTargetSentenceLength(self, dataset):
         maxLength = 0
-        targetLengthSet = defaultdict(int)
+        eLengthSet = defaultdict(int)
         for (f, e, alignment) in dataset:
             tempLength = len(e)
             if tempLength > maxLength:
                 maxLength = tempLength
-            targetLengthSet[tempLength] += 1
-        return (maxLength, targetLengthSet)
-
-    def mapBitextToInt(self, sd_count):
-        index = defaultdict(int)
-        biword = defaultdict(tuple)
-        i = 0
-        for key in sd_count:
-            index[key] = i
-            biword[i] = key
-            i += 1
-        return (index, biword)
+            eLengthSet[tempLength] += 1
+        return (maxLength, eLengthSet)
 
     def baumWelch(self, dataset, iterations=5):
         if not self.task:
             self.task = Task("Aligner", "HMMBaumWelchOI" + str(iterations))
-        N, self.targetLengthSet = self.maxTargetSentenceLength(dataset)
+        self.logger.info("Starting Training Process")
+        self.logger.info("Training size: " + str(len(dataset)))
+        startTime = time.time()
 
-        self.logger.info("N " + str(N))
-        indexMap, biword = self.mapBitextToInt(self.t)
+        maxE, self.eLengthSet = self.maxTargetSentenceLength(dataset)
 
-        sd_size = len(indexMap)
-        totalGammaDeltaOAO_t_i = None
-        totalGammaDeltaOAO_t_overall_states_over_dest = None
+        self.logger.info("Maximum Target sentence length: " + str(maxE))
 
-        twoN = 2 * N
-
-        self.a = [[[0.0 for x in range(N + 1)]
-                  for y in range(twoN + 1)]
-                  for z in range(twoN + 1)]
-        self.pi = [0.0 for x in range(twoN + 1)]
+        self.a = [[[0.0 for x in range(maxE * 2)] for y in range(maxE * 2)]
+                  for z in range(maxE + 1)]
+        self.pi = [0.0 for x in range(maxE * 2)]
 
         for iteration in range(iterations):
-            self.logger.info("HMMBWTypeI Iteration " + str(iteration))
+            self.logger.info("BaumWelch Iteration " + str(iteration))
 
             logLikelihood = 0
 
-            totalGammaDeltaOAO_t_i = \
-                [0.0 for x in range(sd_size)]
-            totalGammaDeltaOAO_t_overall_states_over_dest =\
-                defaultdict(float)
-            totalGamma1OAO = [0.0 for x in range(N + 1)]
-            totalC_j_Minus_iOAO = [[[0.0 for x in range(N + 1)]
-                                    for y in range(N + 1)]
-                                   for z in range(N + 1)]
-            totalC_l_Minus_iOAO = [[0.0 for x in range(N + 1)]
-                                   for y in range(N + 1)]
+            gamma = [[0.0 for x in range(maxE)] for y in range(maxE * 2)]
+            gammaBiword = defaultdict(float)
+            gammaSum_0 = [0.0 for x in range(maxE)]
 
-            gamma = \
-                [[0.0 for x in range(N * 2 + 1)] for y in range(N + 1)]
-            small_t = \
-                [[0.0 for x in range(N * 2 + 1)] for y in range(N * 2 + 1)]
-
-            start0_time = time.time()
+            epsilon = [[[0.0 for x in range(maxE)] for y in range(maxE)]
+                       for z in range(maxE + 1)]
 
             counter = 0
             for (f, e, alignment) in dataset:
                 self.task.progress("BaumWelch iter %d, %d of %d" %
                                    (iteration, counter, len(dataset),))
                 counter += 1
-                c = defaultdict(float)
                 if iteration == 0:
                     self.initialiseModel(len(e))
-                for i in range(len(f)):
-                    for j in range(len(e)):
-                        small_t[i][j] = self.t[(f[i][0], e[j][0])]
-                alpha, alphaScaled, beta = self.forwardBackward(f, e, small_t)
+
+                fLen, eLen = len(f), len(e)
+                a = self.a[eLen]
+                tSmall = [[self.t[(f[i][0], e[j][0])] for j in range(eLen)]
+                          for i in range(fLen)]
+
+                alpha, alphaScale, beta = self.forwardBackward(f, e, tSmall, a)
 
                 # Setting gamma
-                for t in range(1, len(f) + 1):
-                    logLikelihood += -1 * log(alphaScaled[t])
-                    for i in range(1, len(e) + 1):
-                        gamma[i][t] =\
-                            (alpha[i][t] * beta[i][t]) / alphaScaled[t]
-                        totalGammaDeltaOAO_t_i[
-                            indexMap[(f[t - 1][0], e[i - 1][0])]] +=\
-                            gamma[i][t]
-                logLikelihood += -1 * log(alphaScaled[len(f)])
+                for i in range(fLen):
+                    logLikelihood -= log(alphaScale[i])
+                    for j in range(eLen):
+                        gamma[i][j] = alpha[i][j] * beta[i][j] / alphaScale[i]
+                        gammaBiword[(f[i][0], e[j][0])] += gamma[i][j]
+                for j in range(eLen):
+                    gammaSum_0[j] += gamma[0][j]
+                logLikelihood -= log(alphaScale[fLen - 1])
 
-                for t in range(1, len(f)):
-                    for i in range(1, len(e) + 1):
-                        for j in range(1, len(e) + 1):
-                            c[j - i] += (alpha[i][t] *
-                                         self.a[i][j][len(e)] *
-                                         small_t[t][j - 1] *
-                                         beta[j][t + 1])
+                c = [0.0 for i in range(eLen * 2)]
+                for i in range(1, fLen):
+                    for prev_j in range(eLen):
+                        for j in range(eLen):
+                            c[eLen - 1 + j - prev_j] += (
+                                alpha[i - 1][prev_j] * beta[i][j] *
+                                a[prev_j][j] * tSmall[i][j])
 
-                for i in range(1, len(e) + 1):
-                    for j in range(1, len(e) + 1):
-                        totalC_j_Minus_iOAO[i][j][len(e)] += c[j - i]
-                        totalC_l_Minus_iOAO[i][len(e)] += c[j - i]
-                    totalGamma1OAO[i] += gamma[i][1]
+                for prev_j in range(eLen):
+                    for j in range(eLen):
+                        epsilon[eLen][prev_j][j] += c[eLen - 1 + j - prev_j]
             # end of loop over dataset
 
-            start_time = time.time()
-
             self.logger.info("likelihood " + str(logLikelihood))
-            N = len(totalGamma1OAO) - 1
-
-            for k in range(sd_size):
-                f, e = biword[k]
-
-                totalGammaDeltaOAO_t_overall_states_over_dest[e] +=\
-                    totalGammaDeltaOAO_t_i[k]
-
-            end_time = time.time()
-
-            self.logger.info("time spent in the end of E-step: " +
-                             str(end_time - start_time))
-            self.logger.info("time spent in E-step: " +
-                             str(end_time - start0_time))
-
             # M-Step
-            del self.a
-            del self.pi
-            del self.t
-            self.a = [[[0.0 for x in range(N + 1)]
-                      for y in range(twoN + 1)]
-                      for z in range(twoN + 1)]
-            self.pi = [0.0 for x in range(twoN + 1)]
-            self.t = defaultdict(float)
+            self.t.clear()
+            for Len in self.eLengthSet:
+                for prev_j in range(Len):
+                    epsilonSum = 0.0
+                    for j in range(Len):
+                        epsilonSum += epsilon[Len][prev_j][j]
+                    for j in range(Len):
+                        self.a[Len][prev_j][j] = epsilon[Len][prev_j][j] /\
+                            (epsilonSum + 1e-37)
 
-            self.logger.info("set " + str(self.targetLengthSet.keys()))
-            for I in self.targetLengthSet:
-                for i in range(1, I + 1):
-                    for j in range(1, I + 1):
-                        self.a[i][j][I] = \
-                            totalC_j_Minus_iOAO[i][j][I] /\
-                            (totalC_l_Minus_iOAO[i][I] + 1e-37)
+            for i in range(maxE):
+                self.pi[i] = gammaSum_0[i] * (1.0 / len(dataset))
 
-            for i in range(1, N + 1):
-                self.pi[i] = totalGamma1OAO[i] * (1.0 / len(dataset))
+            gammaEWord = defaultdict(float)
+            for f, e in gammaBiword:
+                gammaEWord[e] += gammaBiword[(f, e)]
+            for f, e in gammaBiword:
+                self.t[(f, e)] = gammaBiword[(f, e)] / (gammaEWord[e] + 1e-37)
 
-            for k in range(sd_size):
-                f, e = biword[k]
-                self.t[(f, e)] = totalGammaDeltaOAO_t_i[k] / \
-                    (totalGammaDeltaOAO_t_overall_states_over_dest[e] + 1e-37)
-
-            end2_time = time.time()
-            self.logger.info("time spent in M-step: " +
-                             str(end2_time - end_time))
-            self.logger.info("iteration " + str(iteration) + " completed")
+        endTime = time.time()
+        self.logger.info("Training Complete, total time(seconds): %f" %
+                         (endTime - startTime,))
         return
 
     def multiplyOneMinusP0H(self):
-        for I in self.targetLengthSet:
-            for i in range(1, I + 1):
-                for j in range(1, I + 1):
-                    self.a[i][j][I] *= 1 - self.p0H
-        for I in self.targetLengthSet:
-            for i in range(1, I + 1):
-                for j in range(1, I + 1):
-                    self.a[i][i + I][I] = self.p0H
-                    self.a[i + I][i + I][I] = self.p0H
-                    self.a[i + I][j][I] = self.a[i][j][I]
+        for targetLen in self.eLengthSet:
+            a = self.a[targetLen]
+            for prev_j in range(targetLen):
+                for j in range(targetLen):
+                    a[prev_j][j] *= 1 - self.p0H
+        for targetLen in self.eLengthSet:
+            a = self.a[targetLen]
+            for prev_j in range(targetLen):
+                for j in range(targetLen):
+                    a[prev_j][prev_j + targetLen] = self.p0H
+                    a[prev_j + targetLen][prev_j + targetLen] = self.p0H
+                    a[prev_j + targetLen][j] = a[prev_j][j]
         return
 
     def tProbability(self, f, e):
@@ -279,43 +231,36 @@ class AlignmentModel(Base):
             return self.nullEmissionProb
         return 1.0 / v
 
-    def aProbability(self, prev_j, i, targetLength):
-        # p(i|i',I) is smoothed to uniform distribution for now -->
-        # p(i|i',I) = 1/I
-        # we can make it interpolation form like what Och and Ney did
-        if targetLength in self.targetLengthSet:
-            return self.a[prev_j + 1][i + 1][targetLength] + 1e-64
+    def aProbability(self, prev_j, j, targetLength):
+        if targetLength in self.eLengthSet:
+            return self.a[targetLength][prev_j][j]
         return 1.0 / targetLength
 
     def logViterbi(self, f, e):
-        '''
-        This function returns alignment of given sentence in two languages
-        @param f: source sentence
-        @param e: target sentence
-        @return: list of alignment
-        '''
         e = deepcopy(e)
-        eLen = len(e)
+        fLen, eLen = len(f), len(e)
         for i in range(eLen):
             e.append(("null", "null"))
-        score = np.zeros((len(f), len(e)))
-        prev_j = np.zeros((len(f), len(e)))
+        score = np.zeros((fLen, eLen * 2))
+        prev_j = np.zeros((fLen, eLen * 2))
 
-        for i in range(len(f)):
-            for j in range(len(e)):
+        for i in range(fLen):
+            for j in range(eLen * 2):
                 score[i][j] = log(self.tProbability(f[i], e[j]))
                 if i == 0:
-                    if j + 1 < len(self.pi) and self.pi[j + 1] != 0:
-                        score[i][j] += log(self.pi[j + 1])
+                    if j < len(self.pi) and self.pi[j] != 0:
+                        score[i][j] += log(self.pi[j])
                     else:
                         score[i][j] = - sys.maxint - 1
                 else:
                     # Find the best alignment for f[i-1]
                     maxScore = -sys.maxint - 1
                     bestPrev_j = -sys.maxint - 1
-                    for jPrev in range(len(e)):
-                        temp = score[i - 1][jPrev] +\
-                            log(self.aProbability(jPrev, j, eLen))
+                    for jPrev in range(eLen * 2):
+                        aPr = self.aProbability(jPrev, j, eLen)
+                        if aPr == 0:
+                            continue
+                        temp = score[i - 1][jPrev] + log(aPr)
                         if temp > maxScore:
                             maxScore = temp
                             bestPrev_j = jPrev
@@ -325,13 +270,13 @@ class AlignmentModel(Base):
 
         maxScore = -sys.maxint - 1
         best_j = 0
-        for j in range(len(e)):
-            if score[len(f) - 1][j] > maxScore:
-                maxScore = score[len(f) - 1][j]
+        for j in range(eLen * 2):
+            if score[fLen - 1][j] > maxScore:
+                maxScore = score[fLen - 1][j]
                 best_j = j
 
         trace = [best_j + 1, ]
-        i = len(f) - 1
+        i = fLen - 1
         j = best_j
 
         while (i > 0):
@@ -347,7 +292,6 @@ class AlignmentModel(Base):
 
         for (f, e, alignment) in dataset:
             sentenceAlignment = []
-            N = len(e)
             bestAlignment = self.logViterbi(f, e)
 
             for i in range(len(bestAlignment)):
