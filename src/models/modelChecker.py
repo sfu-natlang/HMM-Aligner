@@ -22,7 +22,7 @@ from models.modelBase import AlignmentModelBase as Base
 __version__ = "0.4a"
 
 supportedModels = [
-    "IBM1", "IBM1WithAlignmentType"
+    "IBM1", "IBM1WithAlignmentType", "HMM"
 ]
 
 requiredMethods = {
