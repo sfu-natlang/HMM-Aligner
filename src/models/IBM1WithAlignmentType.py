@@ -17,17 +17,17 @@ __version__ = "0.4a"
 class AlignmentModel(IBM1Base):
     def __init__(self):
         self.modelName = "IBM1WithPOSTagAndAlignmentType"
-        self.version = "0.1b"
+        self.version = "0.2b"
         self.logger = logging.getLogger('IBM1')
         self.evaluate = evaluate
-        self.s = defaultdict(float)
-        self.sTag = defaultdict(float)
-        self.index = 0
+        self.fe = ()
 
+        self.s = defaultdict(list)
+        self.sTag = defaultdict(list)
+        self.index = 0
         self.typeList = []
         self.typeIndex = {}
         self.typeDist = []
-
         self.lambd = 1 - 1e-20
         self.lambda1 = 0.9999999999
         self.lambda2 = 9.999900827395436E-11
@@ -50,13 +50,6 @@ class AlignmentModel(IBM1Base):
         self.logger.info("Initialising IBM model")
         IBM1Base.initialiseModel(self, dataset, index)
         total_f_e_type = defaultdict(float)
-        # if index == 0 initialise self.s, otherwise initialise self.sTag
-        if index == 0:
-            self.s = defaultdict(float)
-            s = self.s
-        else:
-            self.sTag = defaultdict(float)
-            s = self.sTag
         typeDist = defaultdict(float)
         typeTotalCount = 0
 
@@ -85,56 +78,61 @@ class AlignmentModel(IBM1Base):
         self.typeDist = []
         for h in range(len(self.typeList)):
             self.typeDist.append(typeDist[self.typeList[h]])
-
+        # if index == 0 initialise self.s, otherwise initialise self.sTag
+        s = defaultdict(lambda: [0.0 for h in range(len(self.typeList))])
         for f, e, typ in total_f_e_type:
-            s[(f, e, self.typeIndex[typ])] =\
+            s[(f, e)][self.typeIndex[typ]] =\
                 total_f_e_type[(f, e, typ)] / self.fe_count[(f, e)]
+        if index == 0:
+            self.s = s
+        else:
+            self.sTag = s
         return
 
     def _beginningOfIteration(self):
         self.c = defaultdict(float)
         self.total = defaultdict(float)
-        self.c_feh = defaultdict(float)
+        self.c_feh = defaultdict(
+            lambda: [0.0 for h in range(len(self.typeList))])
         return
 
     def _updateCount(self, fWord, eWord, z):
-        self.c[(fWord[self.index], eWord[self.index])] +=\
-            self.tProbability(fWord, eWord) / z
-        self.total[eWord[self.index]] +=\
-            self.tProbability(fWord, eWord) / z
+        tPr_z = self.tProbability(fWord, eWord) / z
+        self.c[(fWord[self.index], eWord[self.index])] += tPr_z
+        self.total[eWord[self.index]] += tPr_z
+        c_feh = self.c_feh[(fWord[self.index], eWord[self.index])]
         for h in range(len(self.typeIndex)):
-            self.c_feh[(fWord[self.index], eWord[self.index], h)] +=\
-                self.tProbability(fWord, eWord) *\
-                self.sProbability(fWord, eWord, h) /\
-                z
+            c_feh[h] += tPr_z * self.sProbability(fWord, eWord, h)
         return
 
     def _updateEndOfIteration(self):
         for (f, e) in self.c:
             self.t[(f, e)] = self.c[(f, e)] / self.total[e]
-        if self.index == 0:
-            for f, e, h in self.c_feh:
-                self.s[(f, e, h)] =\
-                    self.c_feh[(f, e, h)] / self.c[(f, e)]
-        else:
-            for f, e, h in self.c_feh:
-                self.sTag[(f, e, h)] =\
-                    self.c_feh[(f, e, h)] / self.c[(f, e)]
+        s = self.s if self.index == 0 else self.sTag
+        for f, e in self.c_feh:
+            c_feh = self.c_feh[(f, e)]
+            s_tmp = s[(f, e)]
+            for h in range(len(self.typeIndex)):
+                s_tmp[h] = c_feh[h] / self.c[(f, e)]
         return
 
     def sProbability(self, f, e, h):
         fWord, fTag = f
         eWord, eTag = e
+        if self.fe != (f, e):
+            self.fe = (f, e)
+            self.sTmp = self.s[(fWord, eWord)] if self.index == 0 else None
+            self.sTagTmp = self.sTag[(fTag, eTag)]
         if self.index == 0:
             p1 = (1 - self.lambd) * self.typeDist[h] +\
-                self.lambd * self.s[(fWord, eWord, h)]
+                self.lambd * self.sTmp[h]
             p2 = (1 - self.lambd) * self.typeDist[h] +\
-                self.lambd * self.sTag[(fTag, eTag, h)]
+                self.lambd * self.sTagTmp[h]
             p3 = self.typeDist[h]
 
             return self.lambda1 * p1 + self.lambda2 * p2 + self.lambda3 * p3
         else:
-            return self.lambd * self.sTag[(fTag, eTag, h)] +\
+            return self.lambd * self.sTagTmp[h] +\
                 (1 - self.lambd) * self.typeDist[h]
 
     def tProbability(self, f, e):
