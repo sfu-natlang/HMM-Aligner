@@ -182,10 +182,13 @@ class AlignmentModelBase(Base):
 
                 # Update delta
                 c = [0.0 for i in range(eLen * 2)]
-                for prev_j in range(eLen):
-                    for j in range(eLen):
-                        c[eLen - 1 + j - prev_j] += self._updateDelta(
-                            prev_j, j, fLen, alpha, beta, a, tSmall)
+                for i in range(1, fLen):
+                    for prev_j in range(eLen):
+                        for j in range(eLen):
+                            c[eLen - 1 + j - prev_j] += (alpha[i - 1][prev_j] *
+                                                         beta[i][j] *
+                                                         a[prev_j][j] *
+                                                         tSmall[i][j])
 
                 for prev_j in range(eLen):
                     for j in range(eLen):
@@ -201,6 +204,37 @@ class AlignmentModelBase(Base):
         self.logger.info("Training Complete, total time(seconds): %f" %
                          (endTime - startTime,))
         return
+
+    def _beginningOfIteration(self, dataset):
+        # self.lenDataset = len(dataset)
+        # return
+        raise NotImplementedError
+
+    def _updateGamma(self, i, j, alpha, beta, alphaScale):
+        # return alpha[i][j] * beta[i][j] / alphaScale[i]
+        raise NotImplementedError
+
+    def _updateEndOfIteration(self, maxE, delta, gammaSum_0, gammaBiword):
+        # self.t.clear()
+        # for Len in self.eLengthSet:
+        #     for prev_j in range(Len):
+        #         deltaSum = 0.0
+        #         for j in range(Len):
+        #             deltaSum += delta[Len][prev_j][j]
+        #         for j in range(Len):
+        #             self.a[Len][prev_j][j] = delta[Len][prev_j][j] /\
+        #                 (deltaSum + 1e-37)
+
+        # for i in range(maxE):
+        #     self.pi[i] = gammaSum_0[i] * (1.0 / self.lenDataset)
+
+        # gammaEWord = defaultdict(float)
+        # for f, e in gammaBiword:
+        #     gammaEWord[e] += gammaBiword[(f, e)]
+        # for f, e in gammaBiword:
+        #     self.t[(f, e)] = gammaBiword[(f, e)] / (gammaEWord[e] + 1e-37)
+        # return
+        raise NotImplementedError
 
     def endOfBaumWelch(self):
         # Apply final smoothing here
@@ -284,18 +318,3 @@ class AlignmentModelBase(Base):
             result.append(sentenceAlignment)
         self.logger.info("Decoding Completed")
         return result
-
-    def _beginningOfIteration(self, dataset):
-        # self.lenDataset = len(dataset)
-        raise NotImplementedError
-
-    def _updateGamma(self, i, j, alpha, beta, alphaScale):
-        # return alpha[i][j] * beta[i][j] / alphaScale[i]
-        raise NotImplementedError
-
-    def _updateDelta(self, prev_j, j, fLen, alpha, beta, a, tSmall):
-        # This method will update delta[eLen][prev_j][j]
-        raise NotImplementedError
-
-    def _updateEndOfIteration(self, maxE, delta, gammaSum_0, gammaBiword):
-        raise NotImplementedError
