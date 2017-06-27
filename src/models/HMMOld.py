@@ -135,6 +135,7 @@ class AlignmentModel():
         if not self.task:
             self.task = Task("Aligner", "HMMBaumWelchOI" + str(iterations))
         bitext = self.bitext
+        startTime = time.time()
         N, self.targetLengthSet = self.maxTargetSentenceLength(bitext)
 
         logger.info("N " + str(N))
@@ -246,7 +247,6 @@ class AlignmentModel():
             self.pi = [0.0 for x in range(twoN + 1)]
             self.t = defaultdict(float)
 
-            logger.info("set " + str(self.targetLengthSet.keys()))
             for I in self.targetLengthSet:
                 for i in range(1, I + 1):
                     for j in range(1, I + 1):
@@ -267,6 +267,9 @@ class AlignmentModel():
                         str(end2_time - end_time))
             logger.info("iteration " + str(iteration) + " completed")
 
+        endTime = time.time()
+        self.logger.info("Training Complete, total time(seconds): %f" %
+                         (endTime - startTime,))
         return
 
     def multiplyOneMinusP0H(self):
