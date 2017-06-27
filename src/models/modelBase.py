@@ -43,7 +43,7 @@ class AlignmentModelBase():
             self._savedModelFile = ""
         return
 
-    def loadModel(self, fileName=None):
+    def loadModel(self, fileName=None, force=False):
         if fileName is None:
             fileName = self._savedModelFile
         if fileName == "":
@@ -69,18 +69,34 @@ class AlignmentModelBase():
         # check model name and version
         if "modelName" in entity:
             if modelName != self.modelName:
-                raise RuntimeError("Current model requires model file for " +
-                                   self.modelName + " model, while the model" +
-                                   " of the model file is " +
-                                   modelName)
+                if force:
+                    self.logger.warning("Current model requires file for " +
+                                        self.modelName + " model, while the" +
+                                        " model of the model file is " +
+                                        modelName)
+                    self.logger.warning("Under current setting, will force" +
+                                        "load. Good luck.")
+                else:
+                    raise RuntimeError("Current model requires file for " +
+                                       self.modelName + " model, while the" +
+                                       " model of the model file is " +
+                                       modelName)
+
             if "supportedVersion" in entity:
                 if modelVersion not in self.supportedVersion:
-                    raise RuntimeError("Unsupported version of model file")
+                    if force:
+                        self.logger.warning(
+                            "Unsupported version of model file")
+                        self.logger.warning(
+                            "Current setting will force load. Good luck.")
+                    else:
+                        raise RuntimeError("Unsupported version of model file")
 
         # load components
         for componentName in self.modelComponents:
             if componentName not in entity:
-                raise RuntimeError("object doesn't exist in this class")
+                raise RuntimeError("object " + componentName +
+                                   " doesn't exist in this class")
             entity[componentName] = pickle.load(pklFile)
 
         pklFile.close()

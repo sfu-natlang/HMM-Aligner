@@ -42,14 +42,20 @@ except all:
 
 class AlignmentModel(Base):
     def __init__(self):
+        self.modelName = "HMM"
+        self.version = "0.1b"
         self.logger = logging.getLogger('HMM')
         self.p0H = 0.3
         self.nullEmissionProb = 0.000005
         self.smoothFactor = 0.1
-        self.a = None
-        self.pi = None
         self.task = None
         self.evaluate = evaluate
+
+        self.t = defaultdict(float)
+        self.eLengthSet = defaultdict(int)
+        self.a = [[[]]]
+        self.pi = []
+
         self.modelComponents = ["t", "pi", "a", "eLengthSet"]
         Base.__init__(self)
         return

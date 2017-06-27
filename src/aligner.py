@@ -41,7 +41,8 @@ if __name__ == '__main__':
         'output': 'o.wa',
 
         'loadModel': "",
-        'saveModel': ""
+        'saveModel': "",
+        'forceLoad': False
     }
 
     configFileDataSection = {
@@ -122,6 +123,9 @@ if __name__ == '__main__':
         ap.add_argument(
             "-l", "--loadModel", dest="loadModel",
             help="Specify the model file to load")
+        ap.add_argument(
+            "--forceLoad", dest="forceLoad", action='store_true',
+            help="Ignore version and force loading model file")
         args = ap.parse_args()
 
     # Process config file
@@ -163,7 +167,7 @@ if __name__ == '__main__':
 
     aligner = Model()
     if config['loadModel'] != "":
-        aligner.loadModel(config['loadModel'])
+        aligner.loadModel(config['loadModel'], force=config['forceLoad'])
 
     elif config['trainData'] != "":
         trainSource = os.path.expanduser(
