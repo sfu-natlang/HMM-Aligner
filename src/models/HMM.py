@@ -1,23 +1,14 @@
 # -*- coding: utf-8 -*-
 
 #
-# HMM model implementation(old) of HMM Aligner
+# HMM model implementation of HMM Aligner
 # Simon Fraser University
 # NLP Lab
 #
-# This is the implementation of HMM word aligner, it requires IBM1Old in order
-# to function properly
+# This is the implementation of HMM word aligner, it requires IBM1 in order to
+# function properly
 #
-import optparse
-import sys
-import os
-import logging
-import time
-import numpy as np
-from math import log
 from collections import defaultdict
-from copy import deepcopy
-
 from loggers import logging
 from models.IBM1 import AlignmentModel as AlignerIBM1
 from models.HMMBase import AlignmentModelBase as Base

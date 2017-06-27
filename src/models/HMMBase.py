@@ -1,16 +1,13 @@
 # -*- coding: utf-8 -*-
 
 #
-# HMM model implementation(old) of HMM Aligner
+# HMM model base of HMM Aligner
 # Simon Fraser University
 # NLP Lab
 #
-# This is the implementation of HMM word aligner, it requires IBM1Old in order
-# to function properly
+# This is the base model for HMM
 #
-import optparse
 import sys
-import os
 import logging
 import time
 import numpy as np
@@ -19,7 +16,6 @@ from collections import defaultdict
 from copy import deepcopy
 
 from loggers import logging
-from models.IBM1 import AlignmentModel as AlignerIBM1
 from models.modelBase import AlignmentModelBase as Base
 from evaluators.evaluator import evaluate
 __version__ = "0.4a"
@@ -42,8 +38,6 @@ except all:
 
 class AlignmentModelBase(Base):
     def __init__(self):
-        if "p0H" not in vars(self):
-            self.p0H = 0.3
         if "nullEmissionProb" not in vars(self):
             self.nullEmissionProb = 0.000005
         if "task" not in vars(self):
