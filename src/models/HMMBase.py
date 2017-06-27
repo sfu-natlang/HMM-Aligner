@@ -59,7 +59,7 @@ class AlignmentModelBase(Base):
         Base.__init__(self)
         return
 
-    def initialiseModel(self, Len):
+    def initialiseParameter(self, Len):
         doubleLen = 2 * Len
         tmp = 1.0 / Len
         for z in range(Len):
@@ -153,7 +153,7 @@ class AlignmentModelBase(Base):
                                    (iteration, counter, len(dataset),))
                 counter += 1
                 if iteration == 0:
-                    self.initialiseModel(len(e))
+                    self.initialiseParameter(len(e))
 
                 fLen, eLen = len(f), len(e)
                 a = self.a[eLen]

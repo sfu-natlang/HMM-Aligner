@@ -151,3 +151,70 @@ class AlignmentModelBase():
         output.close()
         self.logger.info("Model saved")
         return
+
+    def initialiseBiwordCount(self, dataset, index=0):
+        # We don't use .clear() here for reusability of models.
+        # Sometimes one would need one or more of the following parts for other
+        # Purposes. We wouldn't want to accidentally clear them up.
+        self.t = defaultdict(float)
+        self.f_count = defaultdict(int)
+        self.e_count = defaultdict(int)
+        self.fe_count = defaultdict(int)
+
+        for item in dataset:
+            f, e = item[0:2]
+            for f_i in f:
+                self.f_count[f_i[index]] += 1
+                for e_j in e:
+                    self.fe_count[(f_i[index], e_j[index])] += 1
+            for e_j in e:
+                self.e_count[e_j[index]] += 1
+
+        initialValue = 1.0 / len(self.f_count)
+        for key in self.fe_count:
+            self.t[key] = initialValue
+        return
+
+    def initialiseAlignTypeDist(self, dataset, loadTypeDist={}):
+        typeDist = defaultdict(float)
+        typeTotalCount = 0
+        for (f, e, alignment) in dataset:
+            # Initialise total_f_e_type count
+            for (f_i, e_i, typ) in alignment:
+                typeDist[typ] += 1
+                typeTotalCount += 1
+
+        # Calculate alignment type distribution
+        for typ in typeDist:
+            typeDist[typ] /= typeTotalCount
+        # Manually override alignment type distribution
+        for typ in loadTypeDist:
+            typeDist[typ] = loadTypeDist[typ]
+
+        # Create typeIndex and typeList
+        self.typeList = []
+        self.typeIndex = {}
+        for typ in typeDist:
+            self.typeList.append(typ)
+            self.typeIndex[typ] = len(self.typeList) - 1
+        self.typeDist = []
+        for h in range(len(self.typeList)):
+            self.typeDist.append(typeDist[self.typeList[h]])
+        return
+
+    def calculateS(self, dataset, fe_count, index=0):
+        total_f_e_type = defaultdict(float)
+
+        for (f, e, alignment) in dataset:
+            # Initialise total_f_e_type count
+            for (f_i, e_i, typ) in alignment:
+                fWord = f[f_i - 1]
+                eWord = e[e_i - 1]
+                total_f_e_type[(fWord[index],
+                                eWord[index],
+                                self.typeIndex[typ])] += 1
+
+        s = defaultdict(lambda: [0.0 for h in range(len(self.typeIndex))])
+        for f, e, t in total_f_e_type:
+            s[(f, e)][t] = total_f_e_type[(f, e, t)] / fe_count[(f, e)]
+        return s

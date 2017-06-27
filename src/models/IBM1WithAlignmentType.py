@@ -44,51 +44,6 @@ class AlignmentModel(IBM1Base):
         IBM1Base.__init__(self)
         return
 
-    def initialiseModel(self, dataset, loadTypeDist={}):
-        # self.index = 0 for text, 1 for POS Tag
-        index = self.index
-        self.logger.info("Initialising IBM model")
-        IBM1Base.initialiseModel(self, dataset, index)
-        total_f_e_type = defaultdict(float)
-        typeDist = defaultdict(float)
-        typeTotalCount = 0
-
-        for (f, e, alignment) in dataset:
-            # Initialise total_f_e_type count
-            for (f_i, e_i, typ) in alignment:
-                fWord = f[f_i - 1]
-                eWord = e[e_i - 1]
-                total_f_e_type[(fWord[index], eWord[index], typ)] += 1
-                typeDist[typ] += 1
-                typeTotalCount += 1
-
-        # Calculate alignment type distribution
-        for typ in typeDist:
-            typeDist[typ] /= typeTotalCount
-        # Manually override alignment type distribution
-        for typ in loadTypeDist:
-            typeDist[typ] = loadTypeDist[typ]
-
-        # Create typeIndex and typeList
-        self.typeList = []
-        self.typeIndex = {}
-        for typ in typeDist:
-            self.typeList.append(typ)
-            self.typeIndex[typ] = len(self.typeList) - 1
-        self.typeDist = []
-        for h in range(len(self.typeList)):
-            self.typeDist.append(typeDist[self.typeList[h]])
-        # if index == 0 initialise self.s, otherwise initialise self.sTag
-        s = defaultdict(lambda: [0.0 for h in range(len(self.typeList))])
-        for f, e, typ in total_f_e_type:
-            s[(f, e)][self.typeIndex[typ]] =\
-                total_f_e_type[(f, e, typ)] / self.fe_count[(f, e)]
-        if index == 0:
-            self.s = s
-        else:
-            self.sTag = s
-        return
-
     def _beginningOfIteration(self):
         self.c = defaultdict(float)
         self.total = defaultdict(float)
@@ -162,21 +117,23 @@ class AlignmentModel(IBM1Base):
         return sentenceAlignment
 
     def train(self, dataset, iterations=5):
+        self.logger.info("Initialising Alignment Type Distribution")
+        self.initialiseAlignTypeDist(dataset, self.loadTypeDist)
         self.logger.info("Stage 1 Start Training with POS Tags")
-        self.logger.info("Initialising")
-
+        self.logger.info("Initialising model with POS Tags")
         self.index = 1
-        self.initialiseModel(dataset, self.loadTypeDist)
+        self.initialiseBiwordCount(dataset, self.index)
+        self.sTag = self.calculateS(dataset, self.fe_count, self.index)
         self.logger.info("Initialisation complete")
 
         self.EM(dataset, iterations, 'IBM1TypeS1')
         self.logger.info("Stage 1 Complete, preparing for stage 2")
 
-        self.index = 0
         self.logger.info("Stage 2 Start Training with FORM")
-        self.logger.info("Initialising")
-
-        self.initialiseModel(dataset, self.loadTypeDist)
+        self.logger.info("Initialising model with FORM")
+        self.index = 0
+        self.initialiseBiwordCount(dataset, self.index)
+        self.s = self.calculateS(dataset, self.fe_count, self.index)
         self.logger.info("Initialisation complete")
 
         self.EM(dataset, iterations, 'IBM1TypeS2')

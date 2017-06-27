@@ -40,29 +40,6 @@ class AlignmentModelBase(Base):
         Base.__init__(self)
         return
 
-    def initialiseModel(self, dataset, index=0):
-        # We don't use .clear() here for reusability of models.
-        # Sometimes one would need one or more of the following parts for other
-        # Purposes. We wouldn't want to accidentally clear them up.
-        self.t = defaultdict(float)
-        self.f_count = defaultdict(int)
-        self.e_count = defaultdict(int)
-        self.fe_count = defaultdict(int)
-
-        for item in dataset:
-            f, e = item[0:2]
-            for f_i in f:
-                self.f_count[f_i[index]] += 1
-                for e_j in e:
-                    self.fe_count[(f_i[index], e_j[index])] += 1
-            for e_j in e:
-                self.e_count[e_j[index]] += 1
-
-        initialValue = 1.0 / len(self.f_count)
-        for key in self.fe_count:
-            self.t[key] = initialValue
-        return
-
     def tProbability(self, f, e, index=0):
         if (f[index], e[index]) in self.t:
             tmp = self.t[(f[index], e[index])]
