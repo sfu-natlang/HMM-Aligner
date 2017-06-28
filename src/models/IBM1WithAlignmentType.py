@@ -75,20 +75,18 @@ class AlignmentModel(IBM1Base):
         fWord, fTag = f
         eWord, eTag = e
         if self.fe != (f, e):
-            self.fe = (f, e)
-            self.sTmp = self.s[(fWord, eWord)] if self.index == 0 else None
-            self.sTagTmp = self.sTag[(fTag, eTag)]
+            self.fe, sKey, sTagKey = (f, e), (f[0], e[0]), (f[1], e[1])
+            self.sTmp = self.s[sKey] if sKey in self.s else None
+            self.sTagTmp = self.sTag[sTagKey] if sTagKey in self.sTag else None
+        sTmp = self.sTmp[h] if self.sTmp else 0
+        sTagTmp = self.sTagTmp[h] if self.sTagTmp else 0
         if self.index == 0:
-            p1 = (1 - self.lambd) * self.typeDist[h] +\
-                self.lambd * self.sTmp[h]
-            p2 = (1 - self.lambd) * self.typeDist[h] +\
-                self.lambd * self.sTagTmp[h]
+            p1 = (1 - self.lambd) * self.typeDist[h] + self.lambd * sTmp
+            p2 = (1 - self.lambd) * self.typeDist[h] + self.lambd * sTagTmp
             p3 = self.typeDist[h]
-
             return self.lambda1 * p1 + self.lambda2 * p2 + self.lambda3 * p3
         else:
-            return self.lambd * self.sTagTmp[h] +\
-                (1 - self.lambd) * self.typeDist[h]
+            return (1 - self.lambd) * self.typeDist[h] + self.lambd * sTagTmp
 
     def tProbability(self, f, e):
         return IBM1Base.tProbability(self, f, e, self.index)
@@ -116,26 +114,33 @@ class AlignmentModel(IBM1Base):
                 (i + 1, argmax + 1, self.typeList[bestType]))
         return sentenceAlignment
 
-    def train(self, dataset, iterations=5):
-        self.logger.info("Initialising Alignment Type Distribution")
-        self.initialiseAlignTypeDist(dataset, self.loadTypeDist)
+    def trainStage1(self, dataset, iterations=5):
         self.logger.info("Stage 1 Start Training with POS Tags")
         self.logger.info("Initialising model with POS Tags")
+        # self.index set to 1 means training with POS Tag
         self.index = 1
         self.initialiseBiwordCount(dataset, self.index)
         self.sTag = self.calculateS(dataset, self.fe_count, self.index)
         self.logger.info("Initialisation complete")
-
         self.EM(dataset, iterations, 'IBM1TypeS1')
-        self.logger.info("Stage 1 Complete, preparing for stage 2")
+        # reset self.index to 0
+        self.index = 0
+        self.logger.info("Stage 1 Complete")
+        return
 
+    def trainStage2(self, dataset, iterations=5):
         self.logger.info("Stage 2 Start Training with FORM")
         self.logger.info("Initialising model with FORM")
-        self.index = 0
         self.initialiseBiwordCount(dataset, self.index)
         self.s = self.calculateS(dataset, self.fe_count, self.index)
         self.logger.info("Initialisation complete")
-
         self.EM(dataset, iterations, 'IBM1TypeS2')
         self.logger.info("Stage 2 Complete")
+        return
+
+    def train(self, dataset, iterations=5):
+        self.logger.info("Initialising Alignment Type Distribution")
+        self.initialiseAlignTypeDist(dataset, self.loadTypeDist)
+        self.trainStage1(dataset, iterations)
+        self.trainStage2(dataset, iterations)
         return
