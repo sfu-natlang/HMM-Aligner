@@ -163,16 +163,19 @@ class AlignmentModelBase(Base):
 
                 alpha, alphaScale, beta = self.forwardBackward(f, e, tSmall, a)
 
-                # Setting gamma
+                # Update logLikelihood
                 for i in range(fLen):
                     logLikelihood -= log(alphaScale[i])
+                logLikelihood -= log(alphaScale[fLen - 1])
+
+                # Setting gamma
+                self._updateGamma(f, e, gamma, alpha, beta, alphaScale)
+
+                for i in range(fLen):
                     for j in range(eLen):
-                        gamma[i][j] = self._updateGamma(
-                            i, j, alpha, beta, alphaScale)
                         gammaBiword[(f[i][index], e[j][index])] += gamma[i][j]
                 for j in range(eLen):
                     gammaSum_0[j] += gamma[0][j]
-                logLikelihood -= log(alphaScale[fLen - 1])
 
                 # Update delta
                 c = [0.0 for i in range(eLen * 2)]

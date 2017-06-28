@@ -50,8 +50,10 @@ class AlignmentModel(Base):
         self.lenDataset = len(dataset)
         return
 
-    def _updateGamma(self, i, j, alpha, beta, alphaScale):
-        return alpha[i][j] * beta[i][j] / alphaScale[i]
+    def _updateGamma(self, f, e, gamma, alpha, beta, alphaScale):
+        for i in range(len(f)):
+            for j in range(len(e)):
+                gamma[i][j] = alpha[i][j] * beta[i][j] / alphaScale[i]
 
     def _updateEndOfIteration(self, maxE, delta, gammaSum_0, gammaBiword):
         # Update a
