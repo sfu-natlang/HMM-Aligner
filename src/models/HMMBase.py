@@ -32,7 +32,7 @@ class DummyTask():
 
 try:
     from progress import Task
-except all:
+except ImportError:
     Task = DummyTask
 
 
@@ -166,7 +166,6 @@ class AlignmentModelBase(Base):
                 # Update logLikelihood
                 for i in range(fLen):
                     logLikelihood -= log(alphaScale[i])
-                logLikelihood -= log(alphaScale[fLen - 1])
 
                 # Setting gamma
                 self._updateGamma(f, e, gamma, alpha, beta, alphaScale)

@@ -26,7 +26,7 @@ class DummyTask():
 
 try:
     from progress import Task
-except all:
+except ImportError:
     Task = DummyTask
 
 
