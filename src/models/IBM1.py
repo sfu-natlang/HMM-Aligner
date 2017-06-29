@@ -34,9 +34,9 @@ class AlignmentModel(IBM1Base):
         self.total = defaultdict(float)
         return
 
-    def _updateCount(self, fWord, eWord, z):
-        f = fWord[0]
-        e = eWord[0]
+    def _updateCount(self, fWord, eWord, z, index=0):
+        f = fWord[index]
+        e = eWord[index]
         self.c[(f, e)] +=\
             self.tProbability(fWord, eWord) / z
         self.total[e] += self.tProbability(fWord, eWord) / z

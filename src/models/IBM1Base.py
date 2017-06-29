@@ -50,7 +50,7 @@ class AlignmentModelBase(Base):
         else:
             return 0.000006123586217
 
-    def EM(self, dataset, iterations, modelName="IBM1Base"):
+    def EM(self, dataset, iterations, modelName="IBM1Base", index=0):
         task = Task("Aligner", modelName + str(iterations))
         self.logger.info("Starting Training Process")
         self.logger.info("Training size: " + str(len(dataset)))
@@ -71,7 +71,7 @@ class AlignmentModelBase(Base):
                     for eWord in e:
                         z += self.tProbability(fWord, eWord)
                     for eWord in e:
-                        self._updateCount(fWord, eWord, z)
+                        self._updateCount(fWord, eWord, z, index)
 
             self._updateEndOfIteration()
 
@@ -128,7 +128,7 @@ class AlignmentModelBase(Base):
         # return
         raise NotImplementedError
 
-    def _updateCount(self, fWord, eWord, z):
+    def _updateCount(self, fWord, eWord, z, index=0):
         '''
         This is the very basic IBM 1 model implementation
         The sample code here is the standard way of updating counts.
@@ -138,9 +138,10 @@ class AlignmentModelBase(Base):
               C(f)    is self.total[f]
         '''
 
-        # self.c[(fWord[0], eWord[0])] +=\
-        #     self.tProbability(fWord[0], eWord[0]) / z
-        # self.total[eWord[0]] += self.tProbability(fWord[0], eWord[0]) / z
+        # self.c[(fWord[index], eWord[index])] +=\
+        #     self.tProbability(fWord[index], eWord[index]) / z
+        # self.total[eWord[index]] +=\
+        #     self.tProbability(fWord[index], eWord[index]) / z
         raise NotImplementedError
 
     def _updateEndOfIteration(self):
