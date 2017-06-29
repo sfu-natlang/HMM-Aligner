@@ -32,7 +32,7 @@ class DummyTask():
 
 try:
     from progress import Task
-except all:
+except ImportError:
     Task = DummyTask
 
 
@@ -268,8 +268,8 @@ class AlignmentModel():
             logger.info("iteration " + str(iteration) + " completed")
 
         endTime = time.time()
-        self.logger.info("Training Complete, total time(seconds): %f" %
-                         (endTime - startTime,))
+        logger.info("Training Complete, total time(seconds): %f" %
+                    (endTime - startTime,))
         return
 
     def multiplyOneMinusP0H(self):
