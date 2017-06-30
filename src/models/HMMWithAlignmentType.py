@@ -13,7 +13,7 @@ from collections import defaultdict
 from copy import deepcopy
 from math import log
 from loggers import logging
-from models.IBM1WithAlignmentType import AlignmentModel as AlignerIBM1Type
+from models.IBM1 import AlignmentModel as AlignerIBM1
 from models.HMMBase import AlignmentModelBase as Base
 from evaluators.evaluator import evaluate
 __version__ = "0.4a"
@@ -85,6 +85,11 @@ class AlignmentModel(Base):
 
     def _updateEndOfIteration(self, maxE, delta, gammaSum_0, gammaBiword):
         # Update a
+        for targetLen in self.eLengthSet:
+            a = self.a[targetLen]
+            for prev_j in range(len(a)):
+                for j in range(len(a[prev_j])):
+                    a[prev_j][j] = 0.0
         for Len in self.eLengthSet:
             for prev_j in range(Len):
                 deltaSum = 0.0
@@ -149,82 +154,108 @@ class AlignmentModel(Base):
         else:
             return (1 - self.lambd) * self.typeDist[h] + self.lambd * sTagTmp
 
-    def train(self, dataset, iterations):
-        self.task = Task("Aligner", "HMMOI" + str(iterations))
-        self.task.progress("Training IBM model 1")
-        self.logger.info("Training IBM model 1")
-        alignerIBM1 = AlignerIBM1Type()
-        alignerIBM1.initialiseAlignTypeDist(dataset, self.loadTypeDist)
-        self.typeList, self.typeIndex, self.typeDist =\
-            alignerIBM1.typeList, alignerIBM1.typeIndex, alignerIBM1.typeDist
-        alignerIBM1.trainStage2(dataset, iterations)
-        self.t = alignerIBM1.t
-        self.s = alignerIBM1.s
+    def trainWithIndex(self, dataset, iterations, index):
+        self.index = index
+        alignerIBM1 = AlignerIBM1()
+        alignerIBM1.initialiseBiwordCount(dataset, index)
+        alignerIBM1.EM(dataset, iterations, 'IBM1', index)
         self.task.progress("IBM model Trained")
         self.logger.info("IBM model Trained")
-        self.baumWelch(dataset, iterations=iterations)
-        self.task.progress("finalising")
+
+        self.logger.info("Initialising HMM")
+        self.initialiseBiwordCount(dataset, index)
+        if self.index == 1:
+            self.sTag = self.calculateS(dataset, self.fe_count, index)
+        else:
+            self.s = self.calculateS(dataset, self.fe_count, index)
+        self.t = alignerIBM1.t
+        self.logger.info("HMM Initialised, start training")
+        self.baumWelch(dataset, iterations=iterations, index=index)
+        self.task.progress("HMM finalising")
+        return
+
+    def train(self, dataset, iterations=5):
+        self.task = Task("Aligner", "HMMOI" + str(iterations))
+        self.logger.info("Loading alignment type distribution")
+        self.initialiseAlignTypeDist(dataset, self.loadTypeDist)
+        self.logger.info("Alignment type distribution loaded")
+
+        self.task.progress("Stage 1 Training With POS Tags")
+        self.logger.info("Stage 1 Training With POS Tags")
+        self.trainWithIndex(dataset, iterations, 1)
+
+        self.task.progress("Stage 1 Training With FORM")
+        self.logger.info("Stage 1 Training With FORM")
+        self.trainWithIndex(dataset, iterations, 0)
+
+        self.logger.info("Training Complete")
         self.task = None
         return
 
     def logViterbi(self, f, e):
+        eLen = len(e)
         e = deepcopy(e)
-        fLen, eLen = len(f), len(e)
         for i in range(eLen):
             e.append(("null", "null"))
 
         score = [[[0.0 for z in range(len(self.typeList))]
-                  for y in range(eLen * 2)] for x in range(fLen)]
+                  for x in range(len(e))]
+                 for y in range(len(f))]
         prev_j = [[[0 for z in range(len(self.typeList))]
-                   for y in range(eLen * 2)] for x in range(fLen)]
+                   for x in range(len(e))]
+                  for y in range(len(f))]
         prev_h = [[[0 for z in range(len(self.typeList))]
-                   for y in range(eLen * 2)] for x in range(fLen)]
+                   for x in range(len(e))]
+                  for y in range(len(f))]
 
-        for i in range(fLen):
-            for j in range(eLen * 2):
-                tPr = log(self.tProbability(f[i], e[j]))
-                for h in range(len(self.typeList)):
-                    sPr = log(self.sProbability(f[i], e[j], h))
-                    score[i][j][h] = tPr + sPr
-                if i == 0:
-                    if j < len(self.pi) and self.pi[j] != 0:
-                        score[i][j][h] += log(self.pi[j])
-                    else:
-                        score[i][j][h] = - sys.maxint - 1
+        for j in range(len(e)):
+            tPr = log(self.tProbability(f[0], e[j]))
+            for h in range(len(self.typeList)):
+                score[0][j][h] = log(self.sProbability(f[0], e[j], h)) + tPr
+                if j + 1 < len(self.pi) and self.pi[j + 1] != 0:
+                    score[0][j][h] += log(self.pi[j + 1])
                 else:
-                    # Find the best alignment for f[i-1]
-                    maxScore = -sys.maxint - 1
-                    bestPrev_j = -sys.maxint - 1
-                    bestPrev_h = 0
-                    for jPrev in range(eLen * 2):
-                        aPrPreLog = self.aProbability(jPrev, j, eLen)
-                        if aPrPreLog == 0:
-                            continue
-                        aPr = log(aPrPreLog)
-                        for h in range(len(self.typeList)):
-                            temp = score[i - 1][jPrev][h] + aPr
-                            if temp > maxScore:
-                                maxScore = temp
-                                bestPrev_j = jPrev
-                                bestPrev_h = h
+                    score[0][j][h] = - sys.maxint - 1
 
+        for i in range(1, len(f)):
+            for j in range(len(e)):
+                maxScore = -sys.maxint - 1
+                jPrevBest = -sys.maxint - 1
+                hPrevBest = 0
+                tPr = log(self.tProbability(f[i], e[j]))
+                for jPrev in range(len(e)):
+                    aPrPreLog = self.aProbability(jPrev, j, eLen)
+                    if aPrPreLog == 0:
+                        continue
+                    aPr = log(aPrPreLog)
                     for h in range(len(self.typeList)):
-                        score[i][j][h] += maxScore
-                        prev_j[i][j][h] = bestPrev_j
-                        prev_h[i][j][h] = bestPrev_h
+                        temp = score[i - 1][jPrev][h] + aPr + tPr
+                        if temp > maxScore:
+                            maxScore = temp
+                            jPrevBest = jPrev
+                            hPrevBest = h
+
+                for h in range(len(self.typeList)):
+                    s = self.sProbability(f[i], e[j], h)
+                    if s != 0:
+                        temp_s = log(s)
+                        score[i][j][h] = maxScore + temp_s
+                        prev_j[i][j][h] = jPrevBest
+                        prev_h[i][j][h] = hPrevBest
 
         maxScore = -sys.maxint - 1
         best_j = best_h = 0
-        for j in range(eLen * 2):
+        for j in range(len(e)):
             for h in range(len(self.typeList)):
-                if score[-1][j][h] > maxScore:
-                    maxScore = score[-1][j][h]
+                if score[len(f) - 1][j][h] > maxScore:
+                    maxScore = score[len(f) - 1][j][h]
                     best_j, best_h = j, h
 
-        trace = [best_j, ]
+        trace = [best_j + 1, ]
         bestLinkTrace = [best_h, ]
-        i = fLen - 1
+
         j, h = best_j, best_h
+        i = len(f) - 1
 
         while (i > 0):
             j, h = prev_j[i][j][h], prev_h[i][j][h]

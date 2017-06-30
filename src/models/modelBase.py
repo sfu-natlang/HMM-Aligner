@@ -11,7 +11,7 @@
 #
 import gzip
 import os
-import dill as pickle
+import cPickle as pickle
 from collections import defaultdict
 from loggers import logging
 __version__ = "0.4a"
