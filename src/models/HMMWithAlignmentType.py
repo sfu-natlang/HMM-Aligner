@@ -198,8 +198,8 @@ class AlignmentModel(Base):
             tPr = log(self.tProbability(f[0], e[j]))
             for h in range(len(self.typeList)):
                 score[0][j][h] = log(self.sProbability(f[0], e[j], h)) + tPr
-                if j + 1 < len(self.pi) and self.pi[j + 1] != 0:
-                    score[0][j][h] += log(self.pi[j + 1])
+                if j < len(self.pi) and self.pi[j] != 0:
+                    score[0][j][h] += log(self.pi[j])
                 else:
                     score[0][j][h] = - sys.maxint - 1
 
