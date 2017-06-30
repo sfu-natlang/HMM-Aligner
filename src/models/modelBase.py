@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #
-# IBM model 1 base of HMM Aligner
+# Base model of HMM Aligner
 # Simon Fraser University
 # NLP Lab
 #

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #
-# HMM model implementation of HMM Aligner
+# HMM model with alignment type implementation of HMM Aligner
 # Simon Fraser University
 # NLP Lab
 #
