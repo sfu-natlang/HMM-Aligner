@@ -11,23 +11,9 @@ import time
 from copy import deepcopy
 from collections import defaultdict
 from loggers import logging
+from models.modelBase import Task
 from models.modelBase import AlignmentModelBase as Base
 __version__ = "0.4a"
-
-
-# This is a private module for transmitting test results. Please ignore.
-class DummyTask():
-    def __init__(self, taskName="Untitled", serial="XXXX"):
-        return
-
-    def progress(self, msg):
-        return
-
-
-try:
-    from progress import Task
-except ImportError:
-    Task = DummyTask
 
 
 class AlignmentModelBase(Base):

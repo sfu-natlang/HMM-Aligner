@@ -17,6 +17,21 @@ from loggers import logging
 __version__ = "0.4a"
 
 
+# This is a private module for transmitting test results. Please ignore.
+class DummyTask():
+    def __init__(self, taskName="Untitled", serial="XXXX"):
+        return
+
+    def progress(self, msg):
+        return
+
+
+try:
+    from progress import Task
+except ImportError:
+    Task = DummyTask
+
+
 class AlignmentModelBase():
     def __init__(self):
         '''

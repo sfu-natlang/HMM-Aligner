@@ -14,24 +14,10 @@ from copy import deepcopy
 from math import log
 from loggers import logging
 from models.IBM1 import AlignmentModel as AlignerIBM1
+from models.modelBase import Task
 from models.HMMBase import AlignmentModelBase as Base
 from evaluators.evaluator import evaluate
 __version__ = "0.4a"
-
-
-# This is a private module for transmitting test results. Please ignore.
-class DummyTask():
-    def __init__(self, taskName="Untitled", serial="XXXX"):
-        return
-
-    def progress(self, msg):
-        return
-
-
-try:
-    from progress import Task
-except ImportError:
-    Task = DummyTask
 
 
 class AlignmentModel(Base):
