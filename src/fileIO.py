@@ -236,6 +236,17 @@ class TestFileIO(unittest.TestCase):
 
         return
 
+    def testLoadDataset(self):
+        f1 = f2 = "support/ut_source.txt"
+        e1 = e2 = "support/ut_target.txt"
+        alignFile = "support/ut_align_no_type.a"
+        dataset = loadDataset((f1, f2), (e1, e2))
+        for (f, e, alignment) in dataset:
+            for f1, f2 in f:
+                self.assertItemsEqual(f1, f2)
+            for e1, e2 in e:
+                self.assertItemsEqual(e1, e2)
+
 
 if __name__ == '__main__':
     unittest.main()
