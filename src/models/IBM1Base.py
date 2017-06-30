@@ -1,86 +1,45 @@
 # -*- coding: utf-8 -*-
 
 #
-# IBM model 1 implementation(New) of HMM Aligner
+# IBM model 1 base of HMM Aligner
 # Simon Fraser University
 # NLP Lab
 #
-# This is the new implementation of IBM model 1 word aligner, which added some
-# additional method which are not useful.
+# This is the base model for IBM1
 #
 import time
 from copy import deepcopy
 from collections import defaultdict
 from loggers import logging
-from evaluators.evaluator import evaluate
-__version__ = "0.1a"
+from models.modelBase import Task
+from models.modelBase import AlignmentModelBase as Base
+__version__ = "0.4a"
 
 
-# This is a private module for transmitting test results. Please ignore.
-class DummyTask():
-    def __init__(self, taskName="Untitled", serial="XXXX"):
-        return
-
-    def progress(self, msg):
-        return
-
-
-try:
-    from progress import Task
-except ImportError:
-    Task = DummyTask
-
-
-class AlignmentModelBase():
+class AlignmentModelBase(Base):
     def __init__(self):
-        '''
-        @var self.f_count: integer defaultdict with string as index
-        @var self.e_count: integer defaultdict with string as index
-        @var self.fe_count: integer defaultdict with (str, str) as index
-        @var self.tagMap: integer defaultdict with string as index
-        @var self.total_f_e_h: float defaultdict with (str, str, int) as index
-        '''
         self.t = defaultdict(float)
-        self.f_count = defaultdict(int)
-        self.e_count = defaultdict(int)
-        self.fe_count = defaultdict(int)
-        self.logger = logging.getLogger('IBM1BASE')
+        if "logger" not in vars(self):
+            self.logger = logging.getLogger('IBM1BASE')
+        if "modelComponents" not in vars(self):
+            self.modelComponents = ["t"]
+        Base.__init__(self)
         return
 
-    def initialiseModel(self, bitext):
-        # We don't use .clear() here for reusability of models.
-        # Sometimes one would need one or more of the following parts for other
-        # Purposes. We wouldn't want to accidentally clear them up.
-        self.t = defaultdict(float)
-        self.f_count = defaultdict(int)
-        self.e_count = defaultdict(int)
-        self.fe_count = defaultdict(int)
-
-        for item in bitext:
-            f, e = item[0:2]
-            for f_i in f:
-                self.f_count[f_i] += 1
-                for e_j in e:
-                    self.fe_count[(f_i, e_j)] += 1
-            for e_j in e:
-                self.e_count[e_j] += 1
-
-        initialValue = 1.0 / len(self.f_count)
-        for key in self.fe_count:
-            self.t[key] = initialValue
-        return
-
-    def tProbability(self, f, e):
-        tmp = self.t[(f, e)]
-        if tmp == 0:
-            return 0.000006123586217
+    def tProbability(self, f, e, index=0):
+        if (f[index], e[index]) in self.t:
+            tmp = self.t[(f[index], e[index])]
+            if tmp == 0:
+                return 0.000006123586217
+            else:
+                return tmp
         else:
-            return tmp
+            return 0.000006123586217
 
-    def EM(self, bitext, iterations, modelName="IBM1Base"):
+    def EM(self, dataset, iterations, modelName="IBM1Base", index=0):
         task = Task("Aligner", modelName + str(iterations))
         self.logger.info("Starting Training Process")
-        self.logger.info("Training size: " + str(len(bitext)))
+        self.logger.info("Training size: " + str(len(dataset)))
         start_time = time.time()
 
         for iteration in range(iterations):
@@ -88,44 +47,32 @@ class AlignmentModelBase():
             self.logger.info("Starting Iteration " + str(iteration))
             counter = 0
 
-            for item in bitext:
+            for item in dataset:
                 f, e = item[0:2]
                 counter += 1
                 task.progress(modelName + " iter %d, %d of %d" %
-                              (iteration, counter, len(bitext),))
+                              (iteration, counter, len(dataset),))
                 for fWord in f:
                     z = 0
                     for eWord in e:
                         z += self.tProbability(fWord, eWord)
                     for eWord in e:
-                        self._updateCount(fWord, eWord, z)
+                        self._updateCount(fWord, eWord, z, index)
 
             self._updateEndOfIteration()
 
         end_time = time.time()
         self.logger.info("Training Complete, total time(seconds): %f" %
                          (end_time - start_time,))
+        self.endOfEM()
         return
-
-    def decode(self, bitext):
-        self.logger.info("Start decoding")
-        self.logger.info("Testing size: " + str(len(bitext)))
-        result = []
-
-        for sentence in bitext:
-
-            sentenceAlignment = self.decodeSentence(sentence)
-
-            result.append(sentenceAlignment)
-        self.logger.info("Decoding Complete")
-        return result
 
     def decodeSentence(self, sentence):
         # This is the standard sentence decoder for IBM model 1
         # What happens there is that for every source f word, we find the
         # target e word with the highest tr(e|f) score here, which is
         # tProbability(f[i], e[j])
-        f, e = sentence
+        f, e, alignment = sentence
         sentenceAlignment = []
         for i in range(len(f)):
             max_t = 0
@@ -154,7 +101,7 @@ class AlignmentModelBase():
         # return
         raise NotImplementedError
 
-    def _updateCount(self, fWord, eWord, z):
+    def _updateCount(self, fWord, eWord, z, index=0):
         '''
         This is the very basic IBM 1 model implementation
         The sample code here is the standard way of updating counts.
@@ -164,9 +111,10 @@ class AlignmentModelBase():
               C(f)    is self.total[f]
         '''
 
-        # self.c[(fWord, eWord)] += self.t[(fWord, eWord)] / z
-        # self.total[eWord] += self.t[(fWord, eWord)] / z
-        # return
+        # self.c[(fWord[index], eWord[index])] +=\
+        #     self.tProbability(fWord[index], eWord[index]) / z
+        # self.total[eWord[index]] +=\
+        #     self.tProbability(fWord[index], eWord[index]) / z
         raise NotImplementedError
 
     def _updateEndOfIteration(self):
@@ -180,8 +128,20 @@ class AlignmentModelBase():
         All of the pairs of words (f, e) can be found in self.fe_count
         '''
 
-        # for (f, e) in self.fe_count:
+        # for (f[0], e[0]) in self.c:
         #     # Change the following line to add smoothing
-        #     self.t[(f, e)] = self.c[(f, e)] / self.total[e]
+        #     self.t[(f[0], e[0])] = self.c[(f[0], e[0])] / self.total[e[0]]
         # return
         raise NotImplementedError
+
+    def endOfEM(self):
+        '''
+        At the end of the EM algorithm, it removes all unnecessary parts of the
+        model to save memory space and make it easier for dumping the model.
+        '''
+        del self.f_count
+        del self.e_count
+        del self.fe_count
+        del self.c
+        del self.total
+        return
