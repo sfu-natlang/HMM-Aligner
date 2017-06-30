@@ -214,7 +214,9 @@ class AlignmentModelBase():
                                 eWord[index],
                                 self.typeIndex[typ])] += 1
 
-        s = defaultdict(lambda: [0.0 for h in range(len(self.typeIndex))])
+        s = defaultdict(list)
+        for key in fe_count:
+            s[key] = [0.0 for h in range(len(self.typeIndex))]
         for f, e, t in total_f_e_type:
             s[(f, e)][t] = total_f_e_type[(f, e, t)] / fe_count[(f, e)]
         return s

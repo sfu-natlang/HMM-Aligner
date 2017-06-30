@@ -51,7 +51,7 @@ class AlignmentModel(IBM1Base):
             lambda: [0.0 for h in range(len(self.typeList))])
         return
 
-    def _updateCount(self, fWord, eWord, z):
+    def _updateCount(self, fWord, eWord, z, index):
         tPr_z = self.tProbability(fWord, eWord) / z
         self.c[(fWord[self.index], eWord[self.index])] += tPr_z
         self.total[eWord[self.index]] += tPr_z
