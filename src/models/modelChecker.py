@@ -31,7 +31,10 @@ requiredMethods = {
               "iterations": "int"},
 
     "decode": {"self": "instance",
-               "dataset": "list"}
+               "dataset": "list"},
+
+    "decodeSentence": {"self": "instance",
+                       "sentence": "list"}
 }
 
 

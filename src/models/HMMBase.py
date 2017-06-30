@@ -8,7 +8,6 @@
 # This is the base model for HMM
 #
 import sys
-import logging
 import time
 import numpy as np
 from math import log
@@ -276,29 +275,28 @@ class AlignmentModelBase(Base):
                 maxScore = score[fLen - 1][j]
                 best_j = j
 
-        trace = [best_j + 1, ]
+        trace = [(best_j + 1, )]
         i = fLen - 1
         j = best_j
 
         while (i > 0):
             j = int(prev_j[i][j])
-            trace = [j + 1] + trace
+            trace = [(j + 1, )] + trace
             i = i - 1
         return trace
 
-    def decode(self, dataset):
-        self.logger.info("Start decoding")
-        self.logger.info("Testing size: " + str(len(dataset)))
-        result = []
+    def decodeSentence(self, sentence):
+        f, e, alignment = sentence
+        sentenceAlignment = []
+        bestAlign = self.logViterbi(f, e)
 
-        for (f, e, alignment) in dataset:
-            sentenceAlignment = []
-            bestAlignment = self.logViterbi(f, e)
+        for i in range(len(bestAlign)):
 
-            for i in range(len(bestAlignment)):
-                if bestAlignment[i] <= len(e):
-                    sentenceAlignment.append((i + 1, bestAlignment[i]))
-
-            result.append(sentenceAlignment)
-        self.logger.info("Decoding Completed")
-        return result
+            if bestAlign[i][0] <= len(e):
+                if len(bestAlign[i]) > 1 and "typeList" in vars(self):
+                    sentenceAlignment.append(
+                        (i + 1, bestAlign[i][0],
+                         self.typeList[bestAlign[i][1]]))
+                else:
+                    sentenceAlignment.append((i + 1, bestAlign[i][0]))
+        return sentenceAlignment

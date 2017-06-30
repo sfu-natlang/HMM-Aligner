@@ -9,9 +9,11 @@
 # function properly
 #
 import sys
+import numpy as np
+from math import log
 from collections import defaultdict
 from copy import deepcopy
-from math import log
+
 from loggers import logging
 from models.IBM1 import AlignmentModel as AlignerIBM1
 from models.modelBase import Task
@@ -179,20 +181,14 @@ class AlignmentModel(Base):
         return
 
     def logViterbi(self, f, e):
-        eLen = len(e)
+        fLen, eLen = len(f), len(e)
         e = deepcopy(e)
         for i in range(eLen):
             e.append(("null", "null"))
 
-        score = [[[0.0 for z in range(len(self.typeList))]
-                  for x in range(len(e))]
-                 for y in range(len(f))]
-        prev_j = [[[0 for z in range(len(self.typeList))]
-                   for x in range(len(e))]
-                  for y in range(len(f))]
-        prev_h = [[[0 for z in range(len(self.typeList))]
-                   for x in range(len(e))]
-                  for y in range(len(f))]
+        score = np.zeros((fLen, eLen * 2, len(self.typeList)))
+        prev_j = np.zeros((fLen, eLen * 2, len(self.typeList)))
+        prev_h = np.zeros((fLen, eLen * 2, len(self.typeList)))
 
         for j in range(len(e)):
             tPr = log(self.tProbability(f[0], e[j]))
@@ -203,7 +199,7 @@ class AlignmentModel(Base):
                 else:
                     score[0][j][h] = - sys.maxint - 1
 
-        for i in range(1, len(f)):
+        for i in range(1, fLen):
             for j in range(len(e)):
                 maxScore = -sys.maxint - 1
                 jPrevBest = -sys.maxint - 1
@@ -233,37 +229,17 @@ class AlignmentModel(Base):
         best_j = best_h = 0
         for j in range(len(e)):
             for h in range(len(self.typeList)):
-                if score[len(f) - 1][j][h] > maxScore:
-                    maxScore = score[len(f) - 1][j][h]
+                if score[fLen - 1][j][h] > maxScore:
+                    maxScore = score[fLen - 1][j][h]
                     best_j, best_h = j, h
 
-        trace = [best_j + 1, ]
-        bestLinkTrace = [best_h, ]
+        trace = [(best_j + 1, best_h), ]
 
         j, h = best_j, best_h
-        i = len(f) - 1
+        i = fLen - 1
 
         while (i > 0):
-            j, h = prev_j[i][j][h], prev_h[i][j][h]
-            trace = [j + 1] + trace
-            bestLinkTrace = [h] + bestLinkTrace
+            j, h = int(prev_j[i][j][h]), int(prev_h[i][j][h])
+            trace = [(j + 1, h)] + trace
             i = i - 1
-        return trace, bestLinkTrace
-
-    def decode(self, dataset):
-        self.logger.info("Start decoding")
-        self.logger.info("Testing size: " + str(len(dataset)))
-        result = []
-
-        for (f, e, alignment) in dataset:
-            sentenceAlignment = []
-            bestAlign, bestAlignType = self.logViterbi(f, e)
-
-            for i in range(len(bestAlign)):
-                if bestAlign[i] <= len(e):
-                    sentenceAlignment.append(
-                        (i + 1, bestAlign[i], self.typeList[bestAlignType[i]]))
-
-            result.append(sentenceAlignment)
-        self.logger.info("Decoding Completed")
-        return result
+        return trace

@@ -235,3 +235,16 @@ class AlignmentModelBase():
         for f, e, t in total_f_e_type:
             s[(f, e)][t] = total_f_e_type[(f, e, t)] / fe_count[(f, e)]
         return s
+
+    def decode(self, dataset):
+        self.logger.info("Start decoding")
+        self.logger.info("Testing size: " + str(len(dataset)))
+        result = []
+
+        for sentence in dataset:
+
+            sentenceAlignment = self.decodeSentence(sentence)
+
+            result.append(sentenceAlignment)
+        self.logger.info("Decoding Complete")
+        return result

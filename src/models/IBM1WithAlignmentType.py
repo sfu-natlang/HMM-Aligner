@@ -92,11 +92,7 @@ class AlignmentModel(IBM1Base):
         return IBM1Base.tProbability(self, f, e, self.index)
 
     def decodeSentence(self, sentence):
-        # This is the standard sentence decoder for IBM model 1
-        # What happens there is that for every source f word, we find the
-        # target e word with the highest tr(e|f) score here, which is
-        # tProbability(f[i], e[j])
-        f, e, decodeSentence = sentence
+        f, e, align = sentence
         sentenceAlignment = []
         for i in range(len(f)):
             max_ts = 0

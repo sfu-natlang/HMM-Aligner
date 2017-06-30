@@ -67,19 +67,6 @@ class AlignmentModelBase(Base):
         self.endOfEM()
         return
 
-    def decode(self, dataset):
-        self.logger.info("Start decoding")
-        self.logger.info("Testing size: " + str(len(dataset)))
-        result = []
-
-        for sentence in dataset:
-
-            sentenceAlignment = self.decodeSentence(sentence)
-
-            result.append(sentenceAlignment)
-        self.logger.info("Decoding Complete")
-        return result
-
     def decodeSentence(self, sentence):
         # This is the standard sentence decoder for IBM model 1
         # What happens there is that for every source f word, we find the
