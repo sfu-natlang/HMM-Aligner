@@ -25,6 +25,7 @@ class AlignmentModel(IBM1Base):
         return
 
     def train(self, dataset, iterations=5):
+        dataset = self.initialiseLexikon(dataset)
         self.initialiseBiwordCount(dataset)
         self.EM(dataset, iterations, 'IBM1')
         return

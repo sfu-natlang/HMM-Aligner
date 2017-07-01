@@ -12,6 +12,7 @@
 import gzip
 import os
 import cPickle as pickle
+from copy import deepcopy
 from collections import defaultdict
 from loggers import logging
 __version__ = "0.4a"
@@ -248,3 +249,49 @@ class AlignmentModelBase():
             result.append(sentenceAlignment)
         self.logger.info("Decoding Complete")
         return result
+
+    def initialiseLexikon(self, dataset, index=0):
+        dataset = deepcopy(dataset)
+        self.fLex = []
+        self.eLex = []
+        self.fIndex = {}
+        self.eIndex = {}
+        for f, e, alignment in dataset:
+            for fWord in f:
+                self.fIndex[fWord[index]] = 1
+            for eWord in e:
+                self.eIndex[eWord[index]] = 1
+        c = 1  # 0 reserved for unknown words
+        for key in self.fIndex:
+            self.fIndex[key] = c
+            self.fLex.append(key)
+            c += 1
+        c = 1  # 0 reserved for unknown words
+        for key in self.eIndex:
+            self.eIndex[key] = c
+            self.eLex.append(key)
+            c += 1
+        for f, e, alignment in dataset:
+            for i in range(len(f)):
+                f[i] = f[i][0:index] +\
+                    (self.fIndex[f[i][index]],) + f[i][index + 1:]
+            for i in range(len(e)):
+                e[i] = e[i][0:index] +\
+                    (self.eIndex[e[i][index]],) + e[i][index + 1:]
+        return dataset
+
+    def lexiSentence(self, sentence, index=0):
+        f, e, alignment = deepcopy(sentence)
+        for i in range(len(f)):
+            f[i] = f[i][0:index] +\
+                (self.lexiWord(f[i][index], self.fIndex),) + f[i][index + 1:]
+        for i in range(len(e)):
+            e[i] = e[i][0:index] +\
+                (self.lexiWord(e[i][index], self.eIndex),) + e[i][index + 1:]
+        return f, e, alignment
+
+    def lexiWord(self, word, lexikon):
+        if word in lexikon:
+            return lexikon[word]
+        else:
+            return 0
