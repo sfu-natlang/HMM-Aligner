@@ -163,6 +163,7 @@ class AlignmentModel(Base):
         return
 
     def train(self, dataset, iterations=5):
+        dataset = self.initialiseLexikon(dataset)
         self.task = Task("Aligner", "HMMOI" + str(iterations))
         self.logger.info("Loading alignment type distribution")
         self.initialiseAlignTypeDist(dataset, self.loadTypeDist)

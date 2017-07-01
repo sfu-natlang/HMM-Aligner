@@ -82,11 +82,13 @@ class AlignmentModel(Base):
         return
 
     def train(self, dataset, iterations):
+        dataset = self.initialiseLexikon(dataset)
         self.task = Task("Aligner", "HMMOI" + str(iterations))
         self.task.progress("Training IBM model 1")
         self.logger.info("Training IBM model 1")
         alignerIBM1 = AlignerIBM1()
-        alignerIBM1.train(dataset, iterations)
+        alignerIBM1.initialiseBiwordCount(dataset)
+        alignerIBM1.EM(dataset, iterations, 'IBM1')
         self.t = alignerIBM1.t
         self.task.progress("IBM model Trained")
         self.logger.info("IBM model Trained")

@@ -135,6 +135,7 @@ class AlignmentModel(IBM1Base):
         return
 
     def train(self, dataset, iterations=5):
+        dataset = self.initialiseLexikon(dataset)
         self.logger.info("Initialising Alignment Type Distribution")
         self.initialiseAlignTypeDist(dataset, self.loadTypeDist)
         self.trainStage1(dataset, iterations)

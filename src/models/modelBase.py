@@ -9,11 +9,18 @@
 # AlignmentModelBase as the parent class of their own model. The base model
 # here provides the function to export and load existing models.
 #
-import gzip
 import os
+import sys
+import inspect
+import gzip
+import unittest
 import cPickle as pickle
 from copy import deepcopy
 from collections import defaultdict
+currentdir = os.path.dirname(
+    os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0, parentdir)
 from loggers import logging
 __version__ = "0.4a"
 
@@ -243,7 +250,7 @@ class AlignmentModelBase():
         result = []
 
         for sentence in dataset:
-
+            sentence = self.lexiSentence(sentence)
             sentenceAlignment = self.decodeSentence(sentence)
 
             result.append(sentenceAlignment)
@@ -253,7 +260,6 @@ class AlignmentModelBase():
     def initialiseLexikon(self, dataset):
         dataset = deepcopy(dataset)
         indices = len(dataset[0][0][0])
-        print indices
         self.fLex = [[] for i in range(indices)]
         self.eLex = [[] for i in range(indices)]
         self.fIndex = [{} for i in range(indices)]
@@ -277,24 +283,24 @@ class AlignmentModelBase():
                 c += 1
         for f, e, alignment in dataset:
             for i in range(len(f)):
-                f[i] =\
-                    [self.fIndex[indx][f[i][indx]] for indx in range(indices)]
+                f[i] = tuple(
+                    [self.fIndex[indx][f[i][indx]] for indx in range(indices)])
             for i in range(len(e)):
-                e[i] =\
-                    [self.eIndex[indx][e[i][indx]] for indx in range(indices)]
+                e[i] = tuple(
+                    [self.eIndex[indx][e[i][indx]] for indx in range(indices)])
         return dataset
 
-    def lexiSentence(self, sentence, index=0):
+    def lexiSentence(self, sentence):
         f, e, alignment = deepcopy(sentence)
         indices = len(self.fIndex)
         for i in range(len(f)):
             f[i] =\
-                [self.lexiWord(self.fIndex[index], f[i][index])
-                 for index in range(indices)]
+                tuple([self.lexiWord(self.fIndex[index], f[i][index])
+                       for index in range(indices)])
         for i in range(len(e)):
             e[i] =\
-                [self.lexiWord(self.eIndex[index], e[i][index])
-                 for index in range(indices)]
+                tuple([self.lexiWord(self.eIndex[index], e[i][index])
+                      for index in range(indices)])
         return f, e, alignment
 
     def lexiWord(self, lexikon, word):
@@ -302,3 +308,42 @@ class AlignmentModelBase():
             return lexikon[word]
         else:
             return 0
+
+
+class TestModelBase(unittest.TestCase):
+
+    def testlexiSentence(self):
+        model = AlignmentModelBase()
+        model.fIndex = [{
+            "a": 1,
+            "b": 2,
+            "c": 3
+        }, {
+            "d": 4,
+            "e": 5,
+            "f": 6
+        }]
+        model.eIndex = [{
+            "A": 1,
+            "B": 2,
+            "C": 3
+        }, {
+            "D": 4,
+            "E": 5,
+            "F": 6
+        }]
+        sentence = (
+            [("a", "d"), ("b", "e"), ("c", "f"), ("g", "h")],
+            [("A", "D"), ("B", "E"), ("C", "F"), ("G", "H")],
+            []
+        )
+        correct = (
+            [(1, 4), (2, 5), (3, 6), (0, 0)],
+            [(1, 4), (2, 5), (3, 6), (0, 0)],
+            []
+        )
+        self.assertSequenceEqual(model.lexiSentence(sentence), correct)
+        return
+
+if __name__ == '__main__':
+    unittest.main()

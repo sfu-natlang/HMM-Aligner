@@ -72,7 +72,7 @@ class AlignmentModelBase(Base):
         # What happens there is that for every source f word, we find the
         # target e word with the highest tr(e|f) score here, which is
         # tProbability(f[i], e[j])
-        f, e, alignment = self.lexiSentence(sentence)
+        f, e, alignment = sentence
         sentenceAlignment = []
         for i in range(len(f)):
             max_t = 0
