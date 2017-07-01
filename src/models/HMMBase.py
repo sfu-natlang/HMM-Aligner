@@ -227,7 +227,7 @@ class AlignmentModelBase(Base):
         v = 163303
         if (f[index], e[index]) in self.t:
             return self.t[(f[index], e[index])]
-        if e[index] == "null":
+        if e[index] == 424242424243:
             return self.nullEmissionProb
         return 1.0 / v
 
@@ -240,7 +240,7 @@ class AlignmentModelBase(Base):
         e = deepcopy(e)
         fLen, eLen = len(f), len(e)
         for i in range(eLen):
-            e.append(("null", "null"))
+            e.append((424242424243, 424242424243))
         score = np.zeros((fLen, eLen * 2))
         prev_j = np.zeros((fLen, eLen * 2))
 

@@ -185,7 +185,7 @@ class AlignmentModel(Base):
         fLen, eLen = len(f), len(e)
         e = deepcopy(e)
         for i in range(eLen):
-            e.append(("null", "null"))
+            e.append((424242424243, 424242424243))
 
         score = np.zeros((fLen, eLen * 2, len(self.typeList)))
         prev_j = np.zeros((fLen, eLen * 2, len(self.typeList)))
