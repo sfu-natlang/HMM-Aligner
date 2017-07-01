@@ -250,47 +250,54 @@ class AlignmentModelBase():
         self.logger.info("Decoding Complete")
         return result
 
-    def initialiseLexikon(self, dataset, index=0):
+    def initialiseLexikon(self, dataset):
         dataset = deepcopy(dataset)
-        self.fLex = []
-        self.eLex = []
-        self.fIndex = {}
-        self.eIndex = {}
+        indices = len(dataset[0][0][0])
+        print indices
+        self.fLex = [[] for i in range(indices)]
+        self.eLex = [[] for i in range(indices)]
+        self.fIndex = [{} for i in range(indices)]
+        self.eIndex = [{} for i in range(indices)]
         for f, e, alignment in dataset:
-            for fWord in f:
-                self.fIndex[fWord[index]] = 1
-            for eWord in e:
-                self.eIndex[eWord[index]] = 1
-        c = 1  # 0 reserved for unknown words
-        for key in self.fIndex:
-            self.fIndex[key] = c
-            self.fLex.append(key)
-            c += 1
-        c = 1  # 0 reserved for unknown words
-        for key in self.eIndex:
-            self.eIndex[key] = c
-            self.eLex.append(key)
-            c += 1
+            for index in range(indices):
+                for fWord in f:
+                    self.fIndex[index][fWord[index]] = 1
+                for eWord in e:
+                    self.eIndex[index][eWord[index]] = 1
+        for index in range(indices):
+            c = 1  # 0 reserved for unknown words
+            for key in self.fIndex[index]:
+                self.fIndex[index][key] = c
+                self.fLex[index].append(key)
+                c += 1
+            c = 1  # 0 reserved for unknown words
+            for key in self.eIndex[index]:
+                self.eIndex[index][key] = c
+                self.eLex[index].append(key)
+                c += 1
         for f, e, alignment in dataset:
             for i in range(len(f)):
-                f[i] = f[i][0:index] +\
-                    (self.fIndex[f[i][index]],) + f[i][index + 1:]
+                f[i] =\
+                    [self.fIndex[indx][f[i][indx]] for indx in range(indices)]
             for i in range(len(e)):
-                e[i] = e[i][0:index] +\
-                    (self.eIndex[e[i][index]],) + e[i][index + 1:]
+                e[i] =\
+                    [self.eIndex[indx][e[i][indx]] for indx in range(indices)]
         return dataset
 
     def lexiSentence(self, sentence, index=0):
         f, e, alignment = deepcopy(sentence)
+        indices = len(self.fIndex)
         for i in range(len(f)):
-            f[i] = f[i][0:index] +\
-                (self.lexiWord(f[i][index], self.fIndex),) + f[i][index + 1:]
+            f[i] =\
+                [self.lexiWord(self.fIndex[index], f[i][index])
+                 for index in range(indices)]
         for i in range(len(e)):
-            e[i] = e[i][0:index] +\
-                (self.lexiWord(e[i][index], self.eIndex),) + e[i][index + 1:]
+            e[i] =\
+                [self.lexiWord(self.eIndex[index], e[i][index])
+                 for index in range(indices)]
         return f, e, alignment
 
-    def lexiWord(self, word, lexikon):
+    def lexiWord(self, lexikon, word):
         if word in lexikon:
             return lexikon[word]
         else:
