@@ -46,54 +46,27 @@ class AlignmentModelBase(Base):
         return
 
     def initialiseParameter(self, Len):
-        doubleLen = 2 * Len
-        tmp = 1.0 / Len
-        for z in range(Len):
-            for y in range(Len):
-                for x in range(Len + 1):
-                    self.a[x][z][y] = tmp
-        tmp = 1.0 / doubleLen
-        for x in range(Len):
-            self.pi[x] = tmp
+        self.a[:Len + 1, :Len, :Len].fill(1.0 / Len)
+        self.pi[:Len].fill(1.0 / 2 / Len)
         return
 
     def forwardBackward(self, f, e, tSmall, a):
-        alpha = [[0.0 for x in range(len(e))] for y in range(len(f))]
-        alphaScale = [0.0 for x in range(len(f))]
-        alphaSum = 0
+        alpha = np.zeros((len(f), len(e)))
+        beta = np.zeros((len(f), len(e)))
+        alphaScale = np.zeros(len(f))
 
-        for j in range(len(e)):
-            alpha[0][j] = self.pi[j] * tSmall[0][j]
-            alphaSum += alpha[0][j]
-
-        alphaScale[0] = 1 / alphaSum
-        for j in range(len(e)):
-            alpha[0][j] *= alphaScale[0]
-
+        alpha[0] = tSmall[0] * self.pi[:len(e)]
+        alphaScale[0] = 1 / np.sum(alpha[0])
+        alpha[0] *= alphaScale[0]
         for i in range(1, len(f)):
-            alphaSum = 0
-            for j in range(len(e)):
-                total = 0
-                for prev_j in range(len(e)):
-                    total += alpha[i - 1][prev_j] * a[prev_j][j]
-                alpha[i][j] = tSmall[i][j] * total
-                alphaSum += alpha[i][j]
+            alpha[i] = tSmall[i] * np.matmul(alpha[i - 1], a)
+            alphaScale[i] = 1 / np.sum(alpha[i])
+            alpha[i] *= alphaScale[i]
 
-            alphaScale[i] = 1.0 / alphaSum
-            for j in range(len(e)):
-                alpha[i][j] = alphaScale[i] * alpha[i][j]
-
-        beta = [[0.0 for x in range(len(e))] for y in range(len(f))]
-        for j in range(len(e)):
-            beta[len(f) - 1][j] = alphaScale[len(f) - 1]
-
+        beta[len(f) - 1].fill(alphaScale[len(f) - 1])
         for i in range(len(f) - 2, -1, -1):
-            for j in range(len(e)):
-                total = 0
-                for next_j in range(len(e)):
-                    total += (beta[i + 1][next_j] * a[j][next_j] *
-                              tSmall[i + 1][next_j])
-                beta[i][j] = alphaScale[i] * total
+            beta[i] =\
+                np.matmul(beta[i + 1] * tSmall[i + 1], a.T) * alphaScale[i]
         return alpha, alphaScale, beta
 
     def maxTargetSentenceLength(self, dataset):
@@ -116,9 +89,8 @@ class AlignmentModelBase(Base):
         maxE, self.eLengthSet = self.maxTargetSentenceLength(dataset)
         self.logger.info("Maximum Target sentence length: " + str(maxE))
 
-        self.a = [[[0.0 for x in range(maxE * 2)] for y in range(maxE * 2)]
-                  for z in range(maxE + 1)]
-        self.pi = [0.0 for x in range(maxE * 2)]
+        self.a = np.zeros((maxE + 1, maxE * 2, maxE * 2))
+        self.pi = np.zeros(maxE * 2)
 
         for iteration in range(iterations):
             self.logger.info("BaumWelch Iteration " + str(iteration))
@@ -142,10 +114,10 @@ class AlignmentModelBase(Base):
                     self.initialiseParameter(len(e))
 
                 fLen, eLen = len(f), len(e)
-                a = self.a[eLen]
-                tSmall = [[self.t[f[i][index]][e[j][index]]
-                           for j in range(eLen)]
-                          for i in range(fLen)]
+                a = self.a[eLen][:len(e), :len(e)]
+                tSmall = np.array([[self.t[f[i][index]][e[j][index]]
+                                    for j in range(eLen)]
+                                   for i in range(fLen)])
 
                 alpha, alphaScale, beta = self.forwardBackward(f, e, tSmall, a)
 
