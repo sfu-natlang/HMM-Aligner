@@ -23,7 +23,7 @@ currentdir = os.path.dirname(
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 from loggers import logging
-__version__ = "0.4a"
+__version__ = "0.5a"
 
 
 # This is a private module for transmitting test results. Please ignore.

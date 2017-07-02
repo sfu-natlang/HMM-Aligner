@@ -11,13 +11,13 @@ import numpy as np
 from loggers import logging
 from models.IBM1Base import AlignmentModelBase as IBM1Base
 from evaluators.evaluator import evaluate
-__version__ = "0.4a"
+__version__ = "0.5a"
 
 
 class AlignmentModel(IBM1Base):
     def __init__(self):
         self.modelName = "IBM1WithPOSTagAndAlignmentType"
-        self.version = "0.2b"
+        self.version = "0.3b"
         self.logger = logging.getLogger('IBM1')
         self.evaluate = evaluate
         self.fe = ()
@@ -27,7 +27,7 @@ class AlignmentModel(IBM1Base):
         self.index = 0
         self.typeList = []
         self.typeIndex = {}
-        self.typeDist = []
+        self.typeDist = np.zeros(0)
         self.lambd = 1 - 1e-20
         self.lambda1 = 0.9999999999
         self.lambda2 = 9.999900827395436E-11
