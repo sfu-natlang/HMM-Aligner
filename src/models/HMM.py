@@ -57,17 +57,13 @@ class AlignmentModel(Base):
         self.logger.info("End of iteration")
         # Update a
         for Len in self.eLengthSet:
+            deltaSum = np.sum(delta[Len], axis=1) + 1e-37
             for prev_j in range(Len):
-                deltaSum = 0.0
-                for j in range(Len):
-                    deltaSum += delta[Len][prev_j][j]
-                for j in range(Len):
-                    self.a[Len][prev_j][j] = delta[Len][prev_j][j] /\
-                        (deltaSum + 1e-37)
+                self.a[Len][prev_j][:Len] =\
+                    delta[Len][prev_j][:Len] / deltaSum[prev_j]
 
         # Update pi
-        for i in range(maxE):
-            self.pi[i] = self.gammaSum_0[i] * (1.0 / self.lenDataset)
+        self.pi[:maxE] = self.gammaSum_0[:maxE] / self.lenDataset
 
         # Update t
         self.t = np.divide(self.gammaBiword, self.gammaEWord)
