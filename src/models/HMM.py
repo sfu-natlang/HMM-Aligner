@@ -27,8 +27,10 @@ class AlignmentModel(Base):
         self.smoothFactor = 0.1
         self.task = None
         self.evaluate = evaluate
+        self.fLex = self.eLex = self.fIndex = self.eIndex = None
 
-        self.modelComponents = ["t", "pi", "a", "eLengthSet"]
+        self.modelComponents = ["t", "pi", "a", "eLengthSet",
+                                "fLex", "eLex", "fIndex", "eIndex"]
         Base.__init__(self)
         return
 

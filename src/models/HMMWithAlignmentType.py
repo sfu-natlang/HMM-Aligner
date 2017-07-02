@@ -44,6 +44,7 @@ class AlignmentModel(Base):
         self.lambda1 = 0.9999999999
         self.lambda2 = 9.999900827395436E-11
         self.lambda3 = 1.000000082740371E-15
+        self.fLex = self.eLex = self.fIndex = self.eIndex = None
 
         self.loadTypeDist = {"SEM": .401, "FUN": .264, "PDE": .004,
                              "CDE": .004, "MDE": .012, "GIS": .205,
@@ -52,6 +53,7 @@ class AlignmentModel(Base):
 
         self.modelComponents = ["t", "pi", "a", "eLengthSet", "s", "sTag",
                                 "typeList", "typeIndex", "typeDist",
+                                "fLex", "eLex", "fIndex", "eIndex",
                                 "lambd", "lambda1", "lambda2", "lambda3"]
         Base.__init__(self)
         return

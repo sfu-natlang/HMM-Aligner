@@ -20,6 +20,7 @@ class AlignmentModel(IBM1Base):
         self.version = "0.2b"
         self.logger = logging.getLogger('IBM1')
         self.evaluate = evaluate
+        self.fLex = self.eLex = self.fIndex = self.eIndex = None
 
         IBM1Base.__init__(self)
         return
