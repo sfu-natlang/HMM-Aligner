@@ -217,6 +217,7 @@ class AlignmentModelBase():
         return
 
     def calculateS(self, dataset, index=0):
+        self.logger.info("Initialising S")
         count = np.zeros((len(self.fLex[index]),
                           len(self.eLex[index]),
                           len(self.typeIndex)))
@@ -233,23 +234,21 @@ class AlignmentModelBase():
                 eWord = e[e_i - 1]
                 count[fWord[index]][eWord[index]][self.typeIndex[typ]] += 1
 
+        self.logger.info("Writing S")
         s = self.keyDiv(count, feCount)
+        self.logger.info("S computed")
         return s
 
     def keyDiv(self, x, y):
-        def multi(a):
-            from operator import mul
-            return reduce(mul, a)
-
         if x.shape[:-1] != y.shape:
             raise RuntimeError("Incorrect size")
-        originShape = x.shape
-        keySize = multi(x.shape[:-1])
-        xM = np.matrix(x.reshape((keySize, x.shape[-1])))
-        yM = np.matrix(y.reshape(keySize))
-        with np.errstate(invalid='ignore', divide='ignore'):
-            result = np.array(xM / yM.T).reshape(originShape)
-        result[np.isnan(result)] = 0.0
+        result = np.zeros(x.shape)
+        if len(x.shape) == 3:
+            for i, j in zip(*y.nonzero()):
+                result[i][j] = x[i][j] / y[i][j]
+        elif len(x.shape) == 2:
+            for i, in zip(*y.nonzero()):
+                result[i] = x[i] / y[i]
         return result
 
     def decode(self, dataset):
@@ -364,9 +363,10 @@ class TestModelBase(unittest.TestCase):
         h = 5
         x = np.arange(n * m * h).reshape((n, m, h))
         y = np.arange(n * m).reshape(n, m)
-        correct = np.array([[[x[i][j][k] / y[i][j] for k in range(h)]
-                             for j in range(m)]
-                            for i in range(n)])
+        with np.errstate(invalid='ignore', divide='ignore'):
+            correct = np.array([[[x[i][j][k] / y[i][j] for k in range(h)]
+                                 for j in range(m)]
+                                for i in range(n)])
         model = AlignmentModelBase()
         result = model.keyDiv(x, y)
         for i in range(n):
@@ -382,9 +382,10 @@ class TestModelBase(unittest.TestCase):
         m = 4
         x = np.arange(n * m).reshape((n, m))
         y = np.arange(n)
-        correct = np.array([[x[i][j] / y[i]
-                             for j in range(m)]
-                            for i in range(n)])
+        with np.errstate(invalid='ignore', divide='ignore'):
+            correct = np.array([[x[i][j] / y[i]
+                                 for j in range(m)]
+                                for i in range(n)])
         model = AlignmentModelBase()
         result = model.keyDiv(x, y)
         for i in range(n):

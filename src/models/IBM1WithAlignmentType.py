@@ -22,8 +22,8 @@ class AlignmentModel(IBM1Base):
         self.evaluate = evaluate
         self.fe = ()
 
-        self.s = np.zeros(0)
-        self.sTag = np.zeros(0)
+        self.s = np.zeros((0, 0))
+        self.sTag = np.zeros((0, 0))
         self.index = 0
         self.typeList = []
         self.typeIndex = {}
@@ -61,6 +61,7 @@ class AlignmentModel(IBM1Base):
         return
 
     def _updateEndOfIteration(self):
+        self.logger.info("Iteration complete, updating parameters")
         self.t = np.divide(self.c, self.total)
         if self.index == 0:
             self.s = self.keyDiv(self.c_feh, self.c)
