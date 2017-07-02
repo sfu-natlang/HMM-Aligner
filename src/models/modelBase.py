@@ -14,6 +14,7 @@ import sys
 import inspect
 import gzip
 import unittest
+import numpy as np
 import cPickle as pickle
 from copy import deepcopy
 from collections import defaultdict
@@ -179,23 +180,22 @@ class AlignmentModelBase():
         # We don't use .clear() here for reusability of models.
         # Sometimes one would need one or more of the following parts for other
         # Purposes. We wouldn't want to accidentally clear them up.
-        self.t = defaultdict(float)
-        self.f_count = defaultdict(int)
-        self.e_count = defaultdict(int)
-        self.fe_count = defaultdict(int)
+        maxf = len(self.fLex[index])
+        maxe = len(self.eLex[index])
+        self.f_count = np.zeros(maxf)
+        self.e_count = np.zeros(maxe)
+        self.fe_count = np.zeros((maxf, maxe))
 
         for item in dataset:
             f, e = item[0:2]
             for f_i in f:
                 self.f_count[f_i[index]] += 1
                 for e_j in e:
-                    self.fe_count[(f_i[index], e_j[index])] += 1
+                    self.fe_count[f_i[index]][e_j[index]] += 1
             for e_j in e:
                 self.e_count[e_j[index]] += 1
 
-        initialValue = 1.0 / len(self.f_count)
-        for key in self.fe_count:
-            self.t[key] = initialValue
+        self.t = np.full((maxf, maxe), 1.0 / maxf)
         return
 
     def initialiseAlignTypeDist(self, dataset, loadTypeDist={}):
@@ -220,29 +220,31 @@ class AlignmentModelBase():
         for typ in typeDist:
             self.typeList.append(typ)
             self.typeIndex[typ] = len(self.typeList) - 1
-        self.typeDist = []
+        self.typeDist = np.zeros(len(self.typeList))
         for h in range(len(self.typeList)):
-            self.typeDist.append(typeDist[self.typeList[h]])
+            self.typeDist[h] = typeDist[self.typeList[h]]
         return
 
     def calculateS(self, dataset, fe_count, index=0):
-        total_f_e_type = defaultdict(float)
+        count = np.zeros(fe_count.shape + (len(self.typeIndex),))
 
         for (f, e, alignment) in dataset:
             # Initialise total_f_e_type count
             for (f_i, e_i, typ) in alignment:
                 fWord = f[f_i - 1]
                 eWord = e[e_i - 1]
-                total_f_e_type[(fWord[index],
-                                eWord[index],
-                                self.typeIndex[typ])] += 1
+                count[fWord[index]][eWord[index]][self.typeIndex[typ]] += 1
 
-        s = defaultdict(list)
-        for key in fe_count:
-            s[key] = [0.0 for h in range(len(self.typeIndex))]
-        for f, e, t in total_f_e_type:
-            s[(f, e)][t] = total_f_e_type[(f, e, t)] / fe_count[(f, e)]
+        s = np.divide(count.reshape(count[0] * count.shape[1]), fe_count)
         return s
+
+    def biwordWiseDivide(x, y):
+        if x.shape[:2] != y.shape:
+            raise RuntimeError("Incorrect size")
+        originShape = x.shape
+        xM = np.matrix(x.reshape(x.shape[0] * x.shape[1], x.shape[2]))
+        yM = np.matrix(y.reshape(y.shape[0] * y.shape[1]))
+        return np.array(xM / yM.T).reshape(originShape)
 
     def decode(self, dataset):
         self.logger.info("Start decoding")
@@ -258,6 +260,7 @@ class AlignmentModelBase():
         return result
 
     def initialiseLexikon(self, dataset):
+        self.logger.info("Creating lexikon")
         dataset = deepcopy(dataset)
         indices = len(dataset[0][0][0])
         self.fLex = [[] for i in range(indices)]
@@ -288,6 +291,9 @@ class AlignmentModelBase():
             for i in range(len(e)):
                 e[i] = tuple(
                     [self.eIndex[indx][e[i][indx]] for indx in range(indices)])
+        self.logger.info("lexikon fsize: " +
+                         str([len(f_i) for f_i in self.fIndex]) +
+                         "; esize: " + str([len(e_i) for e_i in self.eIndex]))
         return dataset
 
     def lexiSentence(self, sentence):

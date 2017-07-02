@@ -7,7 +7,7 @@
 #
 # This is the implementation of IBM model 1 word aligner with alignment type.
 #
-from collections import defaultdict
+import numpy as np
 from loggers import logging
 from models.IBM1Base import AlignmentModelBase as IBM1Base
 from evaluators.evaluator import evaluate
@@ -22,8 +22,8 @@ class AlignmentModel(IBM1Base):
         self.evaluate = evaluate
         self.fe = ()
 
-        self.s = defaultdict(list)
-        self.sTag = defaultdict(list)
+        self.s = np.zeros(0)
+        self.sTag = np.zeros(0)
         self.index = 0
         self.typeList = []
         self.typeIndex = {}
@@ -45,51 +45,43 @@ class AlignmentModel(IBM1Base):
         return
 
     def _beginningOfIteration(self):
-        self.c = defaultdict(float)
-        self.total = defaultdict(float)
-        self.c_feh = defaultdict(
-            lambda: [0.0 for h in range(len(self.typeList))])
+        self.c = np.zeros(self.t.shape)
+        self.total = np.zeros(self.t.shape[1])
+        self.c_feh = np.zeros(self.t.shape + (len(self.typeIndex),))
         return
 
     def _updateCount(self, fWord, eWord, z, index):
-        tPr_z = self.tProbability(fWord, eWord) / z
-        self.c[(fWord[self.index], eWord[self.index])] += tPr_z
-        self.total[eWord[self.index]] += tPr_z
-        c_feh = self.c_feh[(fWord[self.index], eWord[self.index])]
-        for h in range(len(self.typeIndex)):
-            c_feh[h] += tPr_z * self.sProbability(fWord, eWord, h)
+        f, e = fWord[index], eWord[index]
+        tPr_z = self.t[f][e] / z
+        self.c[f][e] += tPr_z
+        self.total[e] += tPr_z
+        self.c_feh[fWord[self.index]][eWord[self.index]] +=\
+            self.sProbability(fWord, eWord, self.index) * tPr_z
         return
 
     def _updateEndOfIteration(self):
-        for (f, e) in self.c:
-            self.t[(f, e)] = self.c[(f, e)] / self.total[e]
-        s = self.s if self.index == 0 else self.sTag
-        for f, e in self.c_feh:
-            c_feh = self.c_feh[(f, e)]
-            s_tmp = s[(f, e)]
-            for h in range(len(self.typeIndex)):
-                s_tmp[h] = c_feh[h] / self.c[(f, e)]
+        self.t = np.divide(self.c, self.total)
+        if self.index == 0:
+            self.s = np.divide(self.c_fehl, self.c)
+        else:
+            self.sTag = np.divide(self.c_fehl, self.c)
         return
 
-    def sProbability(self, f, e, h):
+    def sProbability(self, f, e, index=0):
         fWord, fTag = f
         eWord, eTag = e
-        if self.fe != (f, e):
-            self.fe, sKey, sTagKey = (f, e), (f[0], e[0]), (f[1], e[1])
-            self.sTmp = self.s[sKey] if sKey in self.s else None
-            self.sTagTmp = self.sTag[sTagKey] if sTagKey in self.sTag else None
-        sTmp = self.sTmp[h] if self.sTmp else 0
-        sTagTmp = self.sTagTmp[h] if self.sTagTmp else 0
-        if self.index == 0:
-            p1 = (1 - self.lambd) * self.typeDist[h] + self.lambd * sTmp
-            p2 = (1 - self.lambd) * self.typeDist[h] + self.lambd * sTagTmp
-            p3 = self.typeDist[h]
-            return self.lambda1 * p1 + self.lambda2 * p2 + self.lambda3 * p3
-        else:
-            return (1 - self.lambd) * self.typeDist[h] + self.lambd * sTagTmp
+        sTagTmp = (1 - self.lambd) * self.typeDist
+        if fTag < self.sTag.shape[0] and eTag < self.sTag.shape[1]:
+            sTagTmp += self.s[fTag][eTag] * self.lambd
+        if index == 1:
+            return sTagTmp
 
-    def tProbability(self, f, e):
-        return IBM1Base.tProbability(self, f, e, self.index)
+        sTmp = (1 - self.lambd) * self.typeDist
+        if fWord < self.s.shape[0] and eWord < self.s.shape[1]:
+            sTmp += self.s[fWord][eWord] * self.lambd
+        return (self.lambda1 * sTmp +
+                self.lambda2 * sTagTmp +
+                self.lambda3 * self.typeDist)
 
     def decodeSentence(self, sentence):
         f, e, align = sentence
@@ -99,13 +91,14 @@ class AlignmentModel(IBM1Base):
             argmax = -1
             bestType = -1
             for j in range(len(e)):
-                t = self.tProbability(f, e)
-                for h in range(len(self.typeIndex)):
-                    s = self.sProbability(f[i], e[j], h)
-                    if t * s > max_ts:
-                        max_ts = t * s
-                        argmax = j
-                        bestType = h
+                t = self.tProbability(f[i], e[j])
+                sTmp = self.sProbability(f[i], e[j])
+                h = np.argmax(sTmp)
+                score = sTmp[h] * t
+                if score > max_ts:
+                    max_ts = score
+                    argmax = j
+                    bestType = h
             sentenceAlignment.append(
                 (i + 1, argmax + 1, self.typeList[bestType]))
         return sentenceAlignment
@@ -118,7 +111,7 @@ class AlignmentModel(IBM1Base):
         self.initialiseBiwordCount(dataset, self.index)
         self.sTag = self.calculateS(dataset, self.fe_count, self.index)
         self.logger.info("Initialisation complete")
-        self.EM(dataset, iterations, 'IBM1TypeS1')
+        self.EM(dataset, iterations, 'IBM1TypeS1', self.index)
         # reset self.index to 0
         self.index = 0
         self.logger.info("Stage 1 Complete")
@@ -130,7 +123,7 @@ class AlignmentModel(IBM1Base):
         self.initialiseBiwordCount(dataset, self.index)
         self.s = self.calculateS(dataset, self.fe_count, self.index)
         self.logger.info("Initialisation complete")
-        self.EM(dataset, iterations, 'IBM1TypeS2')
+        self.EM(dataset, iterations, 'IBM1TypeS2', self.index)
         self.logger.info("Stage 2 Complete")
         return
 

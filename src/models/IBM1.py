@@ -7,7 +7,7 @@
 #
 # This is the implementation of IBM model 1 word aligner.
 #
-from collections import defaultdict
+import numpy as np
 from loggers import logging
 from models.IBM1Base import AlignmentModelBase as IBM1Base
 from evaluators.evaluator import evaluate
@@ -31,19 +31,16 @@ class AlignmentModel(IBM1Base):
         return
 
     def _beginningOfIteration(self):
-        self.c = defaultdict(float)
-        self.total = defaultdict(float)
+        self.c = np.zeros(self.t.shape)
+        self.total = np.zeros(self.t.shape[1])
         return
 
     def _updateCount(self, fWord, eWord, z, index=0):
-        f = fWord[index]
-        e = eWord[index]
-        self.c[(f, e)] +=\
-            self.tProbability(fWord, eWord) / z
-        self.total[e] += self.tProbability(fWord, eWord) / z
+        f, e = fWord[index], eWord[index]
+        self.c[f][e] += self.t[f][e] / z
+        self.total[e] += self.t[f][e] / z
         return
 
     def _updateEndOfIteration(self):
-        for (f, e) in self.c:
-            self.t[(f, e)] = self.c[(f, e)] / self.total[e]
+        self.t = np.divide(self.c, self.total)
         return
