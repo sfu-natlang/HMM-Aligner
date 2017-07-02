@@ -121,13 +121,7 @@ class AlignmentModelBase(Base):
                 logLikelihood -= np.sum(np.log(alphaScale))
 
                 # Setting gamma
-                gamma = self.gamma(f, e, alpha, beta, alphaScale)
-                self.gammaSum_0[:eLen] += gamma[0]
-                for i in range(fLen):
-                    for j in range(eLen):
-                        self.gammaBiword[(fWords[i], eWords[j])] +=\
-                            gamma[i][j]
-                        self.gammaEWord[eWords[j]] += gamma[i][j]
+                gamma = self.gamma(f, e, alpha, beta, alphaScale, index)
 
                 # Update delta, the code below is the slow version. It is given
                 # here as the matrix version might be difficult to understand
