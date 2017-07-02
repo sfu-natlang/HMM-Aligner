@@ -177,9 +177,6 @@ class AlignmentModelBase():
         return
 
     def initialiseBiwordCount(self, dataset, index=0):
-        # We don't use .clear() here for reusability of models.
-        # Sometimes one would need one or more of the following parts for other
-        # Purposes. We wouldn't want to accidentally clear them up.
         maxf = len(self.fLex[index])
         maxe = len(self.eLex[index])
         self.f_count = np.zeros(maxf)
@@ -235,7 +232,7 @@ class AlignmentModelBase():
                 eWord = e[e_i - 1]
                 count[fWord[index]][eWord[index]][self.typeIndex[typ]] += 1
 
-        s = np.divide(count.reshape(count[0] * count.shape[1]), fe_count)
+        s = self.keyDiv(count, fe_count)
         return s
 
     def keyDiv(self, x, y):
@@ -249,7 +246,10 @@ class AlignmentModelBase():
         keySize = multi(x.shape[:-1])
         xM = np.matrix(x.reshape((keySize, x.shape[-1])))
         yM = np.matrix(y.reshape(keySize))
-        return np.array(xM / yM.T).reshape(originShape)
+        with np.errstate(invalid='ignore', divide='ignore'):
+            result = np.array(xM / yM.T).reshape(originShape)
+        result[np.isnan(result)] = 0.0
+        return result
 
     def decode(self, dataset):
         self.logger.info("Start decoding")
@@ -356,12 +356,13 @@ class TestModelBase(unittest.TestCase):
         self.assertSequenceEqual(model.lexiSentence(sentence), correct)
         return
 
-    def testKeyDiv(self):
+    def testKeyDiv3D(self):
+        import math
         n = 3
         m = 4
         h = 5
-        x = np.arange(n * m * h).reshape((n, m, h)) + 1
-        y = np.arange(n * m).reshape(n, m) + 1
+        x = np.arange(n * m * h).reshape((n, m, h))
+        y = np.arange(n * m).reshape(n, m)
         correct = np.array([[[x[i][j][k] / y[i][j] for k in range(h)]
                              for j in range(m)]
                             for i in range(n)])
@@ -369,8 +370,26 @@ class TestModelBase(unittest.TestCase):
         result = model.keyDiv(x, y)
         for i in range(n):
             for j in range(m):
-                for k in range(k):
+                for k in range(h):
+                    self.assertFalse(math.isnan(result[i][j][k]))
                     self.assertEqual(result[i][j][k], correct[i][j][k])
+        return
+
+    def testKeyDiv2D(self):
+        import math
+        n = 3
+        m = 4
+        x = np.arange(n * m).reshape((n, m))
+        y = np.arange(n)
+        correct = np.array([[x[i][j] / y[i]
+                             for j in range(m)]
+                            for i in range(n)])
+        model = AlignmentModelBase()
+        result = model.keyDiv(x, y)
+        for i in range(n):
+            for j in range(m):
+                    self.assertFalse(math.isnan(result[i][j]))
+                    self.assertEqual(result[i][j], correct[i][j])
         return
 
 

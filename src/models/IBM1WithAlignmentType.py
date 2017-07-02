@@ -62,9 +62,9 @@ class AlignmentModel(IBM1Base):
     def _updateEndOfIteration(self):
         self.t = np.divide(self.c, self.total)
         if self.index == 0:
-            self.s = np.divide(self.c_fehl, self.c)
+            self.s = self.keyDiv(self.c_feh, self.c)
         else:
-            self.sTag = np.divide(self.c_fehl, self.c)
+            self.sTag = self.keyDiv(self.c_feh, self.c)
         return
 
     def sProbability(self, f, e, index=0):
@@ -72,7 +72,7 @@ class AlignmentModel(IBM1Base):
         eWord, eTag = e
         sTagTmp = (1 - self.lambd) * self.typeDist
         if fTag < self.sTag.shape[0] and eTag < self.sTag.shape[1]:
-            sTagTmp += self.s[fTag][eTag] * self.lambd
+            sTagTmp += self.sTag[fTag][eTag] * self.lambd
         if index == 1:
             return sTagTmp
 
