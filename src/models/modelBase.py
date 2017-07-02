@@ -238,12 +238,17 @@ class AlignmentModelBase():
         s = np.divide(count.reshape(count[0] * count.shape[1]), fe_count)
         return s
 
-    def biwordWiseDivide(x, y):
-        if x.shape[:2] != y.shape:
+    def keyDiv(self, x, y):
+        def multi(a):
+            from operator import mul
+            return reduce(mul, a)
+
+        if x.shape[:-1] != y.shape:
             raise RuntimeError("Incorrect size")
         originShape = x.shape
-        xM = np.matrix(x.reshape(x.shape[0] * x.shape[1], x.shape[2]))
-        yM = np.matrix(y.reshape(y.shape[0] * y.shape[1]))
+        keySize = multi(x.shape[:-1])
+        xM = np.matrix(x.reshape((keySize, x.shape[-1])))
+        yM = np.matrix(y.reshape(keySize))
         return np.array(xM / yM.T).reshape(originShape)
 
     def decode(self, dataset):
@@ -349,6 +354,23 @@ class TestModelBase(unittest.TestCase):
             []
         )
         self.assertSequenceEqual(model.lexiSentence(sentence), correct)
+        return
+
+    def testKeyDiv(self):
+        n = 3
+        m = 4
+        h = 5
+        x = np.arange(n * m * h).reshape((n, m, h)) + 1
+        y = np.arange(n * m).reshape(n, m) + 1
+        correct = np.array([[[x[i][j][k] / y[i][j] for k in range(h)]
+                             for j in range(m)]
+                            for i in range(n)])
+        model = AlignmentModelBase()
+        result = model.keyDiv(x, y)
+        for i in range(n):
+            for j in range(m):
+                for k in range(k):
+                    self.assertEqual(result[i][j][k], correct[i][j][k])
         return
 
 
