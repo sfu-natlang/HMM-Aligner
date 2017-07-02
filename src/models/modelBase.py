@@ -179,20 +179,14 @@ class AlignmentModelBase():
     def initialiseBiwordCount(self, dataset, index=0):
         maxf = len(self.fLex[index])
         maxe = len(self.eLex[index])
-        self.f_count = np.zeros(maxf)
-        self.e_count = np.zeros(maxe)
-        self.fe_count = np.zeros((maxf, maxe))
+        initialValue = 1.0 / maxf
+        self.t = np.zeros((maxf, maxe))
 
         for item in dataset:
             f, e = item[0:2]
             for f_i in f:
-                self.f_count[f_i[index]] += 1
                 for e_j in e:
-                    self.fe_count[f_i[index]][e_j[index]] += 1
-            for e_j in e:
-                self.e_count[e_j[index]] += 1
-
-        self.t = np.full((maxf, maxe), 1.0 / maxf)
+                    self.t[f_i[index]][e_j[index]] = initialValue
         return
 
     def initialiseAlignTypeDist(self, dataset, loadTypeDist={}):
@@ -222,17 +216,24 @@ class AlignmentModelBase():
             self.typeDist[h] = typeDist[self.typeList[h]]
         return
 
-    def calculateS(self, dataset, fe_count, index=0):
-        count = np.zeros(fe_count.shape + (len(self.typeIndex),))
+    def calculateS(self, dataset, index=0):
+        count = np.zeros((len(self.fLex[index]),
+                          len(self.eLex[index]),
+                          len(self.typeIndex)))
+        feCount = np.zeros((len(self.fLex[index]),
+                            len(self.eLex[index])))
 
         for (f, e, alignment) in dataset:
+            for f_i in f:
+                for e_j in e:
+                    feCount[f_i[index]][e_j[index]] += 1
             # Initialise total_f_e_type count
             for (f_i, e_i, typ) in alignment:
                 fWord = f[f_i - 1]
                 eWord = e[e_i - 1]
                 count[fWord[index]][eWord[index]][self.typeIndex[typ]] += 1
 
-        s = self.keyDiv(count, fe_count)
+        s = self.keyDiv(count, feCount)
         return s
 
     def keyDiv(self, x, y):

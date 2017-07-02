@@ -22,7 +22,7 @@ class AlignmentModelBase(Base):
         if "logger" not in vars(self):
             self.logger = logging.getLogger('IBM1BASE')
         if "modelComponents" not in vars(self):
-            self.modelComponents = ["t"]
+            self.modelComponents = ["t", "fLex", "eLex", "fIndex", "eIndex"]
         Base.__init__(self)
         return
 

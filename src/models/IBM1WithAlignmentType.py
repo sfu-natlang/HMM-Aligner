@@ -39,6 +39,7 @@ class AlignmentModel(IBM1Base):
                              "NTR": .086, "MTA": .002}
 
         self.modelComponents = ["t", "s", "sTag",
+                                "fLex", "eLex", "fIndex", "eIndex",
                                 "typeList", "typeIndex", "typeDist",
                                 "lambd", "lambda1", "lambda2", "lambda3"]
         IBM1Base.__init__(self)
@@ -91,7 +92,7 @@ class AlignmentModel(IBM1Base):
             argmax = -1
             bestType = -1
             for j in range(len(e)):
-                t = self.tProbability(f[i], e[j])
+                t = 1
                 sTmp = self.sProbability(f[i], e[j])
                 h = np.argmax(sTmp)
                 score = sTmp[h] * t
@@ -109,7 +110,7 @@ class AlignmentModel(IBM1Base):
         # self.index set to 1 means training with POS Tag
         self.index = 1
         self.initialiseBiwordCount(dataset, self.index)
-        self.sTag = self.calculateS(dataset, self.fe_count, self.index)
+        self.sTag = self.calculateS(dataset, self.index)
         self.logger.info("Initialisation complete")
         self.EM(dataset, iterations, 'IBM1TypeS1', self.index)
         # reset self.index to 0
@@ -121,7 +122,7 @@ class AlignmentModel(IBM1Base):
         self.logger.info("Stage 2 Start Training with FORM")
         self.logger.info("Initialising model with FORM")
         self.initialiseBiwordCount(dataset, self.index)
-        self.s = self.calculateS(dataset, self.fe_count, self.index)
+        self.s = self.calculateS(dataset, self.index)
         self.logger.info("Initialisation complete")
         self.EM(dataset, iterations, 'IBM1TypeS2', self.index)
         self.logger.info("Stage 2 Complete")
