@@ -37,7 +37,7 @@ class AlignmentModel(Base):
 
     def _beginningOfIteration(self, dataset, maxE):
         self.lenDataset = len(dataset)
-        self.gammaEWord = defaultdict(float)
+        self.gammaEWord = np.zeros(self.t.shape[1])
         self.gammaBiword = defaultdict(float)
         self.gammaSum_0 = np.zeros(maxE)
         return

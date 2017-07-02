@@ -110,9 +110,10 @@ class AlignmentModelBase(Base):
                     self.initialiseParameter(len(e))
 
                 fLen, eLen = len(f), len(e)
+                fWords = [f[i][index] for i in range(fLen)]
+                eWords = [e[j][index] for j in range(eLen)]
                 a = self.a[eLen][:len(e), :len(e)]
-                tSmall = self.t[[f[i][index] for i in range(fLen)]][
-                    :, [e[j][index] for j in range(eLen)]]
+                tSmall = self.t[fWords][:, eWords]
 
                 alpha, alphaScale, beta = self.forwardBackward(f, e, tSmall, a)
 
@@ -121,14 +122,12 @@ class AlignmentModelBase(Base):
 
                 # Setting gamma
                 gamma = self.gamma(f, e, alpha, beta, alphaScale)
-
+                self.gammaSum_0[:eLen] += gamma[0]
                 for i in range(fLen):
                     for j in range(eLen):
-                        self.gammaBiword[(f[i][index], e[j][index])] +=\
+                        self.gammaBiword[(fWords[i], eWords[j])] +=\
                             gamma[i][j]
-                        self.gammaEWord[e[j][index]] += gamma[i][j]
-                for j in range(eLen):
-                    self.gammaSum_0[j] += gamma[0][j]
+                        self.gammaEWord[eWords[j]] += gamma[i][j]
 
                 # Update delta
                 c = [0.0 for i in range(eLen * 2)]
