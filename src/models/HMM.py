@@ -40,11 +40,10 @@ class AlignmentModel(Base):
         return
 
     def _updateGamma(self, f, e, gamma, alpha, beta, alphaScale):
-        for i in range(len(f)):
-            for j in range(len(e)):
-                gamma[i][j] = alpha[i][j] * beta[i][j] / alphaScale[i]
+        gamma[:len(f), :len(e)] = ((alpha * beta).T / alphaScale).T
 
     def _updateEndOfIteration(self, maxE, delta, gammaSum_0, gammaBiword):
+        self.logger.info("End of iteration")
         # Update a
         for Len in self.eLengthSet:
             for prev_j in range(Len):

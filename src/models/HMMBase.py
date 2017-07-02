@@ -97,11 +97,10 @@ class AlignmentModelBase(Base):
 
             logLikelihood = 0
 
-            gamma = [[0.0 for x in range(maxE)] for y in range(maxE * 2)]
+            gamma = np.zeros((maxE * 2, maxE))
             gammaBiword = defaultdict(float)
-            gammaSum_0 = [0.0 for x in range(maxE)]
-            delta = [[[0.0 for x in range(maxE)] for y in range(maxE)]
-                     for z in range(maxE + 1)]
+            gammaSum_0 = np.zeros(maxE)
+            delta = np.zeros((maxE + 1, maxE, maxE))
 
             self._beginningOfIteration(dataset)
 
@@ -115,15 +114,13 @@ class AlignmentModelBase(Base):
 
                 fLen, eLen = len(f), len(e)
                 a = self.a[eLen][:len(e), :len(e)]
-                tSmall = np.array([[self.t[f[i][index]][e[j][index]]
-                                    for j in range(eLen)]
-                                   for i in range(fLen)])
+                tSmall = self.t[[f[i][index] for i in range(fLen)]][
+                    :, [e[j][index] for j in range(eLen)]]
 
                 alpha, alphaScale, beta = self.forwardBackward(f, e, tSmall, a)
 
                 # Update logLikelihood
-                for i in range(fLen):
-                    logLikelihood -= log(alphaScale[i])
+                logLikelihood -= np.sum(np.log(alphaScale))
 
                 # Setting gamma
                 self._updateGamma(f, e, gamma, alpha, beta, alphaScale)
