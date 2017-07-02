@@ -129,18 +129,28 @@ class AlignmentModelBase(Base):
                             gamma[i][j]
                         self.gammaEWord[eWords[j]] += gamma[i][j]
 
-                # Update delta
-                betaT = beta * tSmall
-                c = [0.0 for i in range(eLen * 2)]
-                for prev_j in range(eLen):
-                    for j in range(eLen):
-                        tmp = np.sum(alpha[:fLen - 1, prev_j] *
-                                     betaT[1:, j] * a[prev_j][j])
-                        c[eLen - 1 + j - prev_j] += tmp
-
-                for prev_j in range(eLen):
-                    for j in range(eLen):
-                        delta[eLen][prev_j][j] += c[eLen - 1 + j - prev_j]
+                # Update delta, the code below is the slow version. It is given
+                # here as the matrix version might be difficult to understand
+                # at first sight
+                # c = [0.0 for i in range(eLen * 2)]
+                # for i in range(1, fLen):
+                #     for prev_j in range(eLen):
+                #         for j in range(eLen):
+                #             c[eLen - 1 + j - prev_j] += (
+                #                 alpha[i - 1][prev_j] *
+                #                 beta[i][j] *
+                #                 a[prev_j][j] *
+                #                 tSmall[i][j])
+                # for prev_j in range(eLen):
+                #     for j in range(eLen):
+                #         delta[eLen][prev_j][j] += c[eLen - 1 + j - prev_j]
+                Xceta = np.matmul(alpha[:fLen - 1].T, (beta * tSmall)[1:]) * a
+                c = np.zeros(eLen * 2)
+                for j in range(eLen):
+                    c[eLen - 1 - j:2 * eLen - 1 - j] += Xceta[j]
+                for j in range(eLen):
+                    delta[eLen][j][:eLen] +=\
+                        c[eLen - 1 - j:2 * eLen - 1 - j]
             # end of loop over dataset
 
             self.logger.info("likelihood " + str(logLikelihood))
