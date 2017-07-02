@@ -320,6 +320,14 @@ class AlignmentModelBase():
         else:
             return 424242424242
 
+    def sharedLexikon(self, model):
+        if not isinstance(model, AlignmentModelBase):
+            raise RuntimeError("Invalid object, object must be an instance " +
+                               "of a sub class of " +
+                               "models.modelBase.AlignmentModelBase")
+        self.fLex, self.eLex, self.fIndex, self.eIndex =\
+            model.fLex, model.eLex, model.fIndex, model.eIndex
+
 
 class TestModelBase(unittest.TestCase):
 

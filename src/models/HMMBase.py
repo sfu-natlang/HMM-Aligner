@@ -18,7 +18,7 @@ from loggers import logging
 from models.modelBase import Task
 from models.modelBase import AlignmentModelBase as Base
 from evaluators.evaluator import evaluate
-__version__ = "0.4a"
+__version__ = "0.5a"
 
 
 class AlignmentModelBase(Base):
@@ -40,7 +40,8 @@ class AlignmentModelBase(Base):
         if "logger" not in vars(self):
             self.logger = logging.getLogger('HMMBASE')
         if "modelComponents" not in vars(self):
-            self.modelComponents = ["t", "pi", "a", "eLengthSet"]
+            self.modelComponents = ["t", "pi", "a", "eLengthSet",
+                                    "fLex", "eLex", "fIndex", "eIndex"]
         Base.__init__(self)
         return
 
@@ -142,7 +143,7 @@ class AlignmentModelBase(Base):
 
                 fLen, eLen = len(f), len(e)
                 a = self.a[eLen]
-                tSmall = [[self.t[(f[i][index], e[j][index])]
+                tSmall = [[self.t[f[i][index]][e[j][index]]
                            for j in range(eLen)]
                           for i in range(fLen)]
 
@@ -187,49 +188,27 @@ class AlignmentModelBase(Base):
         return
 
     def _beginningOfIteration(self, dataset):
-        # self.lenDataset = len(dataset)
-        # return
         raise NotImplementedError
 
     def _updateGamma(self, f, e, gamma, alpha, beta, alphaScale):
-        # for i in range(len(f)):
-        #     for j in range(len(e)):
-        #         gamma[i][j] = alpha[i][j] * beta[i][j] / alphaScale[i]
         raise NotImplementedError
 
     def _updateEndOfIteration(self, maxE, delta, gammaSum_0, gammaBiword):
-        # self.t.clear()
-        # for Len in self.eLengthSet:
-        #     for prev_j in range(Len):
-        #         deltaSum = 0.0
-        #         for j in range(Len):
-        #             deltaSum += delta[Len][prev_j][j]
-        #         for j in range(Len):
-        #             self.a[Len][prev_j][j] = delta[Len][prev_j][j] /\
-        #                 (deltaSum + 1e-37)
-
-        # for i in range(maxE):
-        #     self.pi[i] = gammaSum_0[i] * (1.0 / self.lenDataset)
-
-        # gammaEWord = defaultdict(float)
-        # for f, e in gammaBiword:
-        #     gammaEWord[e] += gammaBiword[(f, e)]
-        # for f, e in gammaBiword:
-        #     self.t[(f, e)] = gammaBiword[(f, e)] / (gammaEWord[e] + 1e-37)
-        # return
         raise NotImplementedError
 
     def endOfBaumWelch(self):
-        # Apply final smoothing here
         raise NotImplementedError
 
     def tProbability(self, f, e, index=0):
-        v = 163303
-        if (f[index], e[index]) in self.t:
-            return self.t[(f[index], e[index])]
+        if f[index] < self.t.shape[0] and e[index] < self.t.shape[1]:
+            tmp = self.t[f[index]][e[index]]
+            if tmp == 0:
+                return 0.000006123586217
+            else:
+                return tmp
         if e[index] == 424242424243:
             return self.nullEmissionProb
-        return 1.0 / v
+        return 0.000006123586217
 
     def aProbability(self, prev_j, j, targetLength):
         if targetLength in self.eLengthSet:

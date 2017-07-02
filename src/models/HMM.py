@@ -8,19 +8,20 @@
 # This is the implementation of HMM word aligner, it requires IBM1 in order to
 # function properly
 #
+import numpy as np
 from collections import defaultdict
 from loggers import logging
 from models.IBM1 import AlignmentModel as AlignerIBM1
 from models.modelBase import Task
 from models.HMMBase import AlignmentModelBase as Base
 from evaluators.evaluator import evaluate
-__version__ = "0.4a"
+__version__ = "0.5a"
 
 
 class AlignmentModel(Base):
     def __init__(self):
         self.modelName = "HMM"
-        self.version = "0.1b"
+        self.version = "0.2b"
         self.logger = logging.getLogger('HMM')
         self.p0H = 0.3
         self.nullEmissionProb = 0.000005
@@ -62,9 +63,9 @@ class AlignmentModel(Base):
         gammaEWord = defaultdict(float)
         for f, e in gammaBiword:
             gammaEWord[e] += gammaBiword[(f, e)]
-        self.t.clear()
+        self.t = np.zeros(self.t.shape)
         for f, e in gammaBiword:
-            self.t[(f, e)] = gammaBiword[(f, e)] / (gammaEWord[e] + 1e-37)
+            self.t[f][e] = gammaBiword[(f, e)] / (gammaEWord[e] + 1e-37)
         return
 
     def endOfBaumWelch(self):
@@ -89,6 +90,7 @@ class AlignmentModel(Base):
         self.task.progress("Training IBM model 1")
         self.logger.info("Training IBM model 1")
         alignerIBM1 = AlignerIBM1()
+        alignerIBM1.sharedLexikon(self)
         alignerIBM1.initialiseBiwordCount(dataset)
         alignerIBM1.EM(dataset, iterations, 'IBM1')
         self.t = alignerIBM1.t
