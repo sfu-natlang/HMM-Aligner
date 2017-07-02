@@ -202,17 +202,15 @@ class AlignmentModelBase(Base):
                     else:
                         score[i][j] = - sys.maxint - 1
                 else:
-                    # Find the best alignment for f[i-1]
-                    maxScore = -sys.maxint - 1
-                    bestPrev_j = -sys.maxint - 1
-                    for jPrev in range(eLen * 2):
-                        aPr = self.aProbability(jPrev, j, eLen)
-                        if aPr == 0:
-                            continue
-                        temp = score[i - 1][jPrev] + log(aPr)
-                        if temp > maxScore:
-                            maxScore = temp
-                            bestPrev_j = jPrev
+                    if eLen in self.eLengthSet:
+                        aPrs = self.a[eLen, :2 * eLen, j]
+                        with np.errstate(invalid='ignore', divide='ignore'):
+                            tmp = score[i - 1] + np.log(aPrs)
+                        bestPrev_j = np.argmax(tmp)
+                        maxScore = tmp[bestPrev_j]
+                    else:
+                        bestPrev_j = np.argmax(score[i - 1])
+                        maxScore = score[i - 1][bestPrev_j] - log(eLen)
 
                     score[i][j] += maxScore
                     prev_j[i][j] = bestPrev_j
