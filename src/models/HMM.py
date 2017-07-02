@@ -35,14 +35,17 @@ class AlignmentModel(Base):
         Base.__init__(self)
         return
 
-    def _beginningOfIteration(self, dataset):
+    def _beginningOfIteration(self, dataset, maxE):
         self.lenDataset = len(dataset)
+        self.gammaEWord = defaultdict(float)
+        self.gammaBiword = defaultdict(float)
+        self.gammaSum_0 = np.zeros(maxE)
         return
 
     def gamma(self, f, e, alpha, beta, alphaScale):
         return ((alpha * beta).T / alphaScale).T
 
-    def _updateEndOfIteration(self, maxE, delta, gammaSum_0, gammaBiword):
+    def _updateEndOfIteration(self, maxE, delta):
         self.logger.info("End of iteration")
         # Update a
         for Len in self.eLengthSet:
@@ -56,15 +59,12 @@ class AlignmentModel(Base):
 
         # Update pi
         for i in range(maxE):
-            self.pi[i] = gammaSum_0[i] * (1.0 / self.lenDataset)
+            self.pi[i] = self.gammaSum_0[i] * (1.0 / self.lenDataset)
 
         # Update t
-        gammaEWord = defaultdict(float)
-        for f, e in gammaBiword:
-            gammaEWord[e] += gammaBiword[(f, e)]
         self.t = np.zeros(self.t.shape)
-        for f, e in gammaBiword:
-            self.t[f][e] = gammaBiword[(f, e)] / (gammaEWord[e] + 1e-37)
+        for f, e in self.gammaBiword:
+            self.t[f][e] = self.gammaBiword[(f, e)] / self.gammaEWord[e]
         return
 
     def endOfBaumWelch(self):

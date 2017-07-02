@@ -97,11 +97,9 @@ class AlignmentModelBase(Base):
 
             logLikelihood = 0
 
-            gammaBiword = defaultdict(float)
-            gammaSum_0 = np.zeros(maxE)
             delta = np.zeros((maxE + 1, maxE, maxE))
 
-            self._beginningOfIteration(dataset)
+            self._beginningOfIteration(dataset, maxE)
 
             counter = 0
             for (f, e, alignment) in dataset:
@@ -126,9 +124,11 @@ class AlignmentModelBase(Base):
 
                 for i in range(fLen):
                     for j in range(eLen):
-                        gammaBiword[(f[i][index], e[j][index])] += gamma[i][j]
+                        self.gammaBiword[(f[i][index], e[j][index])] +=\
+                            gamma[i][j]
+                        self.gammaEWord[e[j][index]] += gamma[i][j]
                 for j in range(eLen):
-                    gammaSum_0[j] += gamma[0][j]
+                    self.gammaSum_0[j] += gamma[0][j]
 
                 # Update delta
                 c = [0.0 for i in range(eLen * 2)]
@@ -147,7 +147,7 @@ class AlignmentModelBase(Base):
 
             self.logger.info("likelihood " + str(logLikelihood))
             # M-Step
-            self._updateEndOfIteration(maxE, delta, gammaSum_0, gammaBiword)
+            self._updateEndOfIteration(maxE, delta)
 
         self.endOfBaumWelch()
         endTime = time.time()
@@ -155,13 +155,13 @@ class AlignmentModelBase(Base):
                          (endTime - startTime,))
         return
 
-    def _beginningOfIteration(self, dataset):
+    def _beginningOfIteration(self, dataset, maxE):
         raise NotImplementedError
 
     def gamma(self, f, e, alpha, beta, alphaScale):
         raise NotImplementedError
 
-    def _updateEndOfIteration(self, maxE, delta, gammaSum_0, gammaBiword):
+    def _updateEndOfIteration(self, maxE, delta):
         raise NotImplementedError
 
     def endOfBaumWelch(self):
