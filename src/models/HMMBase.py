@@ -97,7 +97,6 @@ class AlignmentModelBase(Base):
 
             logLikelihood = 0
 
-            gamma = np.zeros((maxE * 2, maxE))
             gammaBiword = defaultdict(float)
             gammaSum_0 = np.zeros(maxE)
             delta = np.zeros((maxE + 1, maxE, maxE))
@@ -123,7 +122,7 @@ class AlignmentModelBase(Base):
                 logLikelihood -= np.sum(np.log(alphaScale))
 
                 # Setting gamma
-                self._updateGamma(f, e, gamma, alpha, beta, alphaScale)
+                gamma = self.gamma(f, e, alpha, beta, alphaScale)
 
                 for i in range(fLen):
                     for j in range(eLen):
@@ -159,7 +158,7 @@ class AlignmentModelBase(Base):
     def _beginningOfIteration(self, dataset):
         raise NotImplementedError
 
-    def _updateGamma(self, f, e, gamma, alpha, beta, alphaScale):
+    def gamma(self, f, e, alpha, beta, alphaScale):
         raise NotImplementedError
 
     def _updateEndOfIteration(self, maxE, delta, gammaSum_0, gammaBiword):

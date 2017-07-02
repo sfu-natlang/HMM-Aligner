@@ -39,8 +39,8 @@ class AlignmentModel(Base):
         self.lenDataset = len(dataset)
         return
 
-    def _updateGamma(self, f, e, gamma, alpha, beta, alphaScale):
-        gamma[:len(f), :len(e)] = ((alpha * beta).T / alphaScale).T
+    def gamma(self, f, e, alpha, beta, alphaScale):
+        return ((alpha * beta).T / alphaScale).T
 
     def _updateEndOfIteration(self, maxE, delta, gammaSum_0, gammaBiword):
         self.logger.info("End of iteration")
