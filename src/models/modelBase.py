@@ -82,8 +82,8 @@ class AlignmentModelBase():
         else:
             pklFile = open(fileName, 'rb')
 
-        modelName = pickle.load(pklFile)
-        modelVersion = pickle.load(pklFile)
+        modelName = self.__loadObjectFromFile(pklFile)
+        modelVersion = self.__loadObjectFromFile(pklFile)
         if not isinstance(modelName, str) or not isinstance(modelVersion, str):
             raise RuntimeError("Incorrect model file format")
 
@@ -122,7 +122,7 @@ class AlignmentModelBase():
             if componentName not in entity:
                 raise RuntimeError("object " + componentName +
                                    " doesn't exist in this class")
-            entity[componentName] = pickle.load(pklFile)
+            entity[componentName] = self.__loadObjectFromFile(pklFile)
 
         pklFile.close()
         self.logger.info("Model loaded")
@@ -145,36 +145,63 @@ class AlignmentModelBase():
 
         # dump model name and version
         if "modelName" in vars(self):
-            pickle.dump(self.modelName, output)
+            self.__saveObjectToFile(self.modelName, output)
         else:
-            pickle.dump("Unspecified Model", output)
+            self.__saveObjectToFile("Unspecified Model", output)
         if "version" in vars(self):
-            pickle.dump(self.version, output)
+            self.__saveObjectToFile(self.version, output)
         else:
-            pickle.dump("???", output)
+            self.__saveObjectToFile("???", output)
 
         # dump components
         for componentName in self.modelComponents:
             if componentName not in entity:
                 raise RuntimeError("object in _savedModelFile doesn't exist")
-
-            # Remove zero valued entires from defaultdict
-            if isinstance(entity[componentName], defaultdict):
-                self.logger.info("component: " + componentName +
-                                 ", size before trim: " +
-                                 str(len(entity[componentName])))
-                emptyKeys =\
-                    [key for key in entity[componentName]
-                     if entity[componentName][key] == 0]
-                for key in emptyKeys:
-                    del entity[componentName][key]
-                self.logger.info("component: " + componentName +
-                                 ", size after trim: " +
-                                 str(len(entity[componentName])))
-            pickle.dump(entity[componentName], output)
+            self.__saveObjectToFile(entity[componentName], output)
 
         output.close()
         self.logger.info("Model saved")
+        return
+
+    def __loadObjectFromFile(self, pklFile):
+        a = pickle.load(pklFile)
+        if isinstance(a, dict) and "§§NUMPY§§" in a and a["§§NUMPY§§"] == 0.0:
+            self.logger.info("Loading Numpy array, size: " + str(len(a)))
+            del a["§§NUMPY§§"]
+            maxS = None
+            for coordinate in a:
+                for i in range(len(coordinate)):
+                    if not maxS:
+                        maxS = [0 for i in range(len(coordinate))]
+                    maxS[i] = max(maxS[i], coordinate[i] + 1)
+            result = np.zeros(maxS)
+            for coordinate in a:
+                result[coordinate] = a[coordinate]
+            return result
+        return a
+
+    def __saveObjectToFile(self, a, output):
+        if isinstance(a, np.ndarray):
+            self.logger.info("Dumping Numpy array, size: " + str(a.shape) +
+                             ", empty entries: " + str(len(zip(*a.nonzero()))))
+            aDict = {"§§NUMPY§§": 0.0}
+            for coordinate in zip(*a.nonzero()):
+                aDict[coordinate] = a[coordinate]
+            a = aDict
+            pickle.dump(a, output)
+            return
+        if isinstance(a, defaultdict):
+            # Remove zero valued entries from defaultdict
+            self.logger.info(
+                "Dumping defaultdict, size pre-trim: " + str(len(a)))
+            emptyKeys = [key for key in a if a[key] == 0]
+            for key in emptyKeys:
+                del a[key]
+            self.logger.info(
+                "Dumping defaultdict, size after trim: " + str(len(a)))
+            pickle.dump(a, output)
+            return
+        pickle.dump(a, output)
         return
 
     def initialiseBiwordCount(self, dataset, index=0):
@@ -335,7 +362,6 @@ class AlignmentModelBase():
 
 
 class TestModelBase(unittest.TestCase):
-
     def testlexiSentence(self):
         model = AlignmentModelBase()
         model.fIndex = [{
@@ -374,8 +400,8 @@ class TestModelBase(unittest.TestCase):
         n = 3
         m = 4
         h = 5
-        x = np.arange(n * m * h).reshape((n, m, h))
-        y = np.arange(n * m).reshape(n, m)
+        x = np.arange(n * m * h).reshape((n, m, h)) + 1
+        y = np.arange(n * m).reshape(n, m) + 1
         with np.errstate(invalid='ignore', divide='ignore'):
             correct = np.array([[[x[i][j][k] / y[i][j] for k in range(h)]
                                  for j in range(m)]
@@ -393,8 +419,8 @@ class TestModelBase(unittest.TestCase):
         import math
         n = 3
         m = 4
-        x = np.arange(n * m).reshape((n, m))
-        y = np.arange(n)
+        x = np.arange(n * m).reshape((n, m)) + 1
+        y = np.arange(n) + 1
         with np.errstate(invalid='ignore', divide='ignore'):
             correct = np.array([[x[i][j] / y[i]
                                  for j in range(m)]
@@ -405,6 +431,29 @@ class TestModelBase(unittest.TestCase):
             for j in range(m):
                     self.assertFalse(math.isnan(result[i][j]))
                     self.assertEqual(result[i][j], correct[i][j])
+        return
+
+    def testLoadSaveObjectFromPKL(self):
+        testFileName = "support/dump.pkl"
+        model = AlignmentModelBase()
+        model.t = {("a", "b"): 1,
+                   ("c", "d"): 2,
+                   ("e", "f"): 3,
+                   ("g", "h"): 4}
+        model.s = np.arange(27).reshape((3, 3, 3))
+        model.sTag = np.arange(9).reshape((3, 3))
+        model.modelComponents = ["s", "sTag", "t"]
+        model.saveModel(testFileName)
+
+        model2 = AlignmentModelBase()
+        model2.t = model2.s = model2.sTag = None
+        model2.modelComponents = ["s", "sTag", "t"]
+        model2.loadModel(testFileName, True)
+
+        for key in model.t:
+            self.assertEqual(model.t[key], model2.t[key])
+        self.assertTrue(model.s.all() == model2.s.all())
+        self.assertTrue(model.sTag.all() == model2.sTag.all())
         return
 
 
