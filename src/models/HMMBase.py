@@ -170,15 +170,22 @@ class AlignmentModelBase(Base):
         raise NotImplementedError
 
     def tProbability(self, f, e, index=0):
-        if f[index] < self.t.shape[0] and e[index] < self.t.shape[1]:
-            tmp = self.t[f[index]][e[index]]
-            if tmp == 0:
-                return 0.000006123586217
-            else:
-                return tmp
-        if e[index] == 424242424243:
-            return self.nullEmissionProb
-        return 0.000006123586217
+        t = np.zeros((len(f), len(e)))
+        for j in range(len(e)):
+            if e[j][index] == 424242424243:
+                t[:, j].fill(self.nullEmissionProb)
+                continue
+            if e[j][index] >= self.t.shape[1]:
+                t[:, j].fill(0.000006123586217)
+                continue
+            for i in range(len(f)):
+                if f[i][index] >= self.t.shape[0]:
+                    t[i][j] = 0.000006123586217
+                elif self.t[f[i][index]][e[j][index]] == 0:
+                    t[i][j] = 0.000006123586217
+                else:
+                    t[i][j] = self.t[f[i][index]][e[j][index]]
+        return t
 
     def aProbability(self, targetLength):
         if targetLength in self.eLengthSet:
@@ -193,22 +200,22 @@ class AlignmentModelBase(Base):
         score = np.zeros((fLen, eLen * 2))
         prev_j = np.zeros((fLen, eLen * 2))
 
-        a = self.aProbability(eLen)
+        with np.errstate(invalid='ignore', divide='ignore'):
+            score = np.log(self.tProbability(f, e))
+            a = np.log(self.aProbability(eLen))
         for i in range(fLen):
-            for j in range(eLen * 2):
-                score[i][j] = log(self.tProbability(f[i], e[j]))
-                if i == 0:
-                    if j < len(self.pi) and self.pi[j] != 0:
-                        score[i][j] += log(self.pi[j])
+            if i == 0:
+                with np.errstate(invalid='ignore', divide='ignore'):
+                    if 2 * eLen <= self.pi.shape[0]:
+                        score[i] += np.log(self.pi[:eLen * 2])
                     else:
-                        score[i][j] = - sys.maxint - 1
-                else:
-                    aPrs = a[:, j]
-                    with np.errstate(invalid='ignore', divide='ignore'):
-                        tmp = score[i - 1] + np.log(aPrs)
-                    bestPrev_j = np.argmax(tmp)
-                    prev_j[i][j] = bestPrev_j
-                    score[i][j] += tmp[bestPrev_j]
+                        score[i][:self.pi.shape[0]] += np.log(self.pi)
+                        score[i][self.pi.shape[0]:].fill(-sys.maxint)
+            else:
+                tmp = (a.T + score[i - 1]).T
+                bestPrev_j = np.argmax(tmp, axis=0)
+                prev_j[i] = bestPrev_j
+                score[i] += np.max(tmp, axis=0)
 
         maxScore = -sys.maxint - 1
         best_j = 0

@@ -13,6 +13,7 @@ import os
 import sys
 import inspect
 import gzip
+import time
 import unittest
 import numpy as np
 import cPickle as pickle
@@ -256,12 +257,17 @@ class AlignmentModelBase():
         self.logger.info("Testing size: " + str(len(dataset)))
         result = []
 
+        startTime = time.time()
         for sentence in dataset:
             sentence = self.lexiSentence(sentence)
             sentenceAlignment = self.decodeSentence(sentence)
 
             result.append(sentenceAlignment)
-        self.logger.info("Decoding Complete")
+        endTime = time.time()
+        self.logger.info("Decoding Complete, total time: " +
+                         str(endTime - startTime) + ", average " +
+                         str(len(dataset) / (endTime - startTime)) +
+                         " sentences per second")
         return result
 
     def initialiseLexikon(self, dataset):
