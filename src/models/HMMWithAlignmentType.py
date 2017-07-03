@@ -96,8 +96,10 @@ class AlignmentModel(Base):
 
         # Update s
         if self.index == 0:
+            del self.s
             self.s = self.keyDiv(self.c_feh, self.gammaBiword)
         else:
+            del self.sTag
             self.sTag = self.keyDiv(self.c_feh, self.gammaBiword)
         return
 
@@ -170,8 +172,8 @@ class AlignmentModel(Base):
         self.logger.info("Stage 1 Training With POS Tags")
         self.trainWithIndex(dataset, iterations, 1)
 
-        self.task.progress("Stage 1 Training With FORM")
-        self.logger.info("Stage 1 Training With FORM")
+        self.task.progress("Stage 2 Training With FORM")
+        self.logger.info("Stage 2 Training With FORM")
         self.trainWithIndex(dataset, iterations, 0)
 
         self.logger.info("Training Complete")

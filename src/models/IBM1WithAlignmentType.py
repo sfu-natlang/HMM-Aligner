@@ -65,8 +65,10 @@ class AlignmentModel(IBM1Base):
         self.logger.info("Iteration complete, updating parameters")
         self.t = np.divide(self.c, self.total)
         if self.index == 0:
+            del self.s
             self.s = self.keyDiv(self.c_feh, self.c)
         else:
+            del self.sTag
             self.sTag = self.keyDiv(self.c_feh, self.c)
         return
 

@@ -243,14 +243,13 @@ class AlignmentModelBase():
     def keyDiv(self, x, y):
         if x.shape[:-1] != y.shape:
             raise RuntimeError("Incorrect size")
-        result = np.zeros(x.shape)
         if len(x.shape) == 3:
             for i, j in zip(*y.nonzero()):
-                result[i][j] = x[i][j] / y[i][j]
+                x[i][j] /= y[i][j]
         elif len(x.shape) == 2:
             for i, in zip(*y.nonzero()):
-                result[i] = x[i] / y[i]
-        return result
+                x[i] /= y[i]
+        return x
 
     def decode(self, dataset):
         self.logger.info("Start decoding")
