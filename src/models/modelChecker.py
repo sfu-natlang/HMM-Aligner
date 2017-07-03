@@ -19,6 +19,7 @@ currentdir = os.path.dirname(
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 from models.modelBase import AlignmentModelBase as Base
+from models.cModelBase import AlignmentModelBase as cBase
 __version__ = "0.5a"
 
 supportedModels = [
@@ -58,6 +59,11 @@ def checkAlignmentModel(modelClass, logger=True):
             "Specified Model needs to be a class named AlignmentModel under " +
             "models/ModelName.py")
         return False
+
+    if issubclass(modelClass, cBase):
+        logging.getLogger('CheckModel').info(
+            "Loading Cython model, unable to check further")
+        return True
 
     if not issubclass(modelClass, Base):
         error(
