@@ -180,10 +180,10 @@ class AlignmentModelBase(Base):
             return self.nullEmissionProb
         return 0.000006123586217
 
-    def aProbability(self, prev_j, j, targetLength):
+    def aProbability(self, targetLength):
         if targetLength in self.eLengthSet:
-            return self.a[targetLength][prev_j][j]
-        return 1.0 / targetLength
+            return self.a[targetLength][:targetLength * 2, :targetLength * 2]
+        return np.full((targetLength * 2, targetLength * 2), 1. / targetLength)
 
     def logViterbi(self, f, e):
         e = deepcopy(e)
@@ -193,6 +193,7 @@ class AlignmentModelBase(Base):
         score = np.zeros((fLen, eLen * 2))
         prev_j = np.zeros((fLen, eLen * 2))
 
+        a = self.aProbability(eLen)
         for i in range(fLen):
             for j in range(eLen * 2):
                 score[i][j] = log(self.tProbability(f[i], e[j]))
@@ -202,18 +203,12 @@ class AlignmentModelBase(Base):
                     else:
                         score[i][j] = - sys.maxint - 1
                 else:
-                    if eLen in self.eLengthSet:
-                        aPrs = self.a[eLen, :2 * eLen, j]
-                        with np.errstate(invalid='ignore', divide='ignore'):
-                            tmp = score[i - 1] + np.log(aPrs)
-                        bestPrev_j = np.argmax(tmp)
-                        maxScore = tmp[bestPrev_j]
-                    else:
-                        bestPrev_j = np.argmax(score[i - 1])
-                        maxScore = score[i - 1][bestPrev_j] - log(eLen)
-
-                    score[i][j] += maxScore
+                    aPrs = a[:, j]
+                    with np.errstate(invalid='ignore', divide='ignore'):
+                        tmp = score[i - 1] + np.log(aPrs)
+                    bestPrev_j = np.argmax(tmp)
                     prev_j[i][j] = bestPrev_j
+                    score[i][j] += tmp[bestPrev_j]
 
         maxScore = -sys.maxint - 1
         best_j = 0
