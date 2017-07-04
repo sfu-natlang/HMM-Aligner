@@ -3,7 +3,7 @@ import logging
 
 def init_logger(logFile='aligner.log'):
     # Model
-    logger = logging.getLogger('Model')
+    logger = logging.getLogger('MODEL')
     logger.setLevel(logging.DEBUG)
     # create file handler which logs even debug messages
     fh = logging.FileHandler(logFile)

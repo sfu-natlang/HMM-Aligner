@@ -40,59 +40,33 @@ class AlignmentModelBase(Base):
         if "logger" not in vars(self):
             self.logger = logging.getLogger('HMMBASE')
         if "modelComponents" not in vars(self):
-            self.modelComponents = ["t", "pi", "a", "eLengthSet"]
+            self.modelComponents = ["t", "pi", "a", "eLengthSet",
+                                    "fLex", "eLex", "fIndex", "eIndex"]
         Base.__init__(self)
         return
 
     def initialiseParameter(self, Len):
-        doubleLen = 2 * Len
-        tmp = 1.0 / Len
-        for z in range(Len):
-            for y in range(Len):
-                for x in range(Len + 1):
-                    self.a[x][z][y] = tmp
-        tmp = 1.0 / doubleLen
-        for x in range(Len):
-            self.pi[x] = tmp
+        self.a[:Len + 1, :Len, :Len].fill(1.0 / Len)
+        self.pi[:Len].fill(1.0 / 2 / Len)
         return
 
     def forwardBackward(self, f, e, tSmall, a):
-        alpha = [[0.0 for x in range(len(e))] for y in range(len(f))]
-        alphaScale = [0.0 for x in range(len(f))]
-        alphaSum = 0
+        alpha = np.zeros((len(f), len(e)))
+        beta = np.zeros((len(f), len(e)))
+        alphaScale = np.zeros(len(f))
 
-        for j in range(len(e)):
-            alpha[0][j] = self.pi[j] * tSmall[0][j]
-            alphaSum += alpha[0][j]
-
-        alphaScale[0] = 1 / alphaSum
-        for j in range(len(e)):
-            alpha[0][j] *= alphaScale[0]
-
+        alpha[0] = tSmall[0] * self.pi[:len(e)]
+        alphaScale[0] = 1 / np.sum(alpha[0])
+        alpha[0] *= alphaScale[0]
         for i in range(1, len(f)):
-            alphaSum = 0
-            for j in range(len(e)):
-                total = 0
-                for prev_j in range(len(e)):
-                    total += alpha[i - 1][prev_j] * a[prev_j][j]
-                alpha[i][j] = tSmall[i][j] * total
-                alphaSum += alpha[i][j]
+            alpha[i] = tSmall[i] * np.matmul(alpha[i - 1], a)
+            alphaScale[i] = 1 / np.sum(alpha[i])
+            alpha[i] *= alphaScale[i]
 
-            alphaScale[i] = 1.0 / alphaSum
-            for j in range(len(e)):
-                alpha[i][j] = alphaScale[i] * alpha[i][j]
-
-        beta = [[0.0 for x in range(len(e))] for y in range(len(f))]
-        for j in range(len(e)):
-            beta[len(f) - 1][j] = alphaScale[len(f) - 1]
-
+        beta[len(f) - 1].fill(alphaScale[len(f) - 1])
         for i in range(len(f) - 2, -1, -1):
-            for j in range(len(e)):
-                total = 0
-                for next_j in range(len(e)):
-                    total += (beta[i + 1][next_j] * a[j][next_j] *
-                              tSmall[i + 1][next_j])
-                beta[i][j] = alphaScale[i] * total
+            beta[i] =\
+                np.matmul(beta[i + 1] * tSmall[i + 1], a.T) * alphaScale[i]
         return alpha, alphaScale, beta
 
     def maxTargetSentenceLength(self, dataset):
@@ -115,22 +89,17 @@ class AlignmentModelBase(Base):
         maxE, self.eLengthSet = self.maxTargetSentenceLength(dataset)
         self.logger.info("Maximum Target sentence length: " + str(maxE))
 
-        self.a = [[[0.0 for x in range(maxE * 2)] for y in range(maxE * 2)]
-                  for z in range(maxE + 1)]
-        self.pi = [0.0 for x in range(maxE * 2)]
+        self.a = np.zeros((maxE + 1, maxE * 2, maxE * 2))
+        self.pi = np.zeros(maxE * 2)
 
         for iteration in range(iterations):
             self.logger.info("BaumWelch Iteration " + str(iteration))
 
             logLikelihood = 0
 
-            gamma = [[0.0 for x in range(maxE)] for y in range(maxE * 2)]
-            gammaBiword = defaultdict(float)
-            gammaSum_0 = [0.0 for x in range(maxE)]
-            delta = [[[0.0 for x in range(maxE)] for y in range(maxE)]
-                     for z in range(maxE + 1)]
+            delta = np.zeros((maxE + 1, maxE, maxE))
 
-            self._beginningOfIteration(dataset)
+            self._beginningOfIteration(dataset, maxE)
 
             counter = 0
             for (f, e, alignment) in dataset:
@@ -141,44 +110,46 @@ class AlignmentModelBase(Base):
                     self.initialiseParameter(len(e))
 
                 fLen, eLen = len(f), len(e)
-                a = self.a[eLen]
-                tSmall = [[self.t[(f[i][index], e[j][index])]
-                           for j in range(eLen)]
-                          for i in range(fLen)]
+                fWords = [f[i][index] for i in range(fLen)]
+                eWords = [e[j][index] for j in range(eLen)]
+                a = self.a[eLen][:len(e), :len(e)]
+                tSmall = self.t[fWords][:, eWords]
 
                 alpha, alphaScale, beta = self.forwardBackward(f, e, tSmall, a)
 
                 # Update logLikelihood
-                for i in range(fLen):
-                    logLikelihood -= log(alphaScale[i])
+                logLikelihood -= np.sum(np.log(alphaScale))
 
                 # Setting gamma
-                self._updateGamma(f, e, gamma, alpha, beta, alphaScale)
+                gamma = self.gamma(f, e, alpha, beta, alphaScale, index)
 
-                for i in range(fLen):
-                    for j in range(eLen):
-                        gammaBiword[(f[i][index], e[j][index])] += gamma[i][j]
+                # Update delta, the code below is the slow version. It is given
+                # here as the matrix version might be difficult to understand
+                # at first sight
+                # c = [0.0 for i in range(eLen * 2)]
+                # for i in range(1, fLen):
+                #     for prev_j in range(eLen):
+                #         for j in range(eLen):
+                #             c[eLen - 1 + j - prev_j] += (
+                #                 alpha[i - 1][prev_j] *
+                #                 beta[i][j] *
+                #                 a[prev_j][j] *
+                #                 tSmall[i][j])
+                # for prev_j in range(eLen):
+                #     for j in range(eLen):
+                #         delta[eLen][prev_j][j] += c[eLen - 1 + j - prev_j]
+                Xceta = np.matmul(alpha[:fLen - 1].T, (beta * tSmall)[1:]) * a
+                c = np.zeros(eLen * 2)
                 for j in range(eLen):
-                    gammaSum_0[j] += gamma[0][j]
-
-                # Update delta
-                c = [0.0 for i in range(eLen * 2)]
-                for i in range(1, fLen):
-                    for prev_j in range(eLen):
-                        for j in range(eLen):
-                            c[eLen - 1 + j - prev_j] += (alpha[i - 1][prev_j] *
-                                                         beta[i][j] *
-                                                         a[prev_j][j] *
-                                                         tSmall[i][j])
-
-                for prev_j in range(eLen):
-                    for j in range(eLen):
-                        delta[eLen][prev_j][j] += c[eLen - 1 + j - prev_j]
+                    c[eLen - 1 - j:2 * eLen - 1 - j] += Xceta[j]
+                for j in range(eLen):
+                    delta[eLen][j][:eLen] +=\
+                        c[eLen - 1 - j:2 * eLen - 1 - j]
             # end of loop over dataset
 
             self.logger.info("likelihood " + str(logLikelihood))
             # M-Step
-            self._updateEndOfIteration(maxE, delta, gammaSum_0, gammaBiword)
+            self._updateEndOfIteration(maxE, delta)
 
         self.endOfBaumWelch()
         endTime = time.time()
@@ -186,87 +157,65 @@ class AlignmentModelBase(Base):
                          (endTime - startTime,))
         return
 
-    def _beginningOfIteration(self, dataset):
-        # self.lenDataset = len(dataset)
-        # return
+    def _beginningOfIteration(self, dataset, maxE):
         raise NotImplementedError
 
-    def _updateGamma(self, f, e, gamma, alpha, beta, alphaScale):
-        # for i in range(len(f)):
-        #     for j in range(len(e)):
-        #         gamma[i][j] = alpha[i][j] * beta[i][j] / alphaScale[i]
+    def gamma(self, f, e, alpha, beta, alphaScale):
         raise NotImplementedError
 
-    def _updateEndOfIteration(self, maxE, delta, gammaSum_0, gammaBiword):
-        # self.t.clear()
-        # for Len in self.eLengthSet:
-        #     for prev_j in range(Len):
-        #         deltaSum = 0.0
-        #         for j in range(Len):
-        #             deltaSum += delta[Len][prev_j][j]
-        #         for j in range(Len):
-        #             self.a[Len][prev_j][j] = delta[Len][prev_j][j] /\
-        #                 (deltaSum + 1e-37)
-
-        # for i in range(maxE):
-        #     self.pi[i] = gammaSum_0[i] * (1.0 / self.lenDataset)
-
-        # gammaEWord = defaultdict(float)
-        # for f, e in gammaBiword:
-        #     gammaEWord[e] += gammaBiword[(f, e)]
-        # for f, e in gammaBiword:
-        #     self.t[(f, e)] = gammaBiword[(f, e)] / (gammaEWord[e] + 1e-37)
-        # return
+    def _updateEndOfIteration(self, maxE, delta):
         raise NotImplementedError
 
     def endOfBaumWelch(self):
-        # Apply final smoothing here
         raise NotImplementedError
 
     def tProbability(self, f, e, index=0):
-        v = 163303
-        if (f[index], e[index]) in self.t:
-            return self.t[(f[index], e[index])]
-        if e[index] == "null":
-            return self.nullEmissionProb
-        return 1.0 / v
+        t = np.zeros((len(f), len(e)))
+        for j in range(len(e)):
+            if e[j][index] == 424242424243:
+                t[:, j].fill(self.nullEmissionProb)
+                continue
+            if e[j][index] >= self.t.shape[1]:
+                t[:, j].fill(0.000006123586217)
+                continue
+            for i in range(len(f)):
+                if f[i][index] >= self.t.shape[0]:
+                    t[i][j] = 0.000006123586217
+                elif self.t[f[i][index]][e[j][index]] == 0:
+                    t[i][j] = 0.000006123586217
+                else:
+                    t[i][j] = self.t[f[i][index]][e[j][index]]
+        return t
 
-    def aProbability(self, prev_j, j, targetLength):
+    def aProbability(self, targetLength):
         if targetLength in self.eLengthSet:
-            return self.a[targetLength][prev_j][j]
-        return 1.0 / targetLength
+            return self.a[targetLength][:targetLength * 2, :targetLength * 2]
+        return np.full((targetLength * 2, targetLength * 2), 1. / targetLength)
 
     def logViterbi(self, f, e):
         e = deepcopy(e)
         fLen, eLen = len(f), len(e)
         for i in range(eLen):
-            e.append(("null", "null"))
+            e.append((424242424243, 424242424243))
         score = np.zeros((fLen, eLen * 2))
         prev_j = np.zeros((fLen, eLen * 2))
 
+        with np.errstate(invalid='ignore', divide='ignore'):
+            score = np.log(self.tProbability(f, e))
+            a = np.log(self.aProbability(eLen))
         for i in range(fLen):
-            for j in range(eLen * 2):
-                score[i][j] = log(self.tProbability(f[i], e[j]))
-                if i == 0:
-                    if j < len(self.pi) and self.pi[j] != 0:
-                        score[i][j] += log(self.pi[j])
+            if i == 0:
+                with np.errstate(invalid='ignore', divide='ignore'):
+                    if 2 * eLen <= self.pi.shape[0]:
+                        score[i] += np.log(self.pi[:eLen * 2])
                     else:
-                        score[i][j] = - sys.maxint - 1
-                else:
-                    # Find the best alignment for f[i-1]
-                    maxScore = -sys.maxint - 1
-                    bestPrev_j = -sys.maxint - 1
-                    for jPrev in range(eLen * 2):
-                        aPr = self.aProbability(jPrev, j, eLen)
-                        if aPr == 0:
-                            continue
-                        temp = score[i - 1][jPrev] + log(aPr)
-                        if temp > maxScore:
-                            maxScore = temp
-                            bestPrev_j = jPrev
-
-                    score[i][j] += maxScore
-                    prev_j[i][j] = bestPrev_j
+                        score[i][:self.pi.shape[0]] += np.log(self.pi)
+                        score[i][self.pi.shape[0]:].fill(-sys.maxint)
+            else:
+                tmp = (a.T + score[i - 1]).T
+                bestPrev_j = np.argmax(tmp, axis=0)
+                prev_j[i] = bestPrev_j
+                score[i] += np.max(tmp, axis=0)
 
         maxScore = -sys.maxint - 1
         best_j = 0
@@ -286,7 +235,7 @@ class AlignmentModelBase(Base):
         return trace
 
     def decodeSentence(self, sentence):
-        f, e, alignment = sentence
+        f, e, alignment = self.lexiSentence(sentence)
         sentenceAlignment = []
         bestAlign = self.logViterbi(f, e)
 

@@ -90,3 +90,6 @@ ENV/
 
 # Aligner output
 *.wa
+
+# Unittest stuff
+src/support/dump.pkl
