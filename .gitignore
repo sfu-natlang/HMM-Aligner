@@ -93,3 +93,6 @@ ENV/
 
 # Cython
 *.c
+
+# Unittest stuff
+src/support/dump.pkl
