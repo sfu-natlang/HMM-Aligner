@@ -61,12 +61,11 @@ class AlignmentModel(IBM1Base):
         sPr = self.sProbability(f, e, index)
         for i in range(fLen):
             tmp = tSmall[i] / np.sum(tSmall[i])
-            # s = (sPr[i].T * tmp).T
+            s = (sPr[i].T * tmp).T
             for j in range(eLen):
                 self.c[fWords[i]][eWords[j]] += tmp[j]
                 self.total[eWords[j]] += tmp[j]
-                self.c_feh[fWords[i]][eWords[j]] += sPr[i][j] * tmp[j]
-                # self.c_feh[fWords[i]][eWords[j]] += s[j]
+                self.c_feh[fWords[i]][eWords[j]] += s[j]
         return
 
     def _updateEndOfIteration(self):
