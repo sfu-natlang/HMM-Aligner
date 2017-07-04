@@ -13,7 +13,7 @@ from copy import deepcopy
 from loggers import logging
 from models.modelBase import Task
 from models.modelBase import AlignmentModelBase as Base
-__version__ = "0.5a"
+__version__ = "0.4a"
 
 
 class AlignmentModelBase(Base):
@@ -71,7 +71,7 @@ class AlignmentModelBase(Base):
         # What happens there is that for every source f word, we find the
         # target e word with the highest tr(e|f) score here, which is
         # tProbability(f[i], e[j])
-        f, e, alignment = sentence
+        f, e, alignment = self.lexiSentence(sentence)
         sentenceAlignment = []
         for i in range(len(f)):
             max_t = 0

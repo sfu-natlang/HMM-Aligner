@@ -24,7 +24,7 @@ currentdir = os.path.dirname(
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 from loggers import logging
-__version__ = "0.5a"
+__version__ = "0.4a"
 
 
 # This is a private module for transmitting test results. Please ignore.
@@ -285,7 +285,6 @@ class AlignmentModelBase():
 
         startTime = time.time()
         for sentence in dataset:
-            sentence = self.lexiSentence(sentence)
             sentenceAlignment = self.decodeSentence(sentence)
 
             result.append(sentenceAlignment)

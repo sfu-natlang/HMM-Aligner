@@ -19,7 +19,7 @@ currentdir = os.path.dirname(
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 from models.modelBase import AlignmentModelBase as Base
-__version__ = "0.5a"
+__version__ = "0.4a"
 
 supportedModels = [
     "IBM1", "IBM1WithAlignmentType", "HMM", "HMMWithAlignmentType"
