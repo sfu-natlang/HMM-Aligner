@@ -52,13 +52,21 @@ class AlignmentModel(IBM1Base):
         self.c_feh = np.zeros(self.t.shape + (len(self.typeIndex),))
         return
 
-    def _updateCount(self, fWord, eWord, z, index):
-        f, e = fWord[index], eWord[index]
-        tPr_z = self.t[f][e] / z
-        self.c[f][e] += tPr_z
-        self.total[e] += tPr_z
-        self.c_feh[fWord[self.index]][eWord[self.index]] +=\
-            self.sProbability(fWord, eWord, self.index) * tPr_z
+    def _updateCount(self, f, e, index):
+        fLen = len(f)
+        eLen = len(e)
+        fWords = [f[i][index] for i in range(fLen)]
+        eWords = [e[j][index] for j in range(eLen)]
+        tSmall = self.t[fWords][:, eWords]
+        sPr = self.sProbability(f, e, index)
+        for i in range(fLen):
+            tmp = tSmall[i] / np.sum(tSmall[i])
+            # s = (sPr[i].T * tmp).T
+            for j in range(eLen):
+                self.c[fWords[i]][eWords[j]] += tmp[j]
+                self.total[eWords[j]] += tmp[j]
+                self.c_feh[fWords[i]][eWords[j]] += sPr[i][j] * tmp[j]
+                # self.c_feh[fWords[i]][eWords[j]] += s[j]
         return
 
     def _updateEndOfIteration(self):
@@ -73,39 +81,39 @@ class AlignmentModel(IBM1Base):
         return
 
     def sProbability(self, f, e, index=0):
-        fWord, fTag = f
-        eWord, eTag = e
-        sTagTmp = (1 - self.lambd) * self.typeDist
-        if fTag < self.sTag.shape[0] and eTag < self.sTag.shape[1]:
-            sTagTmp += self.sTag[fTag][eTag] * self.lambd
-        if index == 1:
-            return sTagTmp
+        sTag = np.tile((1 - self.lambd) * self.typeDist, (len(f), len(e), 1))
 
-        sTmp = (1 - self.lambd) * self.typeDist
-        if fWord < self.s.shape[0] and eWord < self.s.shape[1]:
-            sTmp += self.s[fWord][eWord] * self.lambd
-        return (self.lambda1 * sTmp +
-                self.lambda2 * sTagTmp +
-                self.lambda3 * self.typeDist)
+        for j in range(len(e)):
+            for i in range(len(f)):
+                if f[i][1] < self.sTag.shape[0] and\
+                        e[j][1] < self.sTag.shape[1]:
+                    sTag[i][j] += self.lambd * self.sTag[f[i][1]][e[j][1]]
+        if index == 1:
+            return sTag
+
+        s = np.tile((1 - self.lambd) * self.typeDist, (len(f), len(e), 1))
+        for j in range(len(e)):
+            for i in range(len(f)):
+                if f[i][0] < self.s.shape[0] and e[j][0] < self.s.shape[1]:
+                    s[i][j] += self.lambd * self.s[f[i][0]][e[j][0]]
+
+        return (self.lambda1 * s +
+                self.lambda2 * sTag +
+                np.tile(self.lambda3 * self.typeDist, (len(f), len(e), 1)))
 
     def decodeSentence(self, sentence):
         f, e, align = self.lexiSentence(sentence)
         sentenceAlignment = []
+        # t = self.tProbability(f, e)
+        t = np.full((len(f), len(e)), 1.)
+        sPr = self.sProbability(f, e)
+        types = np.argmax(sPr, axis=2)
+        score = np.max(sPr, axis=2) * t
         for i in range(len(f)):
-            max_ts = 0
-            argmax = -1
-            bestType = -1
-            for j in range(len(e)):
-                t = 1
-                sTmp = self.sProbability(f[i], e[j])
-                h = np.argmax(sTmp)
-                score = sTmp[h] * t
-                if score > max_ts:
-                    max_ts = score
-                    argmax = j
-                    bestType = h
+            jBest = np.argmax(score[i])
+            hBest = types[i][jBest]
             sentenceAlignment.append(
-                (i + 1, argmax + 1, self.typeList[bestType]))
+                (i + 1, jBest + 1, self.typeList[hBest]))
         return sentenceAlignment
 
     def trainStage1(self, dataset, iterations=5):

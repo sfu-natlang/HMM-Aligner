@@ -27,14 +27,19 @@ class AlignmentModelBase(Base):
         return
 
     def tProbability(self, f, e, index=0):
-        if f[index] < self.t.shape[0] and e[index] < self.t.shape[1]:
-            tmp = self.t[f[index]][e[index]]
-            if tmp == 0:
-                return 0.000006123586217
-            else:
-                return tmp
-        else:
-            return 0.000006123586217
+        t = np.zeros((len(f), len(e)))
+        for j in range(len(e)):
+            if e[j][index] >= self.t.shape[1]:
+                t[:, j].fill(0.000006123586217)
+                continue
+            for i in range(len(f)):
+                if f[i][index] >= self.t.shape[0]:
+                    t[i][j] = 0.000006123586217
+                elif self.t[f[i][index]][e[j][index]] == 0:
+                    t[i][j] = 0.000006123586217
+                else:
+                    t[i][j] = self.t[f[i][index]][e[j][index]]
+        return t
 
     def EM(self, dataset, iterations, modelName="IBM1Base", index=0):
         task = Task("Aligner", modelName + str(iterations))
@@ -52,11 +57,8 @@ class AlignmentModelBase(Base):
                 counter += 1
                 task.progress(modelName + " iter %d, %d of %d" %
                               (iteration, counter, len(dataset),))
-                for fWord in f:
-                    z = np.sum(self.t[fWord[index]][
-                        [eWord[index] for eWord in e]])
-                    for eWord in e:
-                        self._updateCount(fWord, eWord, z, index)
+
+                self._updateCount(f, e, index)
 
             self._updateEndOfIteration()
 
@@ -73,15 +75,10 @@ class AlignmentModelBase(Base):
         # tProbability(f[i], e[j])
         f, e, alignment = self.lexiSentence(sentence)
         sentenceAlignment = []
+        score = self.tProbability(f, e)
         for i in range(len(f)):
-            max_t = 0
-            argmax = -1
-            for j in range(len(e)):
-                t = self.tProbability(f[i], e[j])
-                if t > max_t:
-                    max_t = t
-                    argmax = j
-            sentenceAlignment.append((i + 1, argmax + 1))
+            jBest = np.argmax(score[i])
+            sentenceAlignment.append((i + 1, jBest + 1))
         return sentenceAlignment
 
     def _beginningOfIteration(self):

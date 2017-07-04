@@ -36,10 +36,17 @@ class AlignmentModel(IBM1Base):
         self.total = np.zeros(self.t.shape[1])
         return
 
-    def _updateCount(self, fWord, eWord, z, index=0):
-        f, e = fWord[index], eWord[index]
-        self.c[f][e] += self.t[f][e] / z
-        self.total[e] += self.t[f][e] / z
+    def _updateCount(self, f, e, index):
+        fLen = len(f)
+        eLen = len(e)
+        fWords = [f[i][index] for i in range(fLen)]
+        eWords = [e[j][index] for j in range(eLen)]
+        tSmall = self.t[fWords][:, eWords]
+        for i in range(fLen):
+            tmp = tSmall[i] / np.sum(tSmall[i])
+            for j in range(eLen):
+                self.c[fWords[i]][eWords[j]] += tmp[j]
+                self.total[eWords[j]] += tmp[j]
         return
 
     def _updateEndOfIteration(self):
