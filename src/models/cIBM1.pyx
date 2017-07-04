@@ -43,8 +43,9 @@ class AlignmentModel(IBM1Base):
         eWords = np.array([e[j][index] for j in range(eLen)])
         eDupli = (eWords[:, np.newaxis] == eWords).sum(axis=0)
         tSmall = self.t[fWords][:, eWords]
+        tSmall = tSmall / tSmall.sum(axis=1)[:, None] * eDupli
         for i in range(fLen):
-            tmp = tSmall[i] / np.sum(tSmall[i]) * eDupli
+            tmp = tSmall[i]
             self.c[fWords[i], eWords] += tmp
             self.total[eWords] += tmp
         return
