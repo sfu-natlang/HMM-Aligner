@@ -19,6 +19,7 @@ currentdir = os.path.dirname(
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 from models.modelBase import AlignmentModelBase as Base
+from models.cModelBase import AlignmentModelBase as cBase
 __version__ = "0.4a"
 
 supportedModels = [

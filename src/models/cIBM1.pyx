@@ -11,7 +11,7 @@ import numpy as np
 from loggers import logging
 from models.cIBM1Base import AlignmentModelBase as IBM1Base
 from evaluators.evaluator import evaluate
-__version__ = "0.5a"
+__version__ = "0.4a"
 
 
 class AlignmentModel(IBM1Base):

@@ -18,7 +18,7 @@ from loggers import logging
 from models.cModelBase import Task
 from models.cModelBase import AlignmentModelBase as Base
 from evaluators.evaluator import evaluate
-__version__ = "0.5a"
+__version__ = "0.4a"
 
 
 class AlignmentModelBase(Base):
@@ -235,7 +235,7 @@ class AlignmentModelBase(Base):
         return trace
 
     def decodeSentence(self, sentence):
-        f, e, alignment = sentence
+        f, e, alignment = self.lexiSentence(sentence)
         sentenceAlignment = []
         bestAlign = self.logViterbi(f, e)
 

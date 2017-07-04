@@ -19,7 +19,7 @@ from models.cIBM1 import AlignmentModel as AlignerIBM1
 from models.cModelBase import Task
 from models.cHMMBase import AlignmentModelBase as Base
 from evaluators.evaluator import evaluate
-__version__ = "0.5a"
+__version__ = "0.4a"
 
 
 class AlignmentModel(Base):
