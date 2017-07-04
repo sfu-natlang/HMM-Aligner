@@ -55,17 +55,17 @@ class AlignmentModel(IBM1Base):
     def _updateCount(self, f, e, index):
         fLen = len(f)
         eLen = len(e)
-        fWords = [f[i][index] for i in range(fLen)]
-        eWords = [e[j][index] for j in range(eLen)]
+        fWords = np.array([f[i][index] for i in range(fLen)])
+        eWords = np.array([e[j][index] for j in range(eLen)])
+        eDupli = (eWords[:, np.newaxis] == eWords).sum(axis=0)
         tSmall = self.t[fWords][:, eWords]
         sPr = self.sProbability(f, e, index)
         for i in range(fLen):
-            tmp = tSmall[i] / np.sum(tSmall[i])
-            s = (sPr[i].T * tmp).T
-            for j in range(eLen):
-                self.c[fWords[i]][eWords[j]] += tmp[j]
-                self.total[eWords[j]] += tmp[j]
-                self.c_feh[fWords[i]][eWords[j]] += s[j]
+            tmp = tSmall[i] / np.sum(tSmall[i]) * eDupli
+            s = sPr[i] * tmp[:, None]
+            self.c[fWords[i], eWords] += tmp
+            self.total[eWords] += tmp
+            self.c_feh[fWords[i], eWords] += s
         return
 
     def _updateEndOfIteration(self):
