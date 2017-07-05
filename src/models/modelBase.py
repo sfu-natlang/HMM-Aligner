@@ -205,6 +205,7 @@ class AlignmentModelBase():
         return
 
     def initialiseBiwordCount(self, dataset, index=0):
+        self.logger.info("Initialising Biword table")
         maxf = len(self.fLex[index])
         maxe = len(self.eLex[index])
         initialValue = 1.0 / maxf
@@ -215,6 +216,7 @@ class AlignmentModelBase():
             for f_i in f:
                 for e_j in e:
                     self.t[f_i[index]][e_j[index]] = initialValue
+        self.logger.info("Biword table initialised")
         return
 
     def initialiseAlignTypeDist(self, dataset, loadTypeDist={}):
@@ -295,9 +297,8 @@ class AlignmentModelBase():
                          " sentences per second")
         return result
 
-    def initialiseLexikon(self, dataset):
+    def initialiseLexikon(self, dataset, newDataset=False):
         self.logger.info("Creating lexikon")
-        dataset = deepcopy(dataset)
         indices = len(dataset[0][0][0])
         self.fLex = [[] for i in range(indices)]
         self.eLex = [[] for i in range(indices)]
@@ -309,6 +310,11 @@ class AlignmentModelBase():
                     self.fIndex[index][fWord[index]] = 1
                 for eWord in e:
                     self.eIndex[index][eWord[index]] = 1
+        if newDataset:
+            dataset = deepcopy(dataset)
+        self.logger.info("lexikon fsize: " +
+                         str([len(f_i) for f_i in self.fIndex]) +
+                         "; esize: " + str([len(e_i) for e_i in self.eIndex]))
         for index in range(indices):
             c = 0
             for key in self.fIndex[index]:
@@ -320,6 +326,7 @@ class AlignmentModelBase():
                 self.eIndex[index][key] = c
                 self.eLex[index].append(key)
                 c += 1
+        self.logger.info("Rewriting dataset")
         for f, e, alignment in dataset:
             for i in range(len(f)):
                 f[i] = tuple(
@@ -327,9 +334,7 @@ class AlignmentModelBase():
             for i in range(len(e)):
                 e[i] = tuple(
                     [self.eIndex[indx][e[i][indx]] for indx in range(indices)])
-        self.logger.info("lexikon fsize: " +
-                         str([len(f_i) for f_i in self.fIndex]) +
-                         "; esize: " + str([len(e_i) for e_i in self.eIndex]))
+        self.logger.info("lexikon created")
         return dataset
 
     def lexiSentence(self, sentence):
