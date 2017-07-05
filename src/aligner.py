@@ -34,8 +34,8 @@ if __name__ == '__main__':
         'testDataTag': '',
         'reference': '',
 
-        'trainSize': 20357,
-        'testSize': 1956,
+        'trainSize': sys.maxint,
+        'testSize': sys.maxint,
         'iterations': 5,
         'model': "IBM1",
         'output': 'o.wa',

@@ -91,5 +91,8 @@ ENV/
 # Aligner output
 *.wa
 
+# Cython
+*.c
+
 # Unittest stuff
 src/support/dump.pkl

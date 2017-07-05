@@ -11,8 +11,8 @@ import time
 import numpy as np
 from copy import deepcopy
 from loggers import logging
-from models.modelBase import Task
-from models.modelBase import AlignmentModelBase as Base
+from models.cModelBase import Task
+from models.cModelBase import AlignmentModelBase as Base
 __version__ = "0.4a"
 
 

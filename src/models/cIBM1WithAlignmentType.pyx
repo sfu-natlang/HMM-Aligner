@@ -9,7 +9,7 @@
 #
 import numpy as np
 from loggers import logging
-from models.IBM1Base import AlignmentModelBase as IBM1Base
+from models.cIBM1Base import AlignmentModelBase as IBM1Base
 from evaluators.evaluator import evaluate
 __version__ = "0.4a"
 

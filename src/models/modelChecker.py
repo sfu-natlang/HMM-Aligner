@@ -59,6 +59,15 @@ def checkAlignmentModel(modelClass, logger=True):
             "models/ModelName.py")
         return False
 
+    try:
+        from models.cModelBase import AlignmentModelBase as cBase
+        if issubclass(modelClass, cBase):
+            logging.getLogger('CheckModel').info(
+                "Loading Cython model, unable to check further")
+            return True
+    except ImportError:
+        pass
+
     if not issubclass(modelClass, Base):
         error(
             "Specified Model needs to be a subclass of " +
