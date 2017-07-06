@@ -11,9 +11,9 @@
 import numpy as np
 from collections import defaultdict
 from loggers import logging
-from models.IBM1 import AlignmentModel as AlignerIBM1
-from models.modelBase import Task
-from models.HMMBase import AlignmentModelBase as Base
+from models.cIBM1 import AlignmentModel as AlignerIBM1
+from models.cModelBase import Task
+from models.cHMMBase import AlignmentModelBase as Base
 from evaluators.evaluator import evaluate
 __version__ = "0.4a"
 
