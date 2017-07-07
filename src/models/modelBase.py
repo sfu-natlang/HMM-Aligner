@@ -209,7 +209,7 @@ class AlignmentModelBase():
         maxf = len(self.fLex[index])
         maxe = len(self.eLex[index])
         initialValue = 1.0 / maxf
-        self.t = np.zeros((maxf, maxe))
+        self.t = [defaultdict(float) for i in range(maxf)]
 
         for item in dataset:
             f, e = item[0:2]

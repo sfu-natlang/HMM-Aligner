@@ -8,6 +8,7 @@
 # This is the implementation of IBM model 1 word aligner.
 #
 import numpy as np
+from collections import defaultdict
 from loggers import logging
 from models.IBM1Base import AlignmentModelBase as IBM1Base
 from evaluators.evaluator import evaluate
@@ -31,9 +32,9 @@ class AlignmentModel(IBM1Base):
         self.EM(dataset, iterations, 'IBM1')
         return
 
-    def _beginningOfIteration(self):
-        self.c = np.zeros(self.t.shape)
-        self.total = np.zeros(self.t.shape[1])
+    def _beginningOfIteration(self, index=0):
+        self.c = [defaultdict(float) for i in range(len(self.fLex[index]))]
+        self.total = [0.0 for i in range(len(self.eLex[index]))]
         return
 
     def _updateCount(self, f, e, index):
@@ -41,15 +42,19 @@ class AlignmentModel(IBM1Base):
         eLen = len(e)
         fWords = np.array([f[i][index] for i in range(fLen)])
         eWords = np.array([e[j][index] for j in range(eLen)])
-        eDupli = (eWords[:, np.newaxis] == eWords).sum(axis=0)
-        tSmall = self.t[fWords][:, eWords]
-        tSmall = tSmall / tSmall.sum(axis=1)[:, None] * eDupli
+        tSmall = self.tProbability(f, e, index)
+        tSmall = tSmall / tSmall.sum(axis=1)[:, None]
         for i in range(fLen):
             tmp = tSmall[i]
-            self.c[fWords[i], eWords] += tmp
-            self.total[eWords] += tmp
+            for j in range(eLen):
+                self.c[fWords[i]][eWords[j]] += tmp[j]
+                self.total[eWords[j]] += tmp[j]
         return
 
-    def _updateEndOfIteration(self):
-        self.t = np.divide(self.c, self.total)
+    def _updateEndOfIteration(self, index):
+        self.logger.info("End of iteration")
+        # Update t
+        for i in range(len(self.fLex[index])):
+            for j in self.c[i]:
+                self.t[i][j] = self.c[i][j] / self.total[j]
         return
