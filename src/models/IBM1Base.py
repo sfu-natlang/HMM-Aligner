@@ -30,15 +30,12 @@ class AlignmentModelBase(Base):
         t = np.zeros((len(f), len(e)))
         for j in range(len(e)):
             if e[j][index] >= len(self.eLex[index]):
-                t[:, j].fill(0.000006123586217)
                 continue
             for i in range(len(f)):
-                if f[i][index] >= len(self.fLex[index]):
-                    t[i][j] = 0.000006123586217
-                elif self.t[f[i][index]][e[j][index]] == 0:
-                    t[i][j] = 0.000006123586217
-                else:
+                if f[i][index] < len(self.t) and \
+                        e[j][index] in self.t[f[i][index]]:
                     t[i][j] = self.t[f[i][index]][e[j][index]]
+        t[t == 0] = 0.000006123586217
         return t
 
     def EM(self, dataset, iterations, modelName="IBM1Base", index=0):

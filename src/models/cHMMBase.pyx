@@ -99,7 +99,7 @@ class AlignmentModelBase(Base):
 
             delta = np.zeros((maxE + 1, maxE, maxE))
 
-            self._beginningOfIteration(dataset, maxE)
+            self._beginningOfIteration(dataset, maxE, index)
 
             counter = 0
             for (f, e, alignment) in dataset:
@@ -110,10 +110,8 @@ class AlignmentModelBase(Base):
                     self.initialiseParameter(len(e))
 
                 fLen, eLen = len(f), len(e)
-                fWords = [f[i][index] for i in range(fLen)]
-                eWords = [e[j][index] for j in range(eLen)]
                 a = self.a[eLen][:len(e), :len(e)]
-                tSmall = self.t[fWords][:, eWords]
+                tSmall = self.tProbability(f, e, index)
 
                 alpha, alphaScale, beta = self.forwardBackward(f, e, tSmall, a)
 
@@ -149,24 +147,24 @@ class AlignmentModelBase(Base):
 
             self.logger.info("likelihood " + str(logLikelihood))
             # M-Step
-            self._updateEndOfIteration(maxE, delta)
+            self._updateEndOfIteration(maxE, delta, index)
 
-        self.endOfBaumWelch()
+        self.endOfBaumWelch(index)
         endTime = time.time()
         self.logger.info("Training Complete, total time(seconds): %f" %
                          (endTime - startTime,))
         return
 
-    def _beginningOfIteration(self, dataset, maxE):
+    def _beginningOfIteration(self, dataset, maxE, index):
         raise NotImplementedError
 
-    def gamma(self, f, e, alpha, beta, alphaScale):
+    def gamma(self, f, e, alpha, beta, alphaScale, index):
         raise NotImplementedError
 
-    def _updateEndOfIteration(self, maxE, delta):
+    def _updateEndOfIteration(self, maxE, delta, index):
         raise NotImplementedError
 
-    def endOfBaumWelch(self):
+    def endOfBaumWelch(self, index):
         raise NotImplementedError
 
     def tProbability(self, f, e, index=0):
@@ -175,16 +173,13 @@ class AlignmentModelBase(Base):
             if e[j][index] == 424242424243:
                 t[:, j].fill(self.nullEmissionProb)
                 continue
-            if e[j][index] >= self.t.shape[1]:
-                t[:, j].fill(0.000006123586217)
+            if e[j][index] >= len(self.eLex[index]):
                 continue
             for i in range(len(f)):
-                if f[i][index] >= self.t.shape[0]:
-                    t[i][j] = 0.000006123586217
-                elif self.t[f[i][index]][e[j][index]] == 0:
-                    t[i][j] = 0.000006123586217
-                else:
+                if f[i][index] < len(self.t) and \
+                        e[j][index] in self.t[f[i][index]]:
                     t[i][j] = self.t[f[i][index]][e[j][index]]
+        t[t == 0] = 0.000006123586217
         return t
 
     def aProbability(self, targetLength):
