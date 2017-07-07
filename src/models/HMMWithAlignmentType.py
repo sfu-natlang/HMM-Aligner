@@ -25,7 +25,7 @@ __version__ = "0.4a"
 class AlignmentModel(Base):
     def __init__(self):
         self.modelName = "HMMWithAlignmentType"
-        self.version = "0.2b"
+        self.version = "0.3b"
         self.logger = logging.getLogger('HMM')
         self.p0H = 0.3
         self.nullEmissionProb = 0.000005
@@ -58,28 +58,30 @@ class AlignmentModel(Base):
         Base.__init__(self)
         return
 
-    def _beginningOfIteration(self, dataset, maxE):
+    def _beginningOfIteration(self, dataset, maxE, index):
         self.lenDataset = len(dataset)
-        self.gammaEWord = np.zeros(self.t.shape[1])
-        self.gammaBiword = np.zeros(self.t.shape)
+        self.gammaEWord = [0.0 for i in range(len(self.eLex[index]))]
+        self.gammaBiword = [defaultdict(float)
+                            for i in range(len(self.fLex[index]))]
         self.gammaSum_0 = np.zeros(maxE)
-        self.c_feh = np.zeros(self.t.shape + (len(self.typeIndex),))
+        self.c_feh = [defaultdict(lambda: np.zeros(len(self.typeIndex)))
+                      for i in range(len(self.fLex[index]))]
         return
 
     def gamma(self, f, e, alpha, beta, alphaScale, index):
         fWords = [f[i][index] for i in range(len(f))]
         eWords = [e[j][index] for j in range(len(e))]
         gamma = ((alpha * beta).T / alphaScale).T
-        s = self.sProbability(f, e, index)
+        score = self.sProbability(f, e, index) * gamma[:, :, None]
         for i in range(len(f)):
             for j in range(len(e)):
                 self.gammaBiword[fWords[i]][eWords[j]] += gamma[i][j]
                 self.gammaEWord[eWords[j]] += gamma[i][j]
-                self.c_feh[fWords[i]][eWords[j]] += gamma[i][j] * s[i][j]
+                self.c_feh[fWords[i]][eWords[j]] += score[i][j]
         self.gammaSum_0[:len(e)] += gamma[0]
         return gamma
 
-    def _updateEndOfIteration(self, maxE, delta):
+    def _updateEndOfIteration(self, maxE, delta, index):
         self.logger.info("End of iteration")
         # Update a
         for Len in self.eLengthSet:
@@ -92,18 +94,25 @@ class AlignmentModel(Base):
         self.pi[:maxE] = self.gammaSum_0[:maxE] / self.lenDataset
 
         # Update t
-        self.t = np.divide(self.gammaBiword, self.gammaEWord)
+        for i in range(len(self.fLex[index])):
+            for j in self.gammaBiword[i]:
+                self.t[i][j] = self.gammaBiword[i][j] / self.gammaEWord[j]
+        del self.gammaEWord
 
         # Update s
         if self.index == 0:
             del self.s
-            self.s = self.keyDiv(self.c_feh, self.gammaBiword)
+            self.s = self.c_feh
         else:
             del self.sTag
-            self.sTag = self.keyDiv(self.c_feh, self.gammaBiword)
+            self.sTag = self.c_feh
+        for i in range(len(self.c_feh)):
+            for j in self.c_feh[i]:
+                self.c_feh[i][j] /= self.gammaBiword[i][j]
+        del self.gammaBiword
         return
 
-    def endOfBaumWelch(self):
+    def endOfBaumWelch(self, index):
         # Smoothing for target sentences of unencountered length
         for targetLen in self.eLengthSet:
             a = self.a[targetLen]
@@ -124,8 +133,7 @@ class AlignmentModel(Base):
 
         for j in range(len(e)):
             for i in range(len(f)):
-                if f[i][1] < self.sTag.shape[0] and\
-                        e[j][1] < self.sTag.shape[1]:
+                if f[i][1] < len(self.sTag) and e[j][1] in self.sTag[f[i][1]]:
                     sTag[i][j] += self.lambd * self.sTag[f[i][1]][e[j][1]]
         if index == 1:
             return sTag
@@ -133,7 +141,7 @@ class AlignmentModel(Base):
         s = np.tile((1 - self.lambd) * self.typeDist, (len(f), len(e), 1))
         for j in range(len(e)):
             for i in range(len(f)):
-                if f[i][0] < self.s.shape[0] and e[j][0] < self.s.shape[1]:
+                if f[i][0] < len(self.s) and e[j][0] in self.s[f[i][0]]:
                     s[i][j] += self.lambd * self.s[f[i][0]][e[j][0]]
 
         return (self.lambda1 * s +

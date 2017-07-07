@@ -29,16 +29,13 @@ class AlignmentModelBase(Base):
     def tProbability(self, f, e, index=0):
         t = np.zeros((len(f), len(e)))
         for j in range(len(e)):
-            if e[j][index] >= self.t.shape[1]:
-                t[:, j].fill(0.000006123586217)
+            if e[j][index] >= len(self.eLex[index]):
                 continue
             for i in range(len(f)):
-                if f[i][index] >= self.t.shape[0]:
-                    t[i][j] = 0.000006123586217
-                elif self.t[f[i][index]][e[j][index]] == 0:
-                    t[i][j] = 0.000006123586217
-                else:
+                if f[i][index] < len(self.t) and \
+                        e[j][index] in self.t[f[i][index]]:
                     t[i][j] = self.t[f[i][index]][e[j][index]]
+        t[t == 0] = 0.000006123586217
         return t
 
     def EM(self, dataset, iterations, modelName="IBM1Base", index=0):
@@ -48,7 +45,7 @@ class AlignmentModelBase(Base):
         start_time = time.time()
 
         for iteration in range(iterations):
-            self._beginningOfIteration()
+            self._beginningOfIteration(index)
             self.logger.info("Starting Iteration " + str(iteration))
             counter = 0
 
@@ -60,7 +57,7 @@ class AlignmentModelBase(Base):
 
                 self._updateCount(f, e, index)
 
-            self._updateEndOfIteration()
+            self._updateEndOfIteration(index)
 
         end_time = time.time()
         self.logger.info("Training Complete, total time(seconds): %f" %
@@ -81,13 +78,13 @@ class AlignmentModelBase(Base):
             sentenceAlignment.append((i + 1, jBest + 1))
         return sentenceAlignment
 
-    def _beginningOfIteration(self):
+    def _beginningOfIteration(self, index):
         raise NotImplementedError
 
     def _updateCount(self, fWord, eWord, z, index=0):
         raise NotImplementedError
 
-    def _updateEndOfIteration(self):
+    def _updateEndOfIteration(self, index):
         raise NotImplementedError
 
     def endOfEM(self):

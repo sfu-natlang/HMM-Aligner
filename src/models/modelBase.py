@@ -42,6 +42,11 @@ except ImportError:
     Task = DummyTask
 
 
+def isLambda(f):
+    lamb = (lambda: 0)
+    return isinstance(f, type(lamb)) and f.__name__ == lamb.__name__
+
+
 class AlignmentModelBase():
     def __init__(self):
         '''
@@ -60,12 +65,18 @@ class AlignmentModelBase():
         Optionally, when there is a self.supportedVersion list and self.version
         str, the loader will only load the files with supported versions.
         '''
+        if "modelName" not in vars(self):
+            self.modelName = "BaseModel"
+        if "version" not in vars(self):
+            self.version = "0.3b"
         if "logger" not in vars(self):
             self.logger = logging.getLogger('MODEL')
         if "modelComponents" not in vars(self):
             self.modelComponents = []
         if "_savedModelFile" not in vars(self):
             self._savedModelFile = ""
+        self.logger.info("Model initialised: " + str(self.modelName) +
+                         " V" + str(self.version))
         return
 
     def loadModel(self, fileName=None, force=False):
@@ -199,6 +210,18 @@ class AlignmentModelBase():
                 del a[key]
             self.logger.info(
                 "Dumping defaultdict, size after trim: " + str(len(a)))
+            if isLambda(a.default_factory):
+                a.default_factory = float
+            pickle.dump(a, output)
+            return
+        if isinstance(a, list):
+            # Remove lambda defaults from defaultdicts in the list
+            self.logger.info(
+                "Dumping list, size: " + str(len(a)))
+            for item in a:
+                if isinstance(item, defaultdict) and\
+                        isLambda(item.default_factory):
+                    item.default_factory = float
             pickle.dump(a, output)
             return
         pickle.dump(a, output)
@@ -209,7 +232,7 @@ class AlignmentModelBase():
         maxf = len(self.fLex[index])
         maxe = len(self.eLex[index])
         initialValue = 1.0 / maxf
-        self.t = np.zeros((maxf, maxe))
+        self.t = [defaultdict(float) for i in range(maxf)]
 
         for item in dataset:
             f, e = item[0:2]
@@ -248,11 +271,9 @@ class AlignmentModelBase():
 
     def calculateS(self, dataset, index=0):
         self.logger.info("Initialising S")
-        count = np.zeros((len(self.fLex[index]),
-                          len(self.eLex[index]),
-                          len(self.typeIndex)))
-        feCount = np.zeros((len(self.fLex[index]),
-                            len(self.eLex[index])))
+        count = [defaultdict(lambda: np.zeros(len(self.typeIndex)))
+                 for i in range(len(self.fLex[index]))]
+        feCount = [defaultdict(float) for i in range(len(self.fLex[index]))]
 
         for (f, e, alignment) in dataset:
             for f_i in f:
@@ -265,9 +286,11 @@ class AlignmentModelBase():
                 count[fWord[index]][eWord[index]][self.typeIndex[typ]] += 1
 
         self.logger.info("Writing S")
-        s = self.keyDiv(count, feCount)
+        for i in range(len(count)):
+            for j in count[i]:
+                count[i][j] /= feCount[i][j]
         self.logger.info("S computed")
-        return s
+        return count
 
     def keyDiv(self, x, y):
         if x.shape[:-1] != y.shape:

@@ -21,7 +21,7 @@ __version__ = "0.4a"
 class AlignmentModel(Base):
     def __init__(self):
         self.modelName = "HMM"
-        self.version = "0.2b"
+        self.version = "0.3b"
         self.logger = logging.getLogger('HMM')
         self.p0H = 0.3
         self.nullEmissionProb = 0.000005
@@ -35,10 +35,11 @@ class AlignmentModel(Base):
         Base.__init__(self)
         return
 
-    def _beginningOfIteration(self, dataset, maxE):
+    def _beginningOfIteration(self, dataset, maxE, index):
         self.lenDataset = len(dataset)
-        self.gammaEWord = np.zeros(self.t.shape[1])
-        self.gammaBiword = np.zeros(self.t.shape)
+        self.gammaEWord = [0.0 for i in range(len(self.eLex[index]))]
+        self.gammaBiword = [defaultdict(float)
+                            for i in range(len(self.fLex[index]))]
         self.gammaSum_0 = np.zeros(maxE)
         return
 
@@ -53,7 +54,7 @@ class AlignmentModel(Base):
         self.gammaSum_0[:len(e)] += gamma[0]
         return gamma
 
-    def _updateEndOfIteration(self, maxE, delta):
+    def _updateEndOfIteration(self, maxE, delta, index):
         self.logger.info("End of iteration")
         # Update a
         for Len in self.eLengthSet:
@@ -66,10 +67,14 @@ class AlignmentModel(Base):
         self.pi[:maxE] = self.gammaSum_0[:maxE] / self.lenDataset
 
         # Update t
-        self.t = np.divide(self.gammaBiword, self.gammaEWord)
+        for i in range(len(self.fLex[index])):
+            for j in self.gammaBiword[i]:
+                self.t[i][j] = self.gammaBiword[i][j] / self.gammaEWord[j]
+        del self.gammaEWord
+        del self.gammaBiword
         return
 
-    def endOfBaumWelch(self):
+    def endOfBaumWelch(self, index):
         # Smoothing for target sentences of unencountered length
         for targetLen in self.eLengthSet:
             a = self.a[targetLen]
