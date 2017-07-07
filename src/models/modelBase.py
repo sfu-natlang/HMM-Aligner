@@ -248,11 +248,9 @@ class AlignmentModelBase():
 
     def calculateS(self, dataset, index=0):
         self.logger.info("Initialising S")
-        count = np.zeros((len(self.fLex[index]),
-                          len(self.eLex[index]),
-                          len(self.typeIndex)))
-        feCount = np.zeros((len(self.fLex[index]),
-                            len(self.eLex[index])))
+        count = [defaultdict(lambda: np.zeros(len(self.typeIndex)))
+                 for i in range(len(self.fLex[index]))]
+        feCount = [defaultdict(float) for i in range(len(self.fLex[index]))]
 
         for (f, e, alignment) in dataset:
             for f_i in f:
@@ -265,9 +263,11 @@ class AlignmentModelBase():
                 count[fWord[index]][eWord[index]][self.typeIndex[typ]] += 1
 
         self.logger.info("Writing S")
-        s = self.keyDiv(count, feCount)
+        for i in range(len(count)):
+            for j in count[i]:
+                count[i][j] /= feCount[i][j]
         self.logger.info("S computed")
-        return s
+        return count
 
     def keyDiv(self, x, y):
         if x.shape[:-1] != y.shape:
