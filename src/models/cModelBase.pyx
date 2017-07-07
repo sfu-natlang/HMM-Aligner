@@ -42,6 +42,11 @@ except ImportError:
     Task = DummyTask
 
 
+def isLambda(f):
+    lamb = (lambda: 0)
+    return isinstance(f, type(lamb)) and f.__name__ == lamb.__name__
+
+
 class AlignmentModelBase():
     def __init__(self):
         '''
@@ -60,12 +65,18 @@ class AlignmentModelBase():
         Optionally, when there is a self.supportedVersion list and self.version
         str, the loader will only load the files with supported versions.
         '''
+        if "modelName" not in vars(self):
+            self.modelName = "BaseModel"
+        if "version" not in vars(self):
+            self.version = "0.3b"
         if "logger" not in vars(self):
             self.logger = logging.getLogger('MODEL')
         if "modelComponents" not in vars(self):
             self.modelComponents = []
         if "_savedModelFile" not in vars(self):
             self._savedModelFile = ""
+        self.logger.info("Model initialised: " + str(self.modelName) +
+                         " V" + str(self.version))
         return
 
     def loadModel(self, fileName=None, force=False):
@@ -199,6 +210,18 @@ class AlignmentModelBase():
                 del a[key]
             self.logger.info(
                 "Dumping defaultdict, size after trim: " + str(len(a)))
+            if isLambda(a.default_factory):
+                a.default_factory = float
+            pickle.dump(a, output)
+            return
+        if isinstance(a, list):
+            # Remove lambda defaults from defaultdicts in the list
+            self.logger.info(
+                "Dumping list, size: " + str(len(a)))
+            for item in a:
+                if isinstance(item, defaultdict) and\
+                        isLambda(item.default_factory):
+                    item.default_factory = float
             pickle.dump(a, output)
             return
         pickle.dump(a, output)
