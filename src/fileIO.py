@@ -130,6 +130,11 @@ def loadDataset(fFiles, eFiles, alignmentFile="", linesToLoad=sys.maxint):
             for entry in entries:
                 processAlignmentEntry(entry, result)
             alignment[i] = result
+
+        alignment += [[] for i in range(len(alignment), min(linesToLoad,
+                                                            len(fContents),
+                                                            len(eContents)))]
+
     else:
         alignment = [[] for i in range(min(linesToLoad,
                                            len(fContents),
