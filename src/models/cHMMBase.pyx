@@ -29,7 +29,7 @@ class AlignmentModelBase(Base):
             self.task = None
 
         if "t" not in vars(self):
-            self.t = defaultdict(float)
+            self.t = []
         if "eLengthSet" not in vars(self):
             self.eLengthSet = defaultdict(int)
         if "a" not in vars(self):

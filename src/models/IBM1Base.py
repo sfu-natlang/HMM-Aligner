@@ -18,7 +18,7 @@ __version__ = "0.4a"
 
 class AlignmentModelBase(Base):
     def __init__(self):
-        self.t = np.zeros((0, 0))
+        self.t = []
         if "logger" not in vars(self):
             self.logger = logging.getLogger('IBM1BASE')
         if "modelComponents" not in vars(self):

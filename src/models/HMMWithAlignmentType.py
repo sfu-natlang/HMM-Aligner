@@ -34,8 +34,8 @@ class AlignmentModel(Base):
         self.evaluate = evaluate
         self.fe = ()
 
-        self.s = defaultdict(list)
-        self.sTag = defaultdict(list)
+        self.s = []
+        self.sTag = []
         self.index = 0
         self.typeList = []
         self.typeIndex = {}

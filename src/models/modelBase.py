@@ -232,13 +232,16 @@ class AlignmentModelBase():
         maxf = len(self.fLex[index])
         maxe = len(self.eLex[index])
         initialValue = 1.0 / maxf
-        self.t = [defaultdict(float) for i in range(maxf)]
+        if len(self.t) < maxf:
+            newT = [defaultdict(float) for i in range(maxf - len(self.t))]
+            self.t += newT
 
         for item in dataset:
             f, e = item[0:2]
             for f_i in f:
                 for e_j in e:
-                    self.t[f_i[index]][e_j[index]] = initialValue
+                    if e_j[index] not in self.t[f_i[index]]:
+                        self.t[f_i[index]][e_j[index]] = initialValue
         self.logger.info("Biword table initialised")
         return
 
@@ -269,7 +272,7 @@ class AlignmentModelBase():
             self.typeDist[h] = typeDist[self.typeList[h]]
         return
 
-    def calculateS(self, dataset, index=0):
+    def calculateS(self, dataset, index=0, oldS=None):
         self.logger.info("Initialising S")
         count = [defaultdict(lambda: np.zeros(len(self.typeIndex)))
                  for i in range(len(self.fLex[index]))]
@@ -286,10 +289,20 @@ class AlignmentModelBase():
                 count[fWord[index]][eWord[index]][self.typeIndex[typ]] += 1
 
         self.logger.info("Writing S")
+        if oldS:
+            if len(oldS) < len(self.fLex[index]):
+                newS = [defaultdict(lambda: np.zeros(len(self.typeIndex)))
+                        for i in range(len(self.fLex[index]) - len(oldS))]
+                oldS += newS
+            for i in range(len(count)):
+                for j in count[i]:
+                    if j not in oldS[i]:
+                        oldS[i][j] = count[i][j] / feCount[i][j]
+            self.logger.info("S computed")
+            return oldS
         for i in range(len(count)):
             for j in count[i]:
                 count[i][j] /= feCount[i][j]
-        self.logger.info("S computed")
         return count
 
     def keyDiv(self, x, y):
