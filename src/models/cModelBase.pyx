@@ -322,30 +322,43 @@ class AlignmentModelBase():
 
     def initialiseLexikon(self, dataset, newDataset=False):
         self.logger.info("Creating lexikon")
-        indices = len(dataset[0][0][0])
-        self.fLex = [[] for i in range(indices)]
-        self.eLex = [[] for i in range(indices)]
-        self.fIndex = [{} for i in range(indices)]
-        self.eIndex = [{} for i in range(indices)]
+        self.extendLexikon(dataset, newDataset)
+        return dataset
+
+    def extendLexikon(self, dataset, newDataset=False):
+        if "fLex" in vars(self) and self.fLex:
+            indices = len(self.fIndex)
+        else:
+            indices = len(dataset[0][0][0])
+            self.fLex = [[] for i in range(indices)]
+            self.eLex = [[] for i in range(indices)]
+            self.fIndex = [{} for i in range(indices)]
+            self.eIndex = [{} for i in range(indices)]
+        extFIndex = [{} for i in range(indices)]
+        extEIndex = [{} for i in range(indices)]
+
         for f, e, alignment in dataset:
-            for index in range(indices):
+            for index in range(min(indices, len(f[0]))):
                 for fWord in f:
-                    self.fIndex[index][fWord[index]] = 1
+                    if fWord[index] not in self.fIndex[index]:
+                        extFIndex[index][fWord[index]] = 1
                 for eWord in e:
-                    self.eIndex[index][eWord[index]] = 1
+                    if fWord[index] not in self.fIndex[index]:
+                        extEIndex[index][eWord[index]] = 1
         if newDataset:
             dataset = deepcopy(dataset)
-        self.logger.info("lexikon fsize: " +
-                         str([len(f_i) for f_i in self.fIndex]) +
-                         "; esize: " + str([len(e_i) for e_i in self.eIndex]))
+        self.logger.info("New fWords size: " +
+                         str([len(f_i) for f_i in extFIndex]) +
+                         "; eWords size: " +
+                         str([len(e_i) for e_i in extEIndex]))
         for index in range(indices):
-            c = 0
-            for key in self.fIndex[index]:
+            c = len(self.fLex[index])
+            for key in extFIndex[index]:
                 self.fIndex[index][key] = c
                 self.fLex[index].append(key)
                 c += 1
-            c = 0
-            for key in self.eIndex[index]:
+            c = len(self.eLex[index])
+            for key in extEIndex[index]:
                 self.eIndex[index][key] = c
                 self.eLex[index].append(key)
                 c += 1
@@ -357,7 +370,7 @@ class AlignmentModelBase():
             for i in range(len(e)):
                 e[i] = tuple(
                     [self.eIndex[indx][e[i][indx]] for indx in range(indices)])
-        self.logger.info("lexikon created")
+        self.logger.info("lexikon extended")
         return dataset
 
     def lexiSentence(self, sentence):
