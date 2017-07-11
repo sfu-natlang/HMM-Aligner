@@ -68,7 +68,7 @@ class AlignmentModel(Base):
                       for i in range(len(self.fLex[index]))]
         return
 
-    def gamma(self, f, e, alpha, beta, alphaScale, index):
+    def _updateGamma(self, f, e, alpha, beta, alphaScale, index):
         fWords = [f[i][index] for i in range(len(f))]
         eWords = [e[j][index] for j in range(len(e))]
         gamma = ((alpha * beta).T / alphaScale).T
