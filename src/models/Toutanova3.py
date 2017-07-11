@@ -23,6 +23,7 @@ class AlignmentModel(HMM):
         self.modelName = "Toutanova3"
         self.version = "0.1b"
         self.pStay = np.zeros(0)
+        self.modelComponents += ["pStay"]
         return
 
     def initialiseParameter(self, maxE):

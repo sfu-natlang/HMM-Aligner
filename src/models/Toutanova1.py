@@ -23,6 +23,7 @@ class AlignmentModel(HMM):
         self.modelName = "Toutanova1"
         self.version = "0.1b"
         self.tTags = []
+        self.modelComponents += ["tTags"]
         return
 
     def _beginningOfIteration(self, dataset, maxE, index):
@@ -34,12 +35,10 @@ class AlignmentModel(HMM):
 
     def _updateGamma(self, f, e, alpha, beta, alphaScale, index):
         gamma = HMM._updateGamma(self, f, e, alpha, beta, alphaScale, index)
-        fTags = [f[i][1] for i in range(len(f))]
-        eTags = [e[j][1] for j in range(len(e))]
         for i in range(len(f)):
             for j in range(len(e)):
-                self.gammaBiTags[fTags[i]][eTags[j]] += gamma[i][j]
-                self.gammaETags[eTags[j]] += gamma[i][j]
+                self.gammaBiTags[f[i][1]][e[j][1]] += gamma[i][j]
+                self.gammaETags[e[j][1]] += gamma[i][j]
         return gamma
 
     def _updateEndOfIteration(self, maxE, index):
@@ -53,48 +52,24 @@ class AlignmentModel(HMM):
         return
 
     def tProbability(self, f, e, index=0):
-        t = np.zeros((len(f), len(e)))
-        for j in range(len(e)):
-            if e[j][0] == 424242424243:
-                t[:, j].fill(self.nullEmissionProb)
-                continue
-            if e[j][0] >= len(self.eLex[0]):
-                continue
-            for i in range(len(f)):
-                if f[i][0] < len(self.t) and \
-                        e[j][0] in self.t[f[i][0]]:
-                    t[i][j] = self.t[f[i][0]][e[j][0]]
-        t[t == 0] = 0.000006123586217
-
-        tTags = np.zeros((len(f), len(e)))
-        for j in range(len(e)):
-            if e[j][1] == 424242424243:
-                tTags[:, j].fill(self.nullEmissionProb)
-                continue
-            if e[j][1] >= len(self.eLex[1]):
-                continue
-            for i in range(len(f)):
-                if f[i][1] < len(self.tTags) and \
-                        e[j][1] in self.tTags[f[i][1]]:
-                    tTags[i][j] = self.tTags[f[i][1]][e[j][1]]
-        tTags[tTags == 0] = 0.000006123586217
+        tmp = self.t
+        t = HMM.tProbability(self, f, e, 0)
+        self.t = self.tTags
+        tTags = HMM.tProbability(self, f, e, 1)
+        self.t = tmp
         return t * tTags
 
     def train(self, dataset, iterations):
         dataset = self.initialiseLexikon(dataset)
-        self.logger.info("Training IBM model 1 on FORM")
         alignerIBM1 = AlignerIBM1()
         alignerIBM1.sharedLexikon(self)
+        self.logger.info("Training IBM model 1 on FORM")
         alignerIBM1.initialiseBiwordCount(dataset, index=0)
         alignerIBM1.EM(dataset, iterations, 'IBM1', index=0)
-        self.t = alignerIBM1.t
-        self.logger.info("IBM model Trained")
+        self.t, alignerIBM1.t = alignerIBM1.t, []
         self.logger.info("Training IBM model 1 on POSTAG")
-        alignerIBM1 = AlignerIBM1()
-        alignerIBM1.sharedLexikon(self)
         alignerIBM1.initialiseBiwordCount(dataset, index=1)
         alignerIBM1.EM(dataset, iterations, 'IBM1', index=1)
         self.tTags = alignerIBM1.t
-        self.logger.info("IBM model Trained")
         self.baumWelch(dataset, iterations=iterations)
         return
