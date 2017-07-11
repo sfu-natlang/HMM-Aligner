@@ -113,8 +113,7 @@ class AlignmentModel(IBM1Base):
     def decodeSentence(self, sentence):
         f, e, align = self.lexiSentence(sentence)
         sentenceAlignment = []
-        # t = self.tProbability(f, e)
-        t = np.full((len(f), len(e)), 1.)
+        t = self.tProbability(f, e)
         sPr = self.sProbability(f, e)
         types = np.argmax(sPr, axis=2)
         score = np.max(sPr, axis=2) * t
