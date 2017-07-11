@@ -163,9 +163,12 @@ if __name__ == '__main__':
     Model = importlib.import_module("models." + config['model']).AlignmentModel
     if not checkAlignmentModel(Model):
         raise TypeError("Invalid Model class")
-    __logger.info("Model loaded")
 
     aligner = Model()
+    if "version" in vars(aligner):
+        __logger.info("Model version: " + str(aligner.version))
+    __logger.info("Model loaded")
+
     if config['loadModel'] != "":
         aligner.loadModel(config['loadModel'], force=config['forceLoad'])
 
