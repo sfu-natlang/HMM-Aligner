@@ -31,7 +31,7 @@ class AlignmentModelBase(Base):
         if "t" not in vars(self):
             self.t = []
         if "eLengthSet" not in vars(self):
-            self.eLengthSet = defaultdict(int)
+            self.eLengthSet = {}
         if "a" not in vars(self):
             self.a = [[[]]]
         if "pi" not in vars(self):
@@ -45,9 +45,15 @@ class AlignmentModelBase(Base):
         Base.__init__(self)
         return
 
-    def initialiseParameter(self, Len):
+    def initialValues(self, Len):
         self.a[:Len + 1, :Len, :Len].fill(1.0 / Len)
         self.pi[:Len].fill(1.0 / 2 / Len)
+        return
+
+    def initialiseParameter(self, maxE):
+        self.a = np.zeros((maxE + 1, maxE * 2, maxE * 2))
+        self.pi = np.zeros(maxE * 2)
+        self.delta = np.zeros((maxE + 1, maxE, maxE))
         return
 
     def forwardBackward(self, f, e, tSmall, a):
@@ -69,85 +75,44 @@ class AlignmentModelBase(Base):
                 np.matmul(beta[i + 1] * tSmall[i + 1], a.T) * alphaScale[i]
         return alpha, alphaScale, beta
 
-    def maxTargetSentenceLength(self, dataset):
-        maxLength = 0
-        eLengthSet = defaultdict(int)
-        for (f, e, alignment) in dataset:
-            tempLength = len(e)
-            if tempLength > maxLength:
-                maxLength = tempLength
-            eLengthSet[tempLength] += 1
-        return (maxLength, eLengthSet)
-
     def baumWelch(self, dataset, iterations=5, index=0):
         if not self.task:
             self.task = Task("Aligner", "HMMBaumWelchOI" + str(iterations))
-        self.logger.info("Starting Training Process")
-        self.logger.info("Training size: " + str(len(dataset)))
+        self.logger.info("Starting BaumWelch Training Process, size: " +
+                         str(len(dataset)))
         startTime = time.time()
 
-        maxE, self.eLengthSet = self.maxTargetSentenceLength(dataset)
+        maxE = max([len(e) for (f, e, alignment) in dataset])
+        for (f, e, alignment) in dataset:
+            self.eLengthSet[len(e)] = 1
+        self.initialiseParameter(maxE)
         self.logger.info("Maximum Target sentence length: " + str(maxE))
-
-        self.a = np.zeros((maxE + 1, maxE * 2, maxE * 2))
-        self.pi = np.zeros(maxE * 2)
 
         for iteration in range(iterations):
             self.logger.info("BaumWelch Iteration " + str(iteration))
-
             logLikelihood = 0
-
-            delta = np.zeros((maxE + 1, maxE, maxE))
-
+            counter = 0
             self._beginningOfIteration(dataset, maxE, index)
 
-            counter = 0
             for (f, e, alignment) in dataset:
                 self.task.progress("BaumWelch iter %d, %d of %d" %
                                    (iteration, counter, len(dataset),))
                 counter += 1
                 if iteration == 0:
-                    self.initialiseParameter(len(e))
+                    self.initialValues(len(e))
 
-                fLen, eLen = len(f), len(e)
-                a = self.a[eLen][:len(e), :len(e)]
+                a = self.aProbability(f, e)[:len(e), :len(e)]
                 tSmall = self.tProbability(f, e, index)
 
                 alpha, alphaScale, beta = self.forwardBackward(f, e, tSmall, a)
+                self._updateGamma(f, e, alpha, beta, alphaScale, index)
+                self._updateDelta(f, e, alpha, beta, alphaScale, tSmall, a)
 
-                # Update logLikelihood
                 logLikelihood -= np.sum(np.log(alphaScale))
-
-                # Setting gamma
-                gamma = self.gamma(f, e, alpha, beta, alphaScale, index)
-
-                # Update delta, the code below is the slow version. It is given
-                # here as the matrix version might be difficult to understand
-                # at first sight
-                # c = [0.0 for i in range(eLen * 2)]
-                # for i in range(1, fLen):
-                #     for prev_j in range(eLen):
-                #         for j in range(eLen):
-                #             c[eLen - 1 + j - prev_j] += (
-                #                 alpha[i - 1][prev_j] *
-                #                 beta[i][j] *
-                #                 a[prev_j][j] *
-                #                 tSmall[i][j])
-                # for prev_j in range(eLen):
-                #     for j in range(eLen):
-                #         delta[eLen][prev_j][j] += c[eLen - 1 + j - prev_j]
-                Xceta = np.matmul(alpha[:fLen - 1].T, (beta * tSmall)[1:]) * a
-                c = np.zeros(eLen * 2)
-                for j in range(eLen):
-                    c[eLen - 1 - j:2 * eLen - 1 - j] += Xceta[j]
-                for j in range(eLen):
-                    delta[eLen][j][:eLen] +=\
-                        c[eLen - 1 - j:2 * eLen - 1 - j]
-            # end of loop over dataset
 
             self.logger.info("likelihood " + str(logLikelihood))
             # M-Step
-            self._updateEndOfIteration(maxE, delta, index)
+            self._updateEndOfIteration(maxE, index)
 
         self.endOfBaumWelch(index)
         endTime = time.time()
@@ -158,10 +123,20 @@ class AlignmentModelBase(Base):
     def _beginningOfIteration(self, dataset, maxE, index):
         raise NotImplementedError
 
-    def gamma(self, f, e, alpha, beta, alphaScale, index):
+    def _updateGamma(self, f, e, alpha, beta, alphaScale, index):
         raise NotImplementedError
 
-    def _updateEndOfIteration(self, maxE, delta, index):
+    def _updateDelta(self, f, e, alpha, beta, alphaScale, tSmall, a):
+        fLen, eLen = len(f), len(e)
+        Xceta = np.matmul(alpha[:fLen - 1].T, (beta * tSmall)[1:]) * a
+        c = np.zeros(eLen * 2)
+        for j in range(eLen):
+            c[eLen - 1 - j:2 * eLen - 1 - j] += Xceta[j]
+        for j in range(eLen):
+            self.delta[eLen][j][:eLen] +=\
+                c[eLen - 1 - j:2 * eLen - 1 - j]
+
+    def _updateEndOfIteration(self, maxE, index):
         raise NotImplementedError
 
     def endOfBaumWelch(self, index):
@@ -182,13 +157,16 @@ class AlignmentModelBase(Base):
         t[t == 0] = 0.000006123586217
         return t
 
-    def aProbability(self, targetLength):
+    def aProbability(self, f, e):
+        targetLength = len(e)
         if targetLength in self.eLengthSet:
             return self.a[targetLength][:targetLength * 2, :targetLength * 2]
         return np.full((targetLength * 2, targetLength * 2), 1. / targetLength)
 
     def logViterbi(self, f, e):
         e = deepcopy(e)
+        with np.errstate(invalid='ignore', divide='ignore'):
+            a = np.log(self.aProbability(f, e))
         fLen, eLen = len(f), len(e)
         for i in range(eLen):
             e.append((424242424243, 424242424243))
@@ -197,7 +175,6 @@ class AlignmentModelBase(Base):
 
         with np.errstate(invalid='ignore', divide='ignore'):
             score = np.log(self.tProbability(f, e))
-            a = np.log(self.aProbability(eLen))
         for i in range(fLen):
             if i == 0:
                 with np.errstate(invalid='ignore', divide='ignore'):
