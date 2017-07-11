@@ -75,8 +75,6 @@ class AlignmentModelBase():
             self.modelComponents = []
         if "_savedModelFile" not in vars(self):
             self._savedModelFile = ""
-        self.logger.info("Model initialised: " + str(self.modelName) +
-                         " V" + str(self.version))
         return
 
     def loadModel(self, fileName=None, force=False):
