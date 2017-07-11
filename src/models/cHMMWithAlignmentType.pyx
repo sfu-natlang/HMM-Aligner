@@ -190,6 +190,8 @@ class AlignmentModel(Base):
 
     def logViterbi(self, f, e):
         e = deepcopy(e)
+        with np.errstate(invalid='ignore', divide='ignore'):
+            a = np.log(self.aProbability(f, e))
         fLen, eLen = len(f), len(e)
         for i in range(eLen):
             e.append((424242424243, 424242424243))
@@ -200,7 +202,6 @@ class AlignmentModel(Base):
 
         with np.errstate(invalid='ignore', divide='ignore'):
             score = np.log(self.tProbability(f, e)) + np.log(np.max(s, axis=2))
-            a = np.log(self.aProbability(eLen))
         for i in range(fLen):
             if i == 0:
                 with np.errstate(invalid='ignore', divide='ignore'):
