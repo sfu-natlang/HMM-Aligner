@@ -68,7 +68,7 @@ class AlignmentModel(Base):
                       for i in range(len(self.fLex[index]))]
         return
 
-    def gamma(self, f, e, alpha, beta, alphaScale, index):
+    def _updateGamma(self, f, e, alpha, beta, alphaScale, index):
         fWords = [f[i][index] for i in range(len(f))]
         eWords = [e[j][index] for j in range(len(e))]
         gamma = ((alpha * beta).T / alphaScale).T
@@ -81,14 +81,14 @@ class AlignmentModel(Base):
         self.gammaSum_0[:len(e)] += gamma[0]
         return gamma
 
-    def _updateEndOfIteration(self, maxE, delta, index):
+    def _updateEndOfIteration(self, maxE, index):
         self.logger.info("End of iteration")
         # Update a
         for Len in self.eLengthSet:
-            deltaSum = np.sum(delta[Len], axis=1) + 1e-37
+            deltaSum = np.sum(self.delta[Len], axis=1) + 1e-37
             for prev_j in range(Len):
                 self.a[Len][prev_j][:Len] =\
-                    delta[Len][prev_j][:Len] / deltaSum[prev_j]
+                    self.delta[Len][prev_j][:Len] / deltaSum[prev_j]
 
         # Update pi
         self.pi[:maxE] = self.gammaSum_0[:maxE] / self.lenDataset
