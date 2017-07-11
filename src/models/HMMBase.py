@@ -31,7 +31,7 @@ class AlignmentModelBase(Base):
         if "t" not in vars(self):
             self.t = []
         if "eLengthSet" not in vars(self):
-            self.eLengthSet = defaultdict(int)
+            self.eLengthSet = {}
         if "a" not in vars(self):
             self.a = [[[]]]
         if "pi" not in vars(self):
@@ -75,33 +75,25 @@ class AlignmentModelBase(Base):
                 np.matmul(beta[i + 1] * tSmall[i + 1], a.T) * alphaScale[i]
         return alpha, alphaScale, beta
 
-    def maxTargetSentenceLength(self, dataset):
-        maxLength = 0
-        eLengthSet = defaultdict(int)
-        for (f, e, alignment) in dataset:
-            tempLength = len(e)
-            if tempLength > maxLength:
-                maxLength = tempLength
-            eLengthSet[tempLength] += 1
-        return (maxLength, eLengthSet)
-
     def baumWelch(self, dataset, iterations=5, index=0):
         if not self.task:
             self.task = Task("Aligner", "HMMBaumWelchOI" + str(iterations))
-        self.logger.info("Starting Training Process")
-        self.logger.info("Training size: " + str(len(dataset)))
+        self.logger.info("Starting BaumWelch Training Process, size: " +
+                         str(len(dataset)))
         startTime = time.time()
 
-        maxE, self.eLengthSet = self.maxTargetSentenceLength(dataset)
-        self.logger.info("Maximum Target sentence length: " + str(maxE))
+        maxE = max([len(e) for (f, e, alignment) in dataset])
+        for (f, e, alignment) in dataset:
+            self.eLengthSet[len(e)] = 1
         self.initialiseParameter(maxE)
+        self.logger.info("Maximum Target sentence length: " + str(maxE))
 
         for iteration in range(iterations):
             self.logger.info("BaumWelch Iteration " + str(iteration))
             logLikelihood = 0
+            counter = 0
             self._beginningOfIteration(dataset, maxE, index)
 
-            counter = 0
             for (f, e, alignment) in dataset:
                 self.task.progress("BaumWelch iter %d, %d of %d" %
                                    (iteration, counter, len(dataset),))
@@ -109,21 +101,14 @@ class AlignmentModelBase(Base):
                 if iteration == 0:
                     self.initialValues(len(e))
 
-                fLen, eLen = len(f), len(e)
                 a = self.aProbability(f, e)[:len(e), :len(e)]
                 tSmall = self.tProbability(f, e, index)
 
                 alpha, alphaScale, beta = self.forwardBackward(f, e, tSmall, a)
-
-                # Update logLikelihood
-                logLikelihood -= np.sum(np.log(alphaScale))
-
-                # Setting gamma
                 self._updateGamma(f, e, alpha, beta, alphaScale, index)
-
-                # Update delta
                 self._updateDelta(f, e, alpha, beta, alphaScale, tSmall, a)
-            # end of loop over dataset
+
+                logLikelihood -= np.sum(np.log(alphaScale))
 
             self.logger.info("likelihood " + str(logLikelihood))
             # M-Step
