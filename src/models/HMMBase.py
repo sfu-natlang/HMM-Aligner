@@ -53,6 +53,7 @@ class AlignmentModelBase(Base):
     def initialiseParameter(self, maxE):
         self.a = np.zeros((maxE + 1, maxE * 2, maxE * 2))
         self.pi = np.zeros(maxE * 2)
+        self.delta = np.zeros((maxE + 1, maxE, maxE))
         return
 
     def forwardBackward(self, f, e, tSmall, a):
@@ -98,7 +99,6 @@ class AlignmentModelBase(Base):
         for iteration in range(iterations):
             self.logger.info("BaumWelch Iteration " + str(iteration))
             logLikelihood = 0
-            self.delta = np.zeros((maxE + 1, maxE, maxE))
             self._beginningOfIteration(dataset, maxE, index)
 
             counter = 0
@@ -119,16 +119,10 @@ class AlignmentModelBase(Base):
                 logLikelihood -= np.sum(np.log(alphaScale))
 
                 # Setting gamma
-                gamma = self.gamma(f, e, alpha, beta, alphaScale, index)
+                self._updateGamma(f, e, alpha, beta, alphaScale, index)
 
                 # Update delta
-                Xceta = np.matmul(alpha[:fLen - 1].T, (beta * tSmall)[1:]) * a
-                c = np.zeros(eLen * 2)
-                for j in range(eLen):
-                    c[eLen - 1 - j:2 * eLen - 1 - j] += Xceta[j]
-                for j in range(eLen):
-                    self.delta[eLen][j][:eLen] +=\
-                        c[eLen - 1 - j:2 * eLen - 1 - j]
+                self._updateDelta(f, e, alpha, beta, alphaScale, tSmall, a)
             # end of loop over dataset
 
             self.logger.info("likelihood " + str(logLikelihood))
@@ -144,7 +138,7 @@ class AlignmentModelBase(Base):
     def _beginningOfIteration(self, dataset, maxE, index):
         raise NotImplementedError
 
-    def gamma(self, f, e, alpha, beta, alphaScale, index):
+    def _updateGamma(self, f, e, alpha, beta, alphaScale, index):
         raise NotImplementedError
 
     def _updateDelta(self, f, e, alpha, beta, alphaScale, tSmall, a):
