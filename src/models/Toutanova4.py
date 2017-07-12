@@ -72,9 +72,11 @@ class AlignmentModel(HMM):
         t = np.zeros((len(f), len(e)))
         NullValues = self.fNullProb([f[i][0] for i in range(len(f))])
         for j in range(len(e)):
-            if e[j][index] >= len(self.eLex[index]):
+            if e[j][index] == 424242424243:
                 for i in range(len(f)):
                     t[:, j] = NullValues
+                continue
+            if e[j][index] >= len(self.eLex[index]):
                 continue
             for i in range(len(f)):
                 if f[i][index] < len(self.t) and \
