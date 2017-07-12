@@ -6,7 +6,7 @@
 # NLP Lab
 #
 # This is the implementation of the extended HMM word aligner as described in
-# Toutanova's 2002 paper (5.2). It adds in the Modeling Fertility.
+# Toutanova's 2002 paper (5.3). It adds in the Modeling Fertility.
 #
 import numpy as np
 from collections import defaultdict
