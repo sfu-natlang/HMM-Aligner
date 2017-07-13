@@ -30,9 +30,10 @@ class AlignmentModel(HMM):
         return
 
     def initialiseParameter(self, maxE):
-        self.a = np.zeros((maxE + 1, len(self.fLex[1]), maxE * 2, maxE * 2))
+        self.a =\
+            np.zeros((maxE + 1, len(self.fLex[1]) + 1, maxE * 2, maxE * 2))
         self.pi = np.zeros(maxE * 2)
-        self.delta = np.zeros((maxE + 1, len(self.fLex[1]), maxE, maxE))
+        self.delta = np.zeros((maxE + 1, len(self.fLex[1]) + 1, maxE, maxE))
         return
 
     def aProbability(self, f, e):
@@ -43,7 +44,8 @@ class AlignmentModel(HMM):
                 if f[i][1] < len(self.fLex[1]):
                     a[i] = self.a[Len][f[i][1]][:Len * 2, :Len * 2]
                 else:
-                    a[i] = np.full((Len * 2, Len * 2), 1. / Len)
+                    a[i] = self.a[Len][-1][:Len * 2, :Len * 2]
+                a[i][np.where(a[i] == 0)] = self.a[Len][-1][np.where(a[i] == 0)]
         else:
             a = np.full((Len * 2, Len * 2), 1. / Len)
             a = np.tile(a, (len(f), 1, 1))
@@ -60,11 +62,19 @@ class AlignmentModel(HMM):
                 self.delta[eLen][f[i][1]][j][:eLen] +=\
                     c[i][eLen - 1 - j:2 * eLen - 1 - j]
 
+        c = np.zeros(eLen * 2)
+        Xceta = np.sum(xi, axis=0)
+        for j in range(eLen):
+            c[eLen - 1 - j:2 * eLen - 1 - j] += Xceta[j]
+        for j in range(eLen):
+            self.delta[eLen][-1][j][:eLen] +=\
+                c[eLen - 1 - j:2 * eLen - 1 - j]
+
     def _updateEndOfIteration(self, maxE, index):
         self.logger.info("End of iteration")
         # Update a
         for Len in self.eLengthSet:
-            for fTag in range(len(self.fLex[1])):
+            for fTag in range(len(self.fLex[1]) + 1):
                 deltaSum = np.sum(self.delta[Len][fTag], axis=1) + 1e-37
                 for prev_j in range(Len):
                     self.a[Len][fTag][prev_j][:Len] =\
@@ -84,13 +94,13 @@ class AlignmentModel(HMM):
     def endOfBaumWelch(self, index):
         # Smoothing for target sentences of unencountered length
         for targetLen in self.eLengthSet:
-            for fTag in range(len(self.fLex[1])):
+            for fTag in range(len(self.fLex[1]) + 1):
                 a = self.a[targetLen][fTag]
                 for prev_j in range(targetLen):
                     for j in range(targetLen):
                         a[prev_j][j] *= 1 - self.p0H
         for targetLen in self.eLengthSet:
-            for fTag in range(len(self.fLex[1])):
+            for fTag in range(len(self.fLex[1]) + 1):
                 a = self.a[targetLen][fTag]
                 for prev_j in range(targetLen):
                     for j in range(targetLen):
