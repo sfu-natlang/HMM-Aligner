@@ -12,7 +12,6 @@ import numpy as np
 from collections import defaultdict
 from loggers import logging
 from models.IBM1 import AlignmentModel as AlignerIBM1
-from models.modelBase import Task
 from models.HMMBase import AlignmentModelBase as Base
 from evaluators.evaluator import evaluate
 __version__ = "0.4a"
@@ -21,12 +20,11 @@ __version__ = "0.4a"
 class AlignmentModel(Base):
     def __init__(self):
         self.modelName = "HMM"
-        self.version = "0.3b"
+        self.version = "0.4b"
         self.logger = logging.getLogger('HMM')
         self.p0H = 0.3
         self.nullEmissionProb = 0.000005
         self.smoothFactor = 0.1
-        self.task = None
         self.evaluate = evaluate
         self.fLex = self.eLex = self.fIndex = self.eIndex = None
 
@@ -43,19 +41,17 @@ class AlignmentModel(Base):
         self.gammaSum_0 = np.zeros(maxE)
         return
 
-    def _updateGamma(self, f, e, alpha, beta, alphaScale, index):
+    def EStepGamma(self, f, e, gamma, index):
         fWords = [f[i][index] for i in range(len(f))]
         eWords = [e[j][index] for j in range(len(e))]
-        gamma = ((alpha * beta).T / alphaScale).T
         for i in range(len(f)):
             for j in range(len(e)):
                 self.gammaBiword[fWords[i]][eWords[j]] += gamma[i][j]
                 self.gammaEWord[eWords[j]] += gamma[i][j]
         self.gammaSum_0[:len(e)] += gamma[0]
-        return gamma
+        return
 
-    def _updateEndOfIteration(self, maxE, index):
-        self.logger.info("End of iteration")
+    def MStepDelta(self, maxE, index):
         # Update a
         for Len in self.eLengthSet:
             deltaSum = np.sum(self.delta[Len], axis=1) + 1e-37
@@ -63,6 +59,7 @@ class AlignmentModel(Base):
                 self.a[Len][prev_j][:Len] =\
                     self.delta[Len][prev_j][:Len] / deltaSum[prev_j]
 
+    def MStepGamma(self, maxE, index):
         # Update pi
         self.pi[:maxE] = self.gammaSum_0[:maxE] / self.lenDataset
 
@@ -70,8 +67,6 @@ class AlignmentModel(Base):
         for i in range(len(self.fLex[index])):
             for j in self.gammaBiword[i]:
                 self.t[i][j] = self.gammaBiword[i][j] / self.gammaEWord[j]
-        del self.gammaEWord
-        del self.gammaBiword
         return
 
     def endOfBaumWelch(self, index):
@@ -92,17 +87,12 @@ class AlignmentModel(Base):
 
     def train(self, dataset, iterations):
         dataset = self.initialiseLexikon(dataset)
-        self.task = Task("Aligner", "HMMOI" + str(iterations))
-        self.task.progress("Training IBM model 1")
         self.logger.info("Training IBM model 1")
         alignerIBM1 = AlignerIBM1()
         alignerIBM1.sharedLexikon(self)
         alignerIBM1.initialiseBiwordCount(dataset)
         alignerIBM1.EM(dataset, iterations, 'IBM1')
         self.t = alignerIBM1.t
-        self.task.progress("IBM model Trained")
         self.logger.info("IBM model Trained")
         self.baumWelch(dataset, iterations=iterations)
-        self.task.progress("finalising")
-        self.task = None
         return
