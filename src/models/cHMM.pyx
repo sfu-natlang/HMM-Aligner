@@ -43,16 +43,15 @@ class AlignmentModel(Base):
         self.gammaSum_0 = np.zeros(maxE)
         return
 
-    def _updateGamma(self, f, e, alpha, beta, alphaScale, index):
+    def _updateGamma(self, f, e, gamma, index):
         fWords = [f[i][index] for i in range(len(f))]
         eWords = [e[j][index] for j in range(len(e))]
-        gamma = ((alpha * beta).T / alphaScale).T
         for i in range(len(f)):
             for j in range(len(e)):
                 self.gammaBiword[fWords[i]][eWords[j]] += gamma[i][j]
                 self.gammaEWord[eWords[j]] += gamma[i][j]
         self.gammaSum_0[:len(e)] += gamma[0]
-        return gamma
+        return
 
     def _updateEndOfIteration(self, maxE, index):
         self.logger.info("End of iteration")
