@@ -33,13 +33,13 @@ class AlignmentModel(HMM):
         self.gammaETags = [0.0 for i in range(len(self.eLex[1]))]
         return
 
-    def _updateGamma(self, f, e, alpha, beta, alphaScale, index):
-        gamma = HMM._updateGamma(self, f, e, alpha, beta, alphaScale, index)
+    def _updateGamma(self, f, e, gamma, index):
+        HMM._updateGamma(self, f, e, gamma, index)
         for i in range(len(f)):
             for j in range(len(e)):
                 self.gammaBiTags[f[i][1]][e[j][1]] += gamma[i][j]
                 self.gammaETags[e[j][1]] += gamma[i][j]
-        return gamma
+        return
 
     def _updateEndOfIteration(self, maxE, index):
         HMM._updateEndOfIteration(self, maxE, index)

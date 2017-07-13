@@ -37,8 +37,8 @@ class AlignmentModel(HMM):
         self.pStay.fill(1.0 / Len)
         return
 
-    def _updateDelta(self, f, e, alpha, beta, alphaScale, tSmall, a):
-        HMM._updateDelta(self, f, e, alpha, beta, alphaScale, tSmall, a)
+    def _updateDelta(self, f, e, xi):
+        HMM._updateDelta(self, f, e, xi)
         for j in range(len(e)):
             self.newPStay[e[j][1]] += self.delta[len(e)][j][j]
 
