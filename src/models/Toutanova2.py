@@ -98,18 +98,3 @@ class AlignmentModel(HMM):
                         a[prev_j + targetLen][prev_j + targetLen] = self.p0H
                         a[prev_j + targetLen][j] = a[prev_j][j]
         return
-
-    def train(self, dataset, iterations):
-        dataset = self.initialiseLexikon(dataset)
-        alignerIBM1 = AlignerIBM1()
-        alignerIBM1.sharedLexikon(self)
-        self.logger.info("Training IBM model 1 on FORM")
-        alignerIBM1.initialiseBiwordCount(dataset, index=0)
-        alignerIBM1.EM(dataset, iterations, 'IBM1', index=0)
-        self.t, alignerIBM1.t = alignerIBM1.t, []
-        self.logger.info("Training IBM model 1 on POSTAG")
-        alignerIBM1.initialiseBiwordCount(dataset, index=1)
-        alignerIBM1.EM(dataset, iterations, 'IBM1', index=1)
-        self.tTags = alignerIBM1.t
-        self.baumWelch(dataset, iterations=iterations)
-        return
