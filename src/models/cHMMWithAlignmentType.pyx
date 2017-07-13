@@ -68,10 +68,9 @@ class AlignmentModel(Base):
                       for i in range(len(self.fLex[index]))]
         return
 
-    def _updateGamma(self, f, e, alpha, beta, alphaScale, index):
+    def _updateGamma(self, f, e, gamma, index):
         fWords = [f[i][index] for i in range(len(f))]
         eWords = [e[j][index] for j in range(len(e))]
-        gamma = ((alpha * beta).T / alphaScale).T
         score = self.sProbability(f, e, index) * gamma[:, :, None]
         for i in range(len(f)):
             for j in range(len(e)):
@@ -79,7 +78,7 @@ class AlignmentModel(Base):
                 self.gammaEWord[eWords[j]] += gamma[i][j]
                 self.c_feh[fWords[i]][eWords[j]] += score[i][j]
         self.gammaSum_0[:len(e)] += gamma[0]
-        return gamma
+        return
 
     def _updateEndOfIteration(self, maxE, index):
         self.logger.info("End of iteration")
@@ -211,7 +210,7 @@ class AlignmentModel(Base):
                         score[i][:self.pi.shape[0]] += np.log(self.pi)
                         score[i][self.pi.shape[0]:].fill(-sys.maxint)
             else:
-                tmp = (a.T + score[i - 1]).T
+                tmp = (a[i].T + score[i - 1]).T
                 bestPrev_j = np.argmax(tmp, axis=0)
                 prev_j[i] = bestPrev_j
                 score[i] += np.max(tmp, axis=0)
