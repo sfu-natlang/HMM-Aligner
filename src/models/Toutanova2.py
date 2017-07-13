@@ -45,7 +45,8 @@ class AlignmentModel(HMM):
                     a[i] = self.a[Len][f[i][1]][:Len * 2, :Len * 2]
                 else:
                     a[i] = self.a[Len][-1][:Len * 2, :Len * 2]
-                a[i][np.where(a[i] == 0)] = self.a[Len][-1][np.where(a[i] == 0)]
+                a[i][np.where(a[i] == 0)] =\
+                    self.a[Len][-1][np.where(a[i] == 0)]
         else:
             a = np.full((Len * 2, Len * 2), 1. / Len)
             a = np.tile(a, (len(f), 1, 1))
