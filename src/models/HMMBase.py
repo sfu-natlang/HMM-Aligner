@@ -15,7 +15,6 @@ from collections import defaultdict
 from copy import deepcopy
 
 from loggers import logging
-from models.modelBase import Task
 from models.modelBase import AlignmentModelBase as Base
 from evaluators.evaluator import evaluate
 __version__ = "0.4a"
@@ -25,8 +24,6 @@ class AlignmentModelBase(Base):
     def __init__(self):
         if "nullEmissionProb" not in vars(self):
             self.nullEmissionProb = 0.000005
-        if "task" not in vars(self):
-            self.task = None
 
         if "t" not in vars(self):
             self.t = []
@@ -76,8 +73,6 @@ class AlignmentModelBase(Base):
         return alpha, alphaScale, beta
 
     def baumWelch(self, dataset, iterations=5, index=0):
-        if not self.task:
-            self.task = Task("Aligner", "HMMBaumWelchOI" + str(iterations))
         self.logger.info("Starting BaumWelch Training Process, size: " +
                          str(len(dataset)))
         startTime = time.time()
@@ -95,8 +90,6 @@ class AlignmentModelBase(Base):
             self._beginningOfIteration(dataset, maxE, index)
 
             for (f, e, alignment) in dataset:
-                self.task.progress("BaumWelch iter %d, %d of %d" %
-                                   (iteration, counter, len(dataset),))
                 counter += 1
                 if iteration == 0:
                     self.initialValues(len(e))
@@ -110,15 +103,18 @@ class AlignmentModelBase(Base):
                 xi[1:] = alpha[:-1][..., None] * a[1:] *\
                     (beta * tSmall)[1:][:, None, :]
 
-                self._updateGamma(f, e, gamma, index)
-                self._updateDelta(f, e, xi)
+                self.EStepGamma(f, e, gamma, index)
+                self.EStepDelta(f, e, xi)
 
                 logLikelihood -= np.sum(np.log(alphaScale))
 
             self.logger.info("likelihood " + str(logLikelihood))
             # M-Step
-            self._updateEndOfIteration(maxE, index)
+            self.logger.info("End of iteration, M steps")
+            self.MStepDelta(maxE, index)
+            self.MStepGamma(maxE, index)
 
+        self.logger.info("Finalising")
         self.endOfBaumWelch(index)
         endTime = time.time()
         self.logger.info("Training Complete, total time(seconds): %f" %
@@ -128,10 +124,10 @@ class AlignmentModelBase(Base):
     def _beginningOfIteration(self, dataset, maxE, index):
         raise NotImplementedError
 
-    def _updateGamma(self, f, e, gamma, index):
+    def EStepGamma(self, f, e, gamma, index):
         raise NotImplementedError
 
-    def _updateDelta(self, f, e, xi):
+    def EStepDelta(self, f, e, xi):
         fLen, eLen = len(f), len(e)
         c = np.zeros(eLen * 2)
         Xceta = np.sum(xi, axis=0)
@@ -141,7 +137,10 @@ class AlignmentModelBase(Base):
             self.delta[eLen][j][:eLen] +=\
                 c[eLen - 1 - j:2 * eLen - 1 - j]
 
-    def _updateEndOfIteration(self, maxE, index):
+    def MStepDelta(self, maxE, index):
+        raise NotImplementedError
+
+    def MStepGamma(self, maxE, index):
         raise NotImplementedError
 
     def endOfBaumWelch(self, index):

@@ -11,7 +11,6 @@ import time
 import numpy as np
 from copy import deepcopy
 from loggers import logging
-from models.cModelBase import Task
 from models.cModelBase import AlignmentModelBase as Base
 __version__ = "0.4a"
 
@@ -39,7 +38,6 @@ class AlignmentModelBase(Base):
         return t
 
     def EM(self, dataset, iterations, modelName="IBM1Base", index=0):
-        task = Task("Aligner", modelName + str(iterations))
         self.logger.info("Starting Training Process")
         self.logger.info("Training size: " + str(len(dataset)))
         start_time = time.time()
@@ -52,9 +50,6 @@ class AlignmentModelBase(Base):
             for item in dataset:
                 f, e = item[0:2]
                 counter += 1
-                task.progress(modelName + " iter %d, %d of %d" %
-                              (iteration, counter, len(dataset),))
-
                 self._updateCount(f, e, index)
 
             self._updateEndOfIteration(index)
@@ -68,8 +63,7 @@ class AlignmentModelBase(Base):
     def decodeSentence(self, sentence):
         # This is the standard sentence decoder for IBM model 1
         # What happens there is that for every source f word, we find the
-        # target e word with the highest tr(e|f) score here, which is
-        # tProbability(f[i], e[j])
+        # target e word with the highest tr(f|e) score here.
         f, e, alignment = self.lexiSentence(sentence)
         sentenceAlignment = []
         score = self.tProbability(f, e)
