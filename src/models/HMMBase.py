@@ -65,14 +65,14 @@ class AlignmentModelBase(Base):
         alphaScale[0] = 1 / np.sum(alpha[0])
         alpha[0] *= alphaScale[0]
         for i in range(1, len(f)):
-            alpha[i] = tSmall[i] * np.matmul(alpha[i - 1], a)
+            alpha[i] = tSmall[i] * np.matmul(alpha[i - 1], a[i])
             alphaScale[i] = 1 / np.sum(alpha[i])
             alpha[i] *= alphaScale[i]
 
         beta[len(f) - 1].fill(alphaScale[len(f) - 1])
         for i in range(len(f) - 2, -1, -1):
-            beta[i] =\
-                np.matmul(beta[i + 1] * tSmall[i + 1], a.T) * alphaScale[i]
+            beta[i] = np.matmul(beta[i + 1] * tSmall[i + 1], a[i + 1].T) *\
+                alphaScale[i]
         return alpha, alphaScale, beta
 
     def baumWelch(self, dataset, iterations=5, index=0):
@@ -101,12 +101,18 @@ class AlignmentModelBase(Base):
                 if iteration == 0:
                     self.initialValues(len(e))
 
-                a = self.aProbability(f, e)[:len(e), :len(e)]
+                a = self.aProbability(f, e)[:len(f), :len(e), :len(e)]
                 tSmall = self.tProbability(f, e, index)
 
                 alpha, alphaScale, beta = self.forwardBackward(f, e, tSmall, a)
                 self._updateGamma(f, e, alpha, beta, alphaScale, index)
-                self._updateDelta(f, e, alpha, beta, alphaScale, tSmall, a)
+                fLen, eLen = len(f), len(e)
+                xi = np.zeros((fLen, eLen, eLen))
+                bt = beta * tSmall
+                xi[1:] = alpha[:-1][..., None] * a[1:]
+                for i in range(1, fLen):
+                    xi[i] *= bt[i]
+                self._updateDelta(f, e, xi)
 
                 logLikelihood -= np.sum(np.log(alphaScale))
 
@@ -126,10 +132,10 @@ class AlignmentModelBase(Base):
     def _updateGamma(self, f, e, alpha, beta, alphaScale, index):
         raise NotImplementedError
 
-    def _updateDelta(self, f, e, alpha, beta, alphaScale, tSmall, a):
+    def _updateDelta(self, f, e, xi):
         fLen, eLen = len(f), len(e)
-        Xceta = np.matmul(alpha[:fLen - 1].T, (beta * tSmall)[1:]) * a
         c = np.zeros(eLen * 2)
+        Xceta = np.sum(xi, axis=0)
         for j in range(eLen):
             c[eLen - 1 - j:2 * eLen - 1 - j] += Xceta[j]
         for j in range(eLen):
@@ -158,10 +164,12 @@ class AlignmentModelBase(Base):
         return t
 
     def aProbability(self, f, e):
-        targetLength = len(e)
-        if targetLength in self.eLengthSet:
-            return self.a[targetLength][:targetLength * 2, :targetLength * 2]
-        return np.full((targetLength * 2, targetLength * 2), 1. / targetLength)
+        Len = len(e)
+        if Len in self.eLengthSet:
+            a = self.a[Len][:Len * 2, :Len * 2]
+        else:
+            a = np.full((Len * 2, Len * 2), 1. / Len)
+        return np.tile(a, (len(f), 1, 1))
 
     def logViterbi(self, f, e):
         e = deepcopy(e)
@@ -184,7 +192,7 @@ class AlignmentModelBase(Base):
                         score[i][:self.pi.shape[0]] += np.log(self.pi)
                         score[i][self.pi.shape[0]:].fill(-sys.maxint)
             else:
-                tmp = (a.T + score[i - 1]).T
+                tmp = (a[i].T + score[i - 1]).T
                 bestPrev_j = np.argmax(tmp, axis=0)
                 prev_j[i] = bestPrev_j
                 score[i] += np.max(tmp, axis=0)
