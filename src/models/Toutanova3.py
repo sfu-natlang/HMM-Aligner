@@ -37,13 +37,13 @@ class AlignmentModel(HMM):
         self.pStay.fill(1.0 / Len)
         return
 
-    def _updateDelta(self, f, e, xi):
-        HMM._updateDelta(self, f, e, xi)
+    def EStepDelta(self, f, e, xi):
+        HMM.EStepDelta(self, f, e, xi)
         for j in range(len(e)):
             self.newPStay[e[j][1]] += self.delta[len(e)][j][j]
 
-    def _updateEndOfIteration(self, maxE, index):
-        HMM._updateEndOfIteration(self, maxE, index)
+    def MStepDelta(self, maxE, index):
+        HMM.MStepDelta(self, maxE, index)
         self.pStay = self.newPStay / np.sum(self.newPStay)
         return
 
@@ -51,6 +51,6 @@ class AlignmentModel(HMM):
         a = np.array(HMM.aProbability(self, f, e), copy=True)
         for i in range(len(e)):
             if i < len(self.eLex):
-                a[i] *= (1 - self.pStay[e[i][1]])
-                a[i][i] = self.pStay[e[i][1]]
+                a[:, i] *= (1 - self.pStay[e[i][1]])
+                a[:, i, i] = self.pStay[e[i][1]]
         return a

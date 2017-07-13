@@ -33,22 +33,20 @@ class AlignmentModel(HMM):
         self.gammaETags = [0.0 for i in range(len(self.eLex[1]))]
         return
 
-    def _updateGamma(self, f, e, gamma, index):
-        HMM._updateGamma(self, f, e, gamma, index)
+    def EStepGamma(self, f, e, gamma, index):
+        HMM.EStepGamma(self, f, e, gamma, index)
         for i in range(len(f)):
             for j in range(len(e)):
                 self.gammaBiTags[f[i][1]][e[j][1]] += gamma[i][j]
                 self.gammaETags[e[j][1]] += gamma[i][j]
         return
 
-    def _updateEndOfIteration(self, maxE, index):
-        HMM._updateEndOfIteration(self, maxE, index)
+    def MStepGamma(self, maxE, index):
+        HMM.MStepGamma(self, maxE, index)
         # Update tTags
         for i in range(len(self.fLex[1])):
             for j in self.gammaBiTags[i]:
                 self.tTags[i][j] = self.gammaBiTags[i][j] / self.gammaETags[j]
-        del self.gammaETags
-        del self.gammaBiTags
         return
 
     def tProbability(self, f, e, index=0):

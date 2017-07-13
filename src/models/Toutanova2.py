@@ -52,7 +52,7 @@ class AlignmentModel(HMM):
             a = np.tile(a, (len(f), 1, 1))
         return a
 
-    def _updateDelta(self, f, e, xi):
+    def EStepDelta(self, f, e, xi):
         fLen, eLen = len(f), len(e)
         c = np.zeros((fLen, eLen * 2))
         for i in range(fLen):
@@ -71,8 +71,7 @@ class AlignmentModel(HMM):
             self.delta[eLen][-1][j][:eLen] +=\
                 c[eLen - 1 - j:2 * eLen - 1 - j]
 
-    def _updateEndOfIteration(self, maxE, index):
-        self.logger.info("End of iteration")
+    def MStepDelta(self, maxE, index):
         # Update a
         for Len in self.eLengthSet:
             for fTag in range(len(self.fLex[1]) + 1):
@@ -80,16 +79,6 @@ class AlignmentModel(HMM):
                 for prev_j in range(Len):
                     self.a[Len][fTag][prev_j][:Len] =\
                         self.delta[Len][fTag][prev_j][:Len] / deltaSum[prev_j]
-
-        # Update pi
-        self.pi[:maxE] = self.gammaSum_0[:maxE] / self.lenDataset
-
-        # Update t
-        for i in range(len(self.fLex[index])):
-            for j in self.gammaBiword[i]:
-                self.t[i][j] = self.gammaBiword[i][j] / self.gammaEWord[j]
-        del self.gammaEWord
-        del self.gammaBiword
         return
 
     def endOfBaumWelch(self, index):
