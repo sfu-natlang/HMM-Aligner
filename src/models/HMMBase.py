@@ -105,13 +105,11 @@ class AlignmentModelBase(Base):
                 tSmall = self.tProbability(f, e, index)
 
                 alpha, alphaScale, beta = self.forwardBackward(f, e, tSmall, a)
+                xi = np.zeros((len(f), len(e), len(e)))
+                xi[1:] = alpha[:-1][..., None] * a[1:] *\
+                    (beta * tSmall)[1:][:, None, :]
+
                 self._updateGamma(f, e, alpha, beta, alphaScale, index)
-                fLen, eLen = len(f), len(e)
-                xi = np.zeros((fLen, eLen, eLen))
-                bt = beta * tSmall
-                xi[1:] = alpha[:-1][..., None] * a[1:]
-                for i in range(1, fLen):
-                    xi[i] *= bt[i]
                 self._updateDelta(f, e, xi)
 
                 logLikelihood -= np.sum(np.log(alphaScale))
