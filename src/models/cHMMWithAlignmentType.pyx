@@ -16,23 +16,16 @@ from copy import deepcopy
 
 from loggers import logging
 from models.cIBM1 import AlignmentModel as AlignerIBM1
-from models.cModelBase import Task
-from models.cHMMBase import AlignmentModelBase as Base
+from models.cHMM import AlignmentModel as HMM
 from evaluators.evaluator import evaluate
 __version__ = "0.4a"
 
 
-class AlignmentModel(Base):
+class AlignmentModel(HMM):
     def __init__(self):
+        HMM.__init__(self)
         self.modelName = "HMMWithAlignmentType"
-        self.version = "0.3b"
-        self.logger = logging.getLogger('HMM')
-        self.p0H = 0.3
-        self.nullEmissionProb = 0.000005
-        self.smoothFactor = 0.1
-        self.task = None
-        self.evaluate = evaluate
-        self.fe = ()
+        self.version = "0.4b"
 
         self.s = []
         self.sTag = []
@@ -44,7 +37,6 @@ class AlignmentModel(Base):
         self.lambda1 = 0.9999999999
         self.lambda2 = 9.999900827395436E-11
         self.lambda3 = 1.000000082740371E-15
-        self.fLex = self.eLex = self.fIndex = self.eIndex = None
 
         self.loadTypeDist = {"SEM": .401, "FUN": .264, "PDE": .004,
                              "CDE": .004, "MDE": .012, "GIS": .205,
@@ -55,81 +47,36 @@ class AlignmentModel(Base):
                                 "typeList", "typeIndex", "typeDist",
                                 "fLex", "eLex", "fIndex", "eIndex",
                                 "lambd", "lambda1", "lambda2", "lambda3"]
-        Base.__init__(self)
         return
 
     def _beginningOfIteration(self, dataset, maxE, index):
-        self.lenDataset = len(dataset)
-        self.gammaEWord = [0.0 for i in range(len(self.eLex[index]))]
-        self.gammaBiword = [defaultdict(float)
-                            for i in range(len(self.fLex[index]))]
-        self.gammaSum_0 = np.zeros(maxE)
+        HMM._beginningOfIteration(self, dataset, maxE, index)
         self.c_feh = [defaultdict(lambda: np.zeros(len(self.typeIndex)))
                       for i in range(len(self.fLex[index]))]
         return
 
-    def _updateGamma(self, f, e, gamma, index):
-        fWords = [f[i][index] for i in range(len(f))]
-        eWords = [e[j][index] for j in range(len(e))]
+    def EStepGamma(self, f, e, gamma, index):
+        HMM.EStepGamma(self, f, e, gamma, index)
         score = self.sProbability(f, e, index) * gamma[:, :, None]
         for i in range(len(f)):
             for j in range(len(e)):
-                self.gammaBiword[fWords[i]][eWords[j]] += gamma[i][j]
-                self.gammaEWord[eWords[j]] += gamma[i][j]
-                self.c_feh[fWords[i]][eWords[j]] += score[i][j]
-        self.gammaSum_0[:len(e)] += gamma[0]
+                self.c_feh[f[i][index]][e[j][index]] += score[i][j]
         return
 
-    def _updateEndOfIteration(self, maxE, index):
-        self.logger.info("End of iteration")
-        # Update a
-        for Len in self.eLengthSet:
-            deltaSum = np.sum(self.delta[Len], axis=1) + 1e-37
-            for prev_j in range(Len):
-                self.a[Len][prev_j][:Len] =\
-                    self.delta[Len][prev_j][:Len] / deltaSum[prev_j]
-
-        # Update pi
-        self.pi[:maxE] = self.gammaSum_0[:maxE] / self.lenDataset
-
-        # Update t
-        for i in range(len(self.fLex[index])):
-            for j in self.gammaBiword[i]:
-                self.t[i][j] = self.gammaBiword[i][j] / self.gammaEWord[j]
-        del self.gammaEWord
-
+    def MStepGamma(self, maxE, index):
+        HMM.MStepGamma(self, maxE, index)
         # Update s
         if self.index == 0:
-            del self.s
             self.s = self.c_feh
         else:
-            del self.sTag
             self.sTag = self.c_feh
         for i in range(len(self.c_feh)):
             for j in self.c_feh[i]:
                 self.c_feh[i][j] /= self.gammaBiword[i][j]
-        del self.gammaBiword
-        return
-
-    def endOfBaumWelch(self, index):
-        # Smoothing for target sentences of unencountered length
-        for targetLen in self.eLengthSet:
-            a = self.a[targetLen]
-            for prev_j in range(targetLen):
-                for j in range(targetLen):
-                    a[prev_j][j] *= 1 - self.p0H
-        for targetLen in self.eLengthSet:
-            a = self.a[targetLen]
-            for prev_j in range(targetLen):
-                for j in range(targetLen):
-                    a[prev_j][prev_j + targetLen] = self.p0H
-                    a[prev_j + targetLen][prev_j + targetLen] = self.p0H
-                    a[prev_j + targetLen][j] = a[prev_j][j]
         return
 
     def sProbability(self, f, e, index=0):
         sTag = np.tile((1 - self.lambd) * self.typeDist, (len(f), len(e), 1))
-
         for j in range(len(e)):
             for i in range(len(f)):
                 if f[i][1] < len(self.sTag) and e[j][1] in self.sTag[f[i][1]]:
@@ -153,7 +100,6 @@ class AlignmentModel(Base):
         alignerIBM1.sharedLexikon(self)
         alignerIBM1.initialiseBiwordCount(dataset, index)
         alignerIBM1.EM(dataset, iterations, 'IBM1', index)
-        self.task.progress("IBM model Trained")
         self.logger.info("IBM model Trained")
 
         self.logger.info("Initialising HMM")
@@ -165,26 +111,21 @@ class AlignmentModel(Base):
         self.t = alignerIBM1.t
         self.logger.info("HMM Initialised, start training")
         self.baumWelch(dataset, iterations=iterations, index=index)
-        self.task.progress("HMM finalising")
         return
 
     def train(self, dataset, iterations=5):
         dataset = self.initialiseLexikon(dataset)
-        self.task = Task("Aligner", "HMMOI" + str(iterations))
         self.logger.info("Loading alignment type distribution")
         self.initialiseAlignTypeDist(dataset, self.loadTypeDist)
         self.logger.info("Alignment type distribution loaded")
 
-        self.task.progress("Stage 1 Training With POS Tags")
         self.logger.info("Stage 1 Training With POS Tags")
         self.trainWithIndex(dataset, iterations, 1)
 
-        self.task.progress("Stage 2 Training With FORM")
         self.logger.info("Stage 2 Training With FORM")
         self.trainWithIndex(dataset, iterations, 0)
 
         self.logger.info("Training Complete")
-        self.task = None
         return
 
     def logViterbi(self, f, e):

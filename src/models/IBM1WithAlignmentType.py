@@ -92,7 +92,6 @@ class AlignmentModel(IBM1Base):
 
     def sProbability(self, f, e, index=0):
         sTag = np.tile((1 - self.lambd) * self.typeDist, (len(f), len(e), 1))
-
         for j in range(len(e)):
             for i in range(len(f)):
                 if f[i][1] < len(self.sTag) and e[j][1] in self.sTag[f[i][1]]:
