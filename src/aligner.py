@@ -39,6 +39,7 @@ if __name__ == '__main__':
         'iterations': 5,
         'model': "IBM1",
         'output': 'o.wa',
+        'showFigure': 0,
 
         'loadModel': "",
         'saveModel': "",
@@ -126,6 +127,9 @@ if __name__ == '__main__':
         ap.add_argument(
             "--forceLoad", dest="forceLoad", action='store_true',
             help="Ignore version and force loading model file")
+        ap.add_argument(
+            "--showFigure", dest="showFigure", type=int,
+            help="Show figures for the first specified number of decodings")
         args = ap.parse_args()
 
     # Process config file
@@ -246,7 +250,7 @@ if __name__ == '__main__':
         testDataset = loadDataset(testSourceFiles,
                                   testTargetFiles,
                                   linesToLoad=config['testSize'])
-        alignResult = aligner.decode(testDataset)
+        alignResult = aligner.decode(testDataset, config['showFigure'])
 
         if config['output'] != "":
             exportToFile(alignResult, config['output'])
