@@ -11,8 +11,12 @@
 import numpy as np
 from collections import defaultdict
 from loggers import logging
-from models.IBM1 import AlignmentModel as AlignerIBM1
-from models.HMM import AlignmentModel as HMM
+try:
+    from models.cIBM1 import AlignmentModel as AlignerIBM1
+    from models.cHMM import AlignmentModel as HMM
+except ImportError:
+    from models.IBM1 import AlignmentModel as AlignerIBM1
+    from models.HMM import AlignmentModel as HMM
 from evaluators.evaluator import evaluate
 __version__ = "0.4a"
 

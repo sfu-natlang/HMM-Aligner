@@ -11,8 +11,12 @@
 import numpy as np
 from collections import defaultdict
 from loggers import logging
-from models.IBM1 import AlignmentModel as AlignerIBM1
-from models.HMM import AlignmentModel as HMM
+try:
+    from models.cIBM1 import AlignmentModel as AlignerIBM1
+    from models.cHMM import AlignmentModel as HMM
+except ImportError:
+    from models.IBM1 import AlignmentModel as AlignerIBM1
+    from models.HMM import AlignmentModel as HMM
 from evaluators.evaluator import evaluate
 __version__ = "0.4a"
 
@@ -47,10 +51,8 @@ class AlignmentModel(HMM):
                     a[i] = self.a[Len][-1][:Len * 2, :Len * 2]
                 a[i][np.where(a[i] == 0)] =\
                     self.a[Len][-1][np.where(a[i] == 0)]
-        else:
-            a = np.full((Len * 2, Len * 2), 1. / Len)
-            a = np.tile(a, (len(f), 1, 1))
-        return a
+            return a
+        return np.tile(np.full((Len * 2, Len * 2), 1. / Len), (len(f), 1, 1))
 
     def EStepDelta(self, f, e, xi):
         fLen, eLen = len(f), len(e)
@@ -72,7 +74,6 @@ class AlignmentModel(HMM):
                 c[eLen - 1 - j:2 * eLen - 1 - j]
 
     def MStepDelta(self, maxE, index):
-        # Update a
         for Len in self.eLengthSet:
             for fTag in range(len(self.fLex[1]) + 1):
                 deltaSum = np.sum(self.delta[Len][fTag], axis=1) + 1e-37
@@ -82,19 +83,16 @@ class AlignmentModel(HMM):
         return
 
     def endOfBaumWelch(self, index):
-        # Smoothing for target sentences of unencountered length
         for targetLen in self.eLengthSet:
-            for fTag in range(len(self.fLex[1]) + 1):
-                a = self.a[targetLen][fTag]
-                for prev_j in range(targetLen):
-                    for j in range(targetLen):
-                        a[prev_j][j] *= 1 - self.p0H
+            a = self.a[targetLen]
+            for prev_j in range(targetLen):
+                for j in range(targetLen):
+                    a[:, prev_j, j] *= 1 - self.p0H
         for targetLen in self.eLengthSet:
-            for fTag in range(len(self.fLex[1]) + 1):
-                a = self.a[targetLen][fTag]
-                for prev_j in range(targetLen):
-                    for j in range(targetLen):
-                        a[prev_j][prev_j + targetLen] = self.p0H
-                        a[prev_j + targetLen][prev_j + targetLen] = self.p0H
-                        a[prev_j + targetLen][j] = a[prev_j][j]
+            a = self.a[targetLen]
+            for prev_j in range(targetLen):
+                for j in range(targetLen):
+                    a[:, prev_j][prev_j + targetLen] = self.p0H
+                    a[:, prev_j + targetLen][prev_j + targetLen] = self.p0H
+                    a[:, prev_j + targetLen][j] = a[:, prev_j][j]
         return
