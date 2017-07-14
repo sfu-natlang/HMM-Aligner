@@ -315,7 +315,7 @@ class AlignmentModelBase():
         return x
 
     def decode(self, dataset, showFigure=0):
-        from models.plot import *
+        from models.plot import plotAlignmentWithScore, showPlot
         self.logger.info("Start decoding")
         self.logger.info("Testing size: " + str(len(dataset)))
         result = []
