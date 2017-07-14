@@ -151,6 +151,7 @@ def loadAlignment(fileName, linesToLoad=sys.maxint):
     @return: GoldAlignment, detail of this format:
         https://github.com/sfu-natlang/HMM-Aligner/wiki/API-reference:-Alignment-Data-Format-V0.1a#goldalignment
     '''
+    fileName = os.path.expanduser(fileName)
     content =\
         [line.strip().split() for line in open(fileName)][:linesToLoad]
 
@@ -166,6 +167,16 @@ def loadAlignment(fileName, linesToLoad=sys.maxint):
             elif entry.find('?') != -1:
                 processAlignmentEntry(entry, probableAlign, splitChar='?')
 
+        x = [item[0] for item in sentence for sentence in certainAlign] + [1]
+        if min(x) == 0:
+            for sentence in certainAlign:
+                for item in sentence:
+                    item[0] += 1
+                    item[1] += 1
+            for sentence in probableAlign:
+                for item in sentence:
+                    item[0] += 1
+                    item[1] += 1
         sentenceAlignment = {"certain": certainAlign,
                              "probable": probableAlign}
         result.append(sentenceAlignment)
