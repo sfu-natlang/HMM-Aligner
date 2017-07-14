@@ -171,4 +171,5 @@ class AlignmentModel(HMM):
             j = int(prev_j[i][j])
             i = i - 1
             trace = [(j + 1, int(types[i][j]))] + trace
-        return trace
+        score[:, eLen] = np.max(score[:, eLen:], axis=1)
+        return trace, score[:, :eLen + 1]

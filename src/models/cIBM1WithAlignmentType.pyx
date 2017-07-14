@@ -121,7 +121,7 @@ class AlignmentModel(IBM1Base):
             hBest = types[i][jBest]
             sentenceAlignment.append(
                 (i + 1, jBest + 1, self.typeList[hBest]))
-        return sentenceAlignment
+        return sentenceAlignment, score
 
     def trainStage1(self, dataset, iterations=5):
         self.logger.info("Stage 1 Start Training with POS Tags")

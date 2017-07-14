@@ -26,8 +26,10 @@ def plotAlignmentWithScore(score,
     ys = np.tile(np.arange(y), (x, 1)).reshape(x * y) + 1
 
     # Process colours
-    colours =\
-        np.abs(1. - (score.astype(float) / np.max(score, axis=1)[:, None]))
+    tmp = score + np.abs(np.min(score, axis=1)[:, None])
+    tmp *= tmp
+    tmp = tmp / np.max(tmp, axis=1)[:, None]
+    colours = 1. - tmp
 
     # Set origin, move x axis labels
     ax.xaxis.tick_top()
@@ -45,6 +47,8 @@ def plotAlignmentWithScore(score,
         ylabels = [item.get_text() for item in ax.get_yticklabels()]
         for i in range(len(e)):
             ylabels[i + 1] = e[i][0].decode('utf-8')
+        if y > len(e):
+            ylabels[len(e) + 1] = "NULL"
         ax.set_yticklabels(ylabels)
 
     # Hover effect
@@ -82,8 +86,20 @@ def plotAlignmentWithScore(score,
     plt.scatter([1, x], [1, y], s=1)
 
     # Display alignment
-    _axs = [entry[0] for entry in align]
-    _ays = [entry[1] for entry in align]
+    _axs = []
+    _ays = []
+    count = 1
+    for entry in align:
+        f = entry[0]
+        e = entry[1]
+        while f != count:
+            _axs.append(count)
+            _ays.append(y)
+            count += 1
+        _axs.append(f)
+        _ays.append(e)
+        count += 1
+
     plt.plot(_axs, _ays, 'r', marker='+', markersize=10)
 
     # Display scores
@@ -98,7 +114,6 @@ def plotAlignmentWithScore(score,
 
     if not output.endswith(".pdf"):
         output += ".pdf"
-    print "saving"
 
     plt.subplots_adjust(top=0.88)
     fig.savefig(output, bbox_inches='tight', dpi=fig.dpi)

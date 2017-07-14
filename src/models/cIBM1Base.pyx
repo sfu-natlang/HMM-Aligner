@@ -70,7 +70,7 @@ class AlignmentModelBase(Base):
         for i in range(len(f)):
             jBest = np.argmax(score[i])
             sentenceAlignment.append((i + 1, jBest + 1))
-        return sentenceAlignment
+        return sentenceAlignment, score
 
     def _beginningOfIteration(self, index):
         raise NotImplementedError

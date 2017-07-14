@@ -314,16 +314,30 @@ class AlignmentModelBase():
                 x[i] /= y[i]
         return x
 
-    def decode(self, dataset):
+    def decode(self, dataset, showFigure=0):
+        from models.plot import *
         self.logger.info("Start decoding")
         self.logger.info("Testing size: " + str(len(dataset)))
         result = []
+        count = 0
 
         startTime = time.time()
         for sentence in dataset:
             sentenceAlignment = self.decodeSentence(sentence)
+            if len(sentenceAlignment) > 1 and\
+                    isinstance(sentenceAlignment[1], np.ndarray):
+                sentenceAlignment, score = sentenceAlignment
+                if count < showFigure:
+                    plotAlignmentWithScore(score,
+                                           sentenceAlignment,
+                                           f=sentence[0],
+                                           e=sentence[1],
+                                           # output=str(count))
+                                           output=None)
+                    count += 1
 
             result.append(sentenceAlignment)
+        showPlot()
         endTime = time.time()
         self.logger.info("Decoding Complete, total time: " +
                          str(endTime - startTime) + ", average " +
