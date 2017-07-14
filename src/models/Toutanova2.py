@@ -92,7 +92,7 @@ class AlignmentModel(HMM):
             a = self.a[targetLen]
             for prev_j in range(targetLen):
                 for j in range(targetLen):
-                    a[:, prev_j][prev_j + targetLen] = self.p0H
-                    a[:, prev_j + targetLen][prev_j + targetLen] = self.p0H
-                    a[:, prev_j + targetLen][j] = a[:, prev_j][j]
+                    a[:, prev_j, prev_j + targetLen] = self.p0H
+                    a[:, prev_j + targetLen, prev_j + targetLen] = self.p0H
+                    a[:, prev_j + targetLen, j] = a[:, prev_j, j]
         return
