@@ -210,12 +210,13 @@ class AlignmentModelBase(Base):
             j = int(prev_j[i][j])
             trace = [(j + 1, )] + trace
             i = i - 1
-        return trace
+        score[:, eLen] = np.max(score[:, eLen:], axis=1)
+        return trace, score[:, :eLen + 1]
 
     def decodeSentence(self, sentence):
         f, e, alignment = self.lexiSentence(sentence)
         sentenceAlignment = []
-        bestAlign = self.logViterbi(f, e)
+        bestAlign, score = self.logViterbi(f, e)
 
         for i in range(len(bestAlign)):
 
@@ -226,4 +227,4 @@ class AlignmentModelBase(Base):
                          self.typeList[bestAlign[i][1]]))
                 else:
                     sentenceAlignment.append((i + 1, bestAlign[i][0]))
-        return sentenceAlignment
+        return sentenceAlignment, score

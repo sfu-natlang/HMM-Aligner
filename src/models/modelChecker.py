@@ -31,7 +31,8 @@ requiredMethods = {
               "iterations": "int"},
 
     "decode": {"self": "instance",
-               "dataset": "list"},
+               "dataset": "list",
+               "showFigure": "int"},
 
     "decodeSentence": {"self": "instance",
                        "sentence": "list"}
@@ -105,7 +106,7 @@ def checkAlignmentModel(modelClass, logger=True):
             error(
                 "Specified Model class's '" + methodName + "' method should " +
                 "contain only the following arguments: " +
-                str(requiredMethods1[methodName]))
+                str(requiredMethods[methodName]))
             return False
 
         if not [a for a in requiredMethods[methodName] if a not in args]:
