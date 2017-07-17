@@ -7,6 +7,7 @@
 #
 # This is the implementation of IBM model 1 word aligner.
 #
+import cython
 import numpy as np
 from collections import defaultdict
 from loggers import logging
@@ -15,6 +16,7 @@ from evaluators.evaluator import evaluate
 __version__ = "0.4a"
 
 
+@cython.boundscheck(False)
 class AlignmentModel(IBM1Base):
     def __init__(self):
         self.modelName = "IBM1"
@@ -38,8 +40,8 @@ class AlignmentModel(IBM1Base):
         return
 
     def _updateCount(self, f, e, index):
-        fLen = len(f)
-        eLen = len(e)
+        cdef int fLen = len(f)
+        cdef int eLen = len(e)
         fWords = np.array([f[i][index] for i in range(fLen)])
         eWords = np.array([e[j][index] for j in range(eLen)])
         tSmall = self.tProbability(f, e, index)
@@ -54,7 +56,8 @@ class AlignmentModel(IBM1Base):
     def _updateEndOfIteration(self, index):
         self.logger.info("End of iteration")
         # Update t
-        for i in range(len(self.fLex[index])):
-            for j in self.c[i]:
-                self.t[i][j] = self.c[i][j] / self.total[j]
+        for i in range(len(self.t)):
+            tTmp = self.t[i]
+            for j in tTmp:
+                tTmp[j] = self.c[i][j] / self.total[j]
         return

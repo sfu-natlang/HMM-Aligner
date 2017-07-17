@@ -9,12 +9,14 @@
 #
 import time
 import numpy as np
+import cython
 from copy import deepcopy
 from loggers import logging
 from models.cModelBase import AlignmentModelBase as Base
 __version__ = "0.4a"
 
 
+@cython.boundscheck(False)
 class AlignmentModelBase(Base):
     def __init__(self):
         self.t = []
@@ -26,16 +28,17 @@ class AlignmentModelBase(Base):
         return
 
     def tProbability(self, f, e, index=0):
-        t = np.zeros((len(f), len(e)))
-        for j in range(len(e)):
-            if e[j][index] >= len(self.eLex[index]):
+        cdef int fLen = len(f)
+        cdef int eLen = len(e)
+        cdef double[:,:] t = np.full((fLen, eLen), 0.000006123586217)
+        for i in range(fLen):
+            if f[i][index] > len(self.t):
                 continue
-            for i in range(len(f)):
-                if f[i][index] < len(self.t) and \
-                        e[j][index] in self.t[f[i][index]]:
-                    t[i][j] = self.t[f[i][index]][e[j][index]]
-        t[t == 0] = 0.000006123586217
-        return t
+            tTmp = self.t[f[i][index]]
+            for j in range(eLen):
+                if e[j][index] in tTmp:
+                    t[i][j] = tTmp[e[j][index]]
+        return np.array(t)
 
     def EM(self, dataset, iterations, modelName="IBM1Base", index=0):
         self.logger.info("Starting Training Process")
@@ -45,12 +48,10 @@ class AlignmentModelBase(Base):
         for iteration in range(iterations):
             self._beginningOfIteration(index)
             self.logger.info("Starting Iteration " + str(iteration))
-            counter = 0
 
             for item in dataset:
-                f, e = item[0:2]
-                counter += 1
-                self._updateCount(f, e, index)
+
+                self._updateCount(item[0], item[1], index)
 
             self._updateEndOfIteration(index)
 
