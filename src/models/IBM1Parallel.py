@@ -28,22 +28,35 @@ def tProbability(f, e, index):
     return t
 
 
-def mapFunc(item):
+def mapFunc(dataset):
     result = defaultdict(float)
     index = 0
-    f, e = item[0:2]
-    fLen = len(f)
-    eLen = len(e)
-    fWords = np.array([f[i][index] for i in range(fLen)])
-    eWords = np.array([e[j][index] for j in range(eLen)])
-    tSmall = tProbability(f, e, index)
-    tSmall = tSmall / tSmall.sum(axis=1)[:, None]
-    for i in range(fLen):
-        tmp = tSmall[i]
-        for j in range(eLen):
-            result[(f[i][index], e[j][index])] += tmp[j]
-            result[e[j][index]] += tmp[j]
+    for item in dataset:
+        f, e = item[0:2]
+        fLen = len(f)
+        eLen = len(e)
+        fWords = np.array([f[i][index] for i in range(fLen)])
+        eWords = np.array([e[j][index] for j in range(eLen)])
+        tSmall = tProbability(f, e, index)
+        tSmall = tSmall / tSmall.sum(axis=1)[:, None]
+        for i in range(fLen):
+            tmp = tSmall[i]
+            for j in range(eLen):
+                result[(f[i][index], e[j][index])] += tmp[j]
+                result[e[j][index]] += tmp[j]
     return result.items()
+
+
+def partition(dataset, size):
+    result = []
+    slices = (len(dataset) + size - 1) / size
+    print size, slices
+    for i in range(slices):
+        if (i + 1) * size < len(dataset):
+            result.append(dataset[i * size: (i + 1) * size])
+        else:
+            result.append(dataset[i * size:])
+    return result
 
 
 def reduceFunc(item):
@@ -96,12 +109,16 @@ class AlignmentModel(Base):
             self.logger.info("Starting Iteration " + str(iteration))
 
             pool = multiprocessing.Pool(None)
+            self.logger.info("Map")
             mapResponses =\
-                pool.map(mapFunc, dataset, chunksize=len(dataset) / 8)
+                pool.map(mapFunc,
+                         partition(dataset, len(dataset) / 4),
+                         chunksize=1)
             partitionedData = defaultdict(list)
             for key, value in itertools.chain(*mapResponses):
                 partitionedData[key].append(value)
             partitionedData = partitionedData.items()
+            self.logger.info("Reduce")
             reducedValues = pool.map(reduceFunc, partitionedData)
             for item, value in reducedValues:
                 if isinstance(item, tuple):
