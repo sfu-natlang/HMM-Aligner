@@ -383,7 +383,8 @@ class AlignmentModelBase():
 
         @return: alignment. See API reference for more detail on this structure
         """
-        from models.plot import plotAlignmentWithScore, showPlot
+        if showFigure > 0:
+            from models.plot import plotAlignmentWithScore, showPlot
         self.logger.info("Start decoding")
         self.logger.info("Testing size: " + str(len(dataset)))
         result = []
@@ -405,7 +406,8 @@ class AlignmentModelBase():
                     count += 1
 
             result.append(sentenceAlignment)
-        showPlot()
+        if showFigure > 0:
+            showPlot()
         endTime = time.time()
         self.logger.info("Decoding Complete, total time: " +
                          str(endTime - startTime) + ", average " +
