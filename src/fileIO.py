@@ -82,7 +82,8 @@ def processAlignmentEntry(entry, listToAddTo, splitChar='-'):
     if entry.find(splitChar) != -1:
         for ch in (',', '(', ')', '[', ']'):
             entry = entry.replace(ch, splitChar)
-        items = entry.split(splitChar)
+        items = [item for item in entry.split(splitChar) if item != '']
+        # items = entry.split(splitChar)
         f = int(items[0])
         alignmentType = ""
         for i in range(len(items) - 1, 0, -1):
@@ -140,6 +141,58 @@ def loadDataset(fFiles, eFiles, alignmentFile="", linesToLoad=sys.maxint):
                                            len(fContents),
                                            len(eContents)))]
     return zip(fContents, eContents, alignment)
+
+
+def infoDataset(dataset):
+    '''
+    This function is used to print information about a dataset.
+
+    @param dataset: dataset
+    @return: list of tuples, each tuple is of the format (str, value), where
+        the str is the description and value is well, the value.
+    '''
+    from collections import defaultdict
+    info = []
+    info.append(("Number of Sentences", len(dataset)))
+    fCount = defaultdict(int)
+    eCount = defaultdict(int)
+    sentencesWithAlignment = 0
+    for (f, e, align) in dataset:
+        if len(align) != 0:
+            sentencesWithAlignment += 1
+        for fWord in f:
+            fCount[fWord[0]] += 1
+        for eWord in e:
+            eCount[eWord[0]] += 1
+    info.append(("Sentences with gold alignment", sentencesWithAlignment))
+    info.append(("Number of unique source language words", len(fCount)))
+    info.append(("Number of unique target language words", len(eCount)))
+
+    info.append(
+        ("Percentage of unique source language words occuring only once",
+         len([key for key in fCount if fCount[key] == 1]) * 1. / len(fCount)))
+    info.append(
+        ("Percentage of unique target language words occuring only once",
+         len([key for key in eCount if eCount[key] == 1]) * 1. / len(eCount)))
+    info.append(
+        ("Percentage of unique source language words occurance in (0, 3]",
+         len([key for key in fCount if fCount[key] <= 3]) * 1. / len(fCount)))
+    info.append(
+        ("Percentage of unique target language words occurance in (0, 3]",
+         len([key for key in eCount if eCount[key] <= 3]) * 1. / len(eCount)))
+    info.append(
+        ("Percentage of unique source language words occurance in (0, 5]",
+         len([key for key in fCount if fCount[key] <= 5]) * 1. / len(fCount)))
+    info.append(
+        ("Percentage of unique target language words occurance in (0, 5]",
+         len([key for key in eCount if eCount[key] <= 5]) * 1. / len(eCount)))
+    info.append(
+        ("Percentage of unique source language words occurance in (0, 10]",
+         len([key for key in fCount if fCount[key] <= 10]) * 1. / len(fCount)))
+    info.append(
+        ("Percentage of unique target language words occurance in (0, 10]",
+         len([key for key in eCount if eCount[key] <= 10]) * 1. / len(eCount)))
+    return info
 
 
 def loadAlignment(fileName, linesToLoad=sys.maxint):
