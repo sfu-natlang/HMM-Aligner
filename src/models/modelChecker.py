@@ -45,6 +45,7 @@ def checkAlignmentModel(modelClass, logger=True):
     If the return value is False, then the model is unrecognisable by this
     function.
     @param modelClass: class, a model class
+    @param logger: use loggers or not
     @return: bool. False for unrecognisable
     '''
     if logger:

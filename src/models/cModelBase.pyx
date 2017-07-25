@@ -27,21 +27,6 @@ from loggers import logging
 __version__ = "0.4a"
 
 
-# This is a private module for transmitting test results. Please ignore.
-class DummyTask():
-    def __init__(self, taskName="Untitled", serial="XXXX"):
-        return
-
-    def progress(self, msg):
-        return
-
-
-try:
-    from progress import Task
-except ImportError:
-    Task = DummyTask
-
-
 def isLambda(f):
     lamb = (lambda: 0)
     return isinstance(f, type(lamb)) and f.__name__ == lamb.__name__
@@ -78,6 +63,16 @@ class AlignmentModelBase():
         return
 
     def loadModel(self, fileName=None, force=False):
+        '''
+        This method loads model from specified file. The file will only be
+        loaded if it has the right modelName and version. Only components
+        listed in a model's modelComponents list will be saved and loaded.
+        @param fileName: str. Name of the model file.
+        @param force: bool. This option ignores checks on modelName and version
+                      Just so that we can all have a happily life let's not use
+                      this option.
+        @return: Nothing
+        '''
         if fileName is None:
             fileName = self._savedModelFile
         if fileName == "":
@@ -138,6 +133,12 @@ class AlignmentModelBase():
         return
 
     def saveModel(self, fileName=""):
+        '''
+        This method saves model to specified file. Only components listed in a
+        model's modelComponents list will be saved and loaded.
+        @param fileName: str. Name of the model file.
+        @return: Nothing
+        '''
         if fileName == "":
             self.logger.warning("Destination not specified, model will not" +
                                 " be saved")
@@ -173,6 +174,13 @@ class AlignmentModelBase():
         return
 
     def __loadObjectFromFile(self, pklFile):
+        '''
+        This method saves model component to specified file. Why does it exist?
+        Well, sometimes a trained model might contain redundant information
+        that doesn't need to be saved, and that's where this method comes in.
+        @param pklFile: str. Name of the model file.
+        @return: loaded component
+        '''
         a = pickle.load(pklFile)
         if isinstance(a, dict) and "§§NUMPY§§" in a and a["§§NUMPY§§"] == 0.0:
             self.logger.info("Loading Numpy array, size: " + str(len(a)))
@@ -190,6 +198,17 @@ class AlignmentModelBase():
         return a
 
     def __saveObjectToFile(self, a, output):
+        '''
+        This method saves model component to specified file. Why does it exist?
+        Well, sometimes a trained model might contain redundant information
+        that doesn't need to be saved, and that's where this method comes in.
+        For every component to be saved, this method is called. If you want to
+        remove redundant information from a list or a defaultdict, this is the
+        perfect place to do just that.
+        @param a: object. The model component
+        @param output: object. The file(or compressed file).
+        @return: loaded component
+        '''
         if isinstance(a, np.ndarray):
             self.logger.info("Dumping Numpy array, size: " + str(a.shape) +
                              ", empty entries: " + str(len(zip(*a.nonzero()))))
@@ -226,6 +245,17 @@ class AlignmentModelBase():
         return
 
     def initialiseBiwordCount(self, dataset, index=0):
+        '''
+        This method initialises the translation probability table by assigning
+        every appeared word pair a default value. It can also be used to extend
+        an existing translation probability table. Note that no matter what,
+        the translation probability table involved here is self.t.
+
+        @param dataset: Dataset. A dataset
+        @param index: int. Index indicates which part of the word to work on,
+                      by default it's 0 for FORM and 1 for POS Tags.
+        @return: Nothing
+        '''
         self.logger.info("Initialising Biword table")
         maxf = len(self.fLex[index])
         maxe = len(self.eLex[index])
@@ -244,6 +274,17 @@ class AlignmentModelBase():
         return
 
     def initialiseAlignTypeDist(self, dataset, loadTypeDist={}):
+        """
+        This is where alignment type distributions and probability are loaded.
+        By default the probability is calculated based on annotated data in the
+        dataset, but alternatively it can also be maunally overwritten by the
+        loadTypeDist option.
+
+        @param dataset: Dataset. A dataset
+        @param loadTypeDist: dict. A set of probability of individual alignment
+                             types that overwrites the ones calculated.
+        @return: Nothing
+        """
         typeDist = defaultdict(float)
         typeTotalCount = 0
         for (f, e, alignment) in dataset:
@@ -271,6 +312,19 @@ class AlignmentModelBase():
         return
 
     def calculateS(self, dataset, index=0, oldS=None):
+        """
+        This is where translation probability with alignment types (S table) is
+        initialised. The initialised probability table will be returned. One
+        can also extend an existing table with the option oldS.
+
+        @param dataset: Dataset. A dataset
+        @param index: int. Index indicates which part of the word to work on,
+                      by default it's 0 for FORM and 1 for POS Tags.
+        @param oldS: probability table. If oldS is not None, it will be
+                     extended and returned.
+
+        @return: The (extended) S table
+        """
         self.logger.info("Initialising S")
         count = [defaultdict(lambda: np.zeros(len(self.typeIndex)))
                  for i in range(len(self.fLex[index]))]
@@ -304,6 +358,9 @@ class AlignmentModelBase():
         return count
 
     def keyDiv(self, x, y):
+        """
+        This method is no longer used in the actual programme.
+        """
         if x.shape[:-1] != y.shape:
             raise RuntimeError("Incorrect size")
         if len(x.shape) == 3:
@@ -315,6 +372,17 @@ class AlignmentModelBase():
         return x
 
     def decode(self, dataset, showFigure=0):
+        """
+        This is the decoder. It decodes all sentences in the dataset by calling
+        decodeSentence method, which is defined in each models(or modelBases).
+        Optionally, it displays scores of alignment by drawing a graph.
+
+        @param dataset: Dataset. A dataset
+        @param showFigure: int. Plot the scores of the first specified number
+                           of sentences.
+
+        @return: alignment. See API reference for more detail on this structure
+        """
         from models.plot import plotAlignmentWithScore, showPlot
         self.logger.info("Start decoding")
         self.logger.info("Testing size: " + str(len(dataset)))
@@ -346,11 +414,32 @@ class AlignmentModelBase():
         return result
 
     def initialiseLexikon(self, dataset, newDataset=False):
+        """
+        Create the dictionary. It actually just calls extendLexikon.
+
+        @param dataset: Dataset. A dataset
+        @param newDataset: bool. Whether to return a new dataset or just modify
+                           the one referenced here.
+
+        @return: A lexicalised dataset.
+        """
         self.logger.info("Creating lexikon")
         self.extendLexikon(dataset, newDataset)
         return dataset
 
     def extendLexikon(self, dataset, newDataset=False):
+        """
+        Extend the existing dictionary. If there is no dictionary, create one.
+        It also lexicalises the dataset. Note that the dataset lexicalised here
+        naturally don't contain unknown words, as they are all included in the
+        dictionary.
+
+        @param dataset: Dataset. A dataset
+        @param newDataset: bool. Whether to return a new dataset or just modify
+                           the one referenced here.
+
+        @return: A lexicalised dataset.
+        """
         if "fLex" in vars(self) and self.fLex:
             indices = len(self.fIndex)
         else:
@@ -399,6 +488,12 @@ class AlignmentModelBase():
         return dataset
 
     def lexiSentence(self, sentence):
+        """
+        Lexicalise a sentence. Handling of unknown words is defined in lexiWord
+
+        @param sentence: Sentence. A sentence.
+        @return: A lexicalised sentence.
+        """
         f, e, alignment = deepcopy(sentence)
         indices = len(self.fIndex)
         for i in range(len(f)):
@@ -412,12 +507,27 @@ class AlignmentModelBase():
         return f, e, alignment
 
     def lexiWord(self, lexikon, word):
+        """
+        Handling unknown words should occur here. If the word is in the lexikon
+        then its index is returned. If not, by default it is assigned
+        424242424242. Note that the lexikon and the word are from the same
+        index. (FORM lexikon for FORMs, TAG lexikon for TAGs)
+
+        @param lexikon: dict. Value for each key is the index of the key.
+        @param word: str. The word.
+        @return: int. The index of the word.
+        """
         if word in lexikon:
             return lexikon[word]
         else:
             return 424242424242
 
     def sharedLexikon(self, model):
+        """
+        Use the Lexikons of another model by creating a reference.
+        @param model: object. An instance of a model.
+        @return: nothing
+        """
         if not isinstance(model, AlignmentModelBase):
             raise RuntimeError("Invalid object, object must be an instance " +
                                "of a sub class of " +
