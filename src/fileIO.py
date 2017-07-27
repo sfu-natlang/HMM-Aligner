@@ -224,7 +224,8 @@ def loadAlignment(fileName, linesToLoad=sys.maxint):
                              "probable": probableAlign}
         result.append(sentenceAlignment)
 
-    x = [min([item[0] for item in sentence["certain"]]) for sentence in result]
+    x = [min([item[0] for item in sentence["certain"]] + [1])
+         for sentence in result]
     if min(x) == 0:
         for sentence in result:
             for i in range(len(sentence["certain"])):
