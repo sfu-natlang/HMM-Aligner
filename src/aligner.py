@@ -16,7 +16,7 @@ from ConfigParser import SafeConfigParser
 from loggers import logging, init_logger
 from models.modelChecker import checkAlignmentModel
 from fileIO import loadDataset, exportToFile, loadAlignment
-__version__ = "0.5a"
+__version__ = "0.6a"
 
 
 if __name__ == '__main__':
@@ -40,6 +40,7 @@ if __name__ == '__main__':
         'model': "IBM1",
         'output': 'o.wa',
         'showFigure': 0,
+        'intersect': False,
 
         'loadModel': "",
         'saveModel': "",
@@ -130,6 +131,9 @@ if __name__ == '__main__':
         ap.add_argument(
             "--showFigure", dest="showFigure", type=int,
             help="Show figures for the first specified number of decodings")
+        ap.add_argument(
+            "--intersect", dest="intersect", action='store_true',
+            help="Do intersection training.")
         args = ap.parse_args()
 
     # Process config file
@@ -216,6 +220,15 @@ if __name__ == '__main__':
                                    linesToLoad=config['trainSize'])
         aligner.train(trainDataset, config['iterations'])
 
+        if config['intersect'] is True:
+            __logger.info('Starting reverse training')
+            alignerReverse = Model()
+            trainDataset = loadDataset(trainTargetFiles,
+                                       trainSourceFiles,
+                                       trainAlignment,
+                                       reverse=True,
+                                       linesToLoad=config['trainSize'])
+            alignerReverse.train(trainDataset, config['iterations'])
     else:
         aligner.loadModel(aligner._savedModelFile)
 
@@ -251,6 +264,24 @@ if __name__ == '__main__':
                                   testTargetFiles,
                                   linesToLoad=config['testSize'])
         alignResult = aligner.decode(testDataset, config['showFigure'])
+
+        if config['intersect'] is True:
+            testDataset = loadDataset(testTargetFiles,
+                                      testSourceFiles,
+                                      linesToLoad=config['testSize'])
+            alignResultRev = alignerReverse.decode(testDataset)
+            result = []
+            for align, alignRev in zip(alignResult, alignResultRev):
+                sentenceAlignment = []
+                for item in alignResult:
+                    if len(item) == 2:
+                        if (item[1], item[0]) in alignResultRev:
+                            sentenceAlignment.append[item]
+                    else:
+                        if (item[1], item[0], item[2]) in alignResultRev:
+                            sentenceAlignment.append[item]
+                result.append(sentenceAlignment)
+            alignResult = result
 
         if config['output'] != "":
             exportToFile(alignResult, config['output'])
