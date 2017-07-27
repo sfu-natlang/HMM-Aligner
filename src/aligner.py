@@ -274,7 +274,6 @@ if __name__ == '__main__':
             for align, alignRev in zip(alignResult, alignResultRev):
                 sentenceAlignment = []
                 for item in align:
-                    print len(item), item
                     if len(item) == 2:
                         if (item[1], item[0]) in alignRev:
                             sentenceAlignment.append(item)
