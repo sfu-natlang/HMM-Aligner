@@ -273,13 +273,14 @@ if __name__ == '__main__':
             result = []
             for align, alignRev in zip(alignResult, alignResultRev):
                 sentenceAlignment = []
-                for item in alignResult:
+                for item in align:
+                    print len(item), item
                     if len(item) == 2:
-                        if (item[1], item[0]) in alignResultRev:
-                            sentenceAlignment.append[item]
+                        if (item[1], item[0]) in alignRev:
+                            sentenceAlignment.append(item)
                     else:
-                        if (item[1], item[0], item[2]) in alignResultRev:
-                            sentenceAlignment.append[item]
+                        if (item[1], item[0], item[2]) in alignRev:
+                            sentenceAlignment.append(item)
                 result.append(sentenceAlignment)
             alignResult = result
 
