@@ -15,12 +15,13 @@ __version__ = "0.4a"
 
 
 def evaluate(result, reference, showFigure=0):
+    if showFigure > 0:
+        from models.plot import addAlignmentToFigure
     totalAlign = 0
     totalCertain = 0
 
     totalCertainAlignment = 0
     totalProbableAlignment = 0
-    # from models.plot import addAlignmentToFigure
 
     for i in range(min(len(result), len(reference))):
         testAlign = []
@@ -47,10 +48,9 @@ def evaluate(result, reference, showFigure=0):
                 logger.warning("reference missing element.")
                 entry = entry + ("",)
             probableAlign.append((entry[0], entry[1], entry[2]))
-        # if i < showFigure:
-            # from models.plot import addAlignmentToFigure
-            # addAlignmentToFigure(certainAlign, i, colour='#FFA500')
-        #    addAlignmentToFigure(probableAlign, i, colour='#8F16B2')
+        if i < showFigure:
+            addAlignmentToFigure(certainAlign, i, colour='#FFA500')
+            addAlignmentToFigure(probableAlign, i, colour='#8F16B2')
 
         # grade
         totalAlign += len(testAlign)

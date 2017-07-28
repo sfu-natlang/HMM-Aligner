@@ -6,7 +6,6 @@ currentdir = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
-from models.plot import addAlignmentToFigure
 from fileIO import exportToFile, loadAlignment
 from loggers import logging, init_logger
 if __name__ == '__main__':
@@ -16,6 +15,8 @@ __version__ = "0.4a"
 
 
 def evaluate(result, reference, showFigure=0):
+    if showFigure > 0:
+        from models.plot import addAlignmentToFigure
     totalAlign = 0
     totalCertain = 0
 
