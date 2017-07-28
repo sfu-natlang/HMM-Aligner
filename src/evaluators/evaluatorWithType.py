@@ -11,15 +11,16 @@ from loggers import logging, init_logger
 if __name__ == '__main__':
     init_logger('evaluator.log')
 logger = logging.getLogger('EVALUATOR')
-__version__ = "0.3a"
+__version__ = "0.4a"
 
 
-def evaluate(result, reference):
+def evaluate(result, reference, showFigure=0):
     totalAlign = 0
     totalCertain = 0
 
     totalCertainAlignment = 0
     totalProbableAlignment = 0
+    # from models.plot import addAlignmentToFigure
 
     for i in range(min(len(result), len(reference))):
         testAlign = []
@@ -46,6 +47,10 @@ def evaluate(result, reference):
                 logger.warning("reference missing element.")
                 entry = entry + ("",)
             probableAlign.append((entry[0], entry[1], entry[2]))
+        # if i < showFigure:
+            # from models.plot import addAlignmentToFigure
+            # addAlignmentToFigure(certainAlign, i, colour='#FFA500')
+        #    addAlignmentToFigure(probableAlign, i, colour='#8F16B2')
 
         # grade
         totalAlign += len(testAlign)

@@ -6,15 +6,16 @@ currentdir = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
+from models.plot import addAlignmentToFigure
 from fileIO import exportToFile, loadAlignment
 from loggers import logging, init_logger
 if __name__ == '__main__':
     init_logger('evaluator.log')
 logger = logging.getLogger('EVALUATOR')
-__version__ = "0.3a"
+__version__ = "0.4a"
 
 
-def evaluate(result, reference):
+def evaluate(result, reference, showFigure=0):
     totalAlign = 0
     totalCertain = 0
 
@@ -35,6 +36,9 @@ def evaluate(result, reference):
         probableAlign = []
         for entry in reference[i]["probable"]:
             probableAlign.append((entry[0], entry[1]))
+        if i < showFigure:
+            addAlignmentToFigure(certainAlign, i, colour='#FFA500')
+            addAlignmentToFigure(probableAlign, i, colour='#8F16B2')
 
         # grade
         totalAlign += len(testAlign)

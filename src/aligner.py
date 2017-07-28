@@ -15,6 +15,7 @@ import StringIO
 from ConfigParser import SafeConfigParser
 from loggers import logging, init_logger
 from models.modelChecker import checkAlignmentModel
+from models.plot import showPlot
 from fileIO import loadDataset, exportToFile, loadAlignment
 __version__ = "0.6a"
 
@@ -221,6 +222,7 @@ if __name__ == '__main__':
         aligner.train(trainDataset, config['iterations'])
 
         if config['intersect'] is True:
+            # Intersection training
             __logger.info('Starting reverse training')
             alignerReverse = Model()
             trainDataset = loadDataset(trainTargetFiles,
@@ -266,6 +268,7 @@ if __name__ == '__main__':
         alignResult = aligner.decode(testDataset, config['showFigure'])
 
         if config['intersect'] is True:
+            # Intersection is performed here.
             testDataset = loadDataset(testTargetFiles,
                                       testSourceFiles,
                                       linesToLoad=config['testSize'])
@@ -275,9 +278,11 @@ if __name__ == '__main__':
                 sentenceAlignment = []
                 for item in align:
                     if len(item) == 2:
+                        # Without alignment type
                         if (item[1], item[0]) in alignRev:
                             sentenceAlignment.append(item)
                     else:
+                        # With alignment type
                         if (item[1], item[0], item[2]) in alignRev:
                             sentenceAlignment.append(item)
                 result.append(sentenceAlignment)
@@ -289,4 +294,6 @@ if __name__ == '__main__':
         if config['reference'] != "":
             reference = loadAlignment(config['reference'])
             if aligner.evaluate:
-                aligner.evaluate(alignResult, reference)
+                aligner.evaluate(alignResult, reference, config['showFigure'])
+        if config['showFigure'] > 0:
+            showPlot()
