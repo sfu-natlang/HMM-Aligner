@@ -8,6 +8,7 @@
 # This is the implementation of HMM word aligner, it requires IBM1 in order to
 # function properly
 #
+import cython
 import numpy as np
 from collections import defaultdict
 from loggers import logging
@@ -17,6 +18,7 @@ from evaluators.evaluator import evaluate
 __version__ = "0.4a"
 
 
+@cython.boundscheck(False)
 class AlignmentModel(Base):
     def __init__(self):
         self.modelName = "HMM"

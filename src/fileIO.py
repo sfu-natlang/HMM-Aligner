@@ -14,7 +14,7 @@ import os
 import sys
 import inspect
 import unittest
-__version__ = "0.3a"
+__version__ = "0.4a"
 
 
 def exportToFile(result, fileName):
@@ -78,7 +78,8 @@ def _loadTritext(file1, file2, file3, linesToLoad=sys.maxint):
     return tritext
 
 
-def processAlignmentEntry(entry, listToAddTo, splitChar='-'):
+def processAlignmentEntry(entry, listToAddTo, splitChar='-',
+                          reverse=False, loadType=True):
     if entry.find(splitChar) != -1:
         for ch in (',', '(', ')', '[', ']'):
             entry = entry.replace(ch, splitChar)
@@ -89,16 +90,23 @@ def processAlignmentEntry(entry, listToAddTo, splitChar='-'):
         for i in range(len(items) - 1, 0, -1):
             if items[i].isdigit():
                 e = int(items[i])
-                if alignmentType != "":
-                    listToAddTo.append((f, e, alignmentType))
+                if alignmentType != "" and loadType is True:
+                    if reverse is True:
+                        listToAddTo.append((e, f, alignmentType))
+                    else:
+                        listToAddTo.append((f, e, alignmentType))
                 else:
-                    listToAddTo.append((f, e))
+                    if reverse is True:
+                        listToAddTo.append((e, f))
+                    else:
+                        listToAddTo.append((f, e))
             else:
                 alignmentType = items[i]
     return
 
 
-def loadDataset(fFiles, eFiles, alignmentFile="", linesToLoad=sys.maxint):
+def loadDataset(fFiles, eFiles, alignmentFile="", linesToLoad=sys.maxint,
+                reverse=False):
     '''
     This function is used to read a Dataset files.
 
@@ -129,7 +137,7 @@ def loadDataset(fFiles, eFiles, alignmentFile="", linesToLoad=sys.maxint):
             entries = alignment[i]
             result = []
             for entry in entries:
-                processAlignmentEntry(entry, result)
+                processAlignmentEntry(entry, result, reverse=reverse)
             alignment[i] = result
 
         alignment += [[] for i in range(len(alignment), min(linesToLoad,
@@ -195,7 +203,8 @@ def infoDataset(dataset):
     return info
 
 
-def loadAlignment(fileName, linesToLoad=sys.maxint):
+def loadAlignment(fileName, linesToLoad=sys.maxint,
+                  reverse=False, loadType=True):
     '''
     This function is used to read the GoldAlignment or Alignment from files.
 
@@ -215,10 +224,12 @@ def loadAlignment(fileName, linesToLoad=sys.maxint):
         probableAlign = []
         for entry in sentence:
             if entry.find('-') != -1:
-                processAlignmentEntry(entry, certainAlign, splitChar='-')
+                processAlignmentEntry(entry, certainAlign, splitChar='-',
+                                      reverse=reverse, loadType=loadType)
 
             elif entry.find('?') != -1:
-                processAlignmentEntry(entry, probableAlign, splitChar='?')
+                processAlignmentEntry(entry, probableAlign, splitChar='?',
+                                      reverse=reverse, loadType=loadType)
 
         sentenceAlignment = {"certain": certainAlign,
                              "probable": probableAlign}
