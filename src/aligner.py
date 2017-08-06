@@ -15,7 +15,6 @@ import StringIO
 from ConfigParser import SafeConfigParser
 from loggers import logging, init_logger
 from models.modelChecker import checkAlignmentModel
-from models.plot import showPlot
 from fileIO import loadDataset, exportToFile, loadAlignment
 __version__ = "0.6a"
 
@@ -296,4 +295,5 @@ if __name__ == '__main__':
             if aligner.evaluate:
                 aligner.evaluate(alignResult, reference, config['showFigure'])
         if config['showFigure'] > 0:
+            from models.plot import showPlot
             showPlot()
