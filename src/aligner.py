@@ -259,7 +259,11 @@ if __name__ == '__main__':
         if config['saveModel'] != "":
             saveFile = config['saveModel']
             if reversed:
-                saveFile += ".rev"
+                if saveFile.endswith("pklz") or saveFile.endswith("pkl"):
+                    saveFile = ".".join(saveFile.split(".")[:-1] + ["rev"] +
+                                        [saveFile.split(".")[-1]])
+                else:
+                    saveFile += ".rev"
             aligner.saveModel(saveFile)
 
         if testDataset is not None:
