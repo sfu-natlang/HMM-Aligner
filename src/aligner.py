@@ -249,10 +249,7 @@ if __name__ == '__main__':
         if config['loadModel'] != "":
             loadFile = config['loadModel']
             if reversed:
-                tmp = loadFile.split(".")[:-1] + ["rev", ] +\
-                    [loadFile.split(".")[-1]]
-                print tmp
-                loadFile = ".".join(loadFile.split(".")[:-1] + ["rev", ] +
+                loadFile = ".".join(loadFile.split(".")[:-1] + ["rev"] +
                                     [loadFile.split(".")[-1]])
             aligner.loadModel(loadFile, force=config['forceLoad'])
 
