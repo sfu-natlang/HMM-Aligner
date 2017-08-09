@@ -29,7 +29,7 @@ class AlignmentModel(IBM1Base):
     def train(self, dataset, iterations=5):
         dataset = self.initialiseLexikon(dataset)
         self.initialiseBiwordCount(dataset)
-        self.EM(dataset, iterations, 'IBM1')
+        self.EM(dataset, iterations)
         return
 
     def _beginningOfIteration(self, index=0):
