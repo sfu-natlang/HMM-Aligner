@@ -9,14 +9,15 @@ currentdir = os.path.dirname(
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 from fileIO import exportToFile, loadAlignment
-__version__ = "0.3a"
+__version__ = "0.4a"
 
 supportedEvaluators = [
     "evaluator", "evaluatorWithType"
 ]
 
 requiredArguments = {"result": "list",
-                     "reference": "int"}
+                     "reference": "list",
+                     "showFigure": "int"}
 
 
 def checkEvaluator(func, logger=True):

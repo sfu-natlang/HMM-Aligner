@@ -60,6 +60,14 @@ class AlignmentModelBase():
             self.modelComponents = []
         if "_savedModelFile" not in vars(self):
             self._savedModelFile = ""
+        if "fLex" not in vars(self):
+            self.fLex = []
+        if "eLex" not in vars(self):
+            self.eLex = []
+        if "fIndex" not in vars(self):
+            self.fIndex = []
+        if "eIndex" not in vars(self):
+            self.eIndex = []
         return
 
     def loadModel(self, fileName=None, force=False):
@@ -384,7 +392,7 @@ class AlignmentModelBase():
         @return: alignment. See API reference for more detail on this structure
         """
         if showFigure > 0:
-            from models.plot import plotAlignmentWithScore, showPlot
+            from models.plot import plotAlignmentWithScore
         self.logger.info("Start decoding")
         self.logger.info("Testing size: " + str(len(dataset)))
         result = []
@@ -406,8 +414,6 @@ class AlignmentModelBase():
                     count += 1
 
             result.append(sentenceAlignment)
-        if showFigure > 0:
-            showPlot()
         endTime = time.time()
         self.logger.info("Decoding Complete, total time: " +
                          str(endTime - startTime) + ", average " +
@@ -442,14 +448,15 @@ class AlignmentModelBase():
 
         @return: A lexicalised dataset.
         """
-        if "fLex" in vars(self) and self.fLex:
-            indices = len(self.fIndex)
-        else:
-            indices = len(dataset[0][0][0])
-            self.fLex = [[] for i in range(indices)]
-            self.eLex = [[] for i in range(indices)]
-            self.fIndex = [{} for i in range(indices)]
-            self.eIndex = [{} for i in range(indices)]
+        if "fLex" not in vars(self) or self.fLex is None:
+            self.fLex, self.eLex, self.fIndex, self.eIndex = [], [], [], []
+
+        indices = len(dataset[0][0][0])
+        self.fLex += [[] for i in range(len(self.fLex), indices)]
+        self.eLex += [[] for i in range(len(self.eLex), indices)]
+        self.fIndex += [{} for i in range(len(self.fIndex), indices)]
+        self.eIndex += [{} for i in range(len(self.eIndex), indices)]
+
         extFIndex = [{} for i in range(indices)]
         extEIndex = [{} for i in range(indices)]
 
@@ -459,7 +466,7 @@ class AlignmentModelBase():
                     if fWord[index] not in self.fIndex[index]:
                         extFIndex[index][fWord[index]] = 1
                 for eWord in e:
-                    if fWord[index] not in self.fIndex[index]:
+                    if eWord[index] not in self.eIndex[index]:
                         extEIndex[index][eWord[index]] = 1
         if newDataset:
             dataset = deepcopy(dataset)
