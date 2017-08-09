@@ -14,7 +14,7 @@ from copy import deepcopy
 from loggers import logging
 from models.modelBase import AlignmentModelBase as Base
 from evaluators.evaluator import evaluate
-__version__ = "0.4a"
+__version__ = "0.5a"
 
 tTable = []
 

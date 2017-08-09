@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib import pyplot
 from matplotlib import rcParams, rc
 rc('pdf', fonttype=42)
-__version__ = "0.4a"
+__version__ = "0.5a"
 
 
 figures = []

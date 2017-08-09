@@ -13,7 +13,7 @@ import cython
 from copy import deepcopy
 from loggers import logging
 from models.cModelBase import AlignmentModelBase as Base
-__version__ = "0.4a"
+__version__ = "0.5a"
 
 
 @cython.boundscheck(False)

@@ -14,7 +14,7 @@ from loggers import logging
 from models.IBM1 import AlignmentModel as AlignerIBM1
 from models.HMMBase import AlignmentModelBase as Base
 from evaluators.evaluator import evaluate
-__version__ = "0.4a"
+__version__ = "0.5a"
 
 
 class AlignmentModel(Base):
