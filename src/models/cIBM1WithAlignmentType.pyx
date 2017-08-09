@@ -131,7 +131,7 @@ class AlignmentModel(IBM1Base):
         self.initialiseBiwordCount(dataset, self.index)
         self.sTag = self.calculateS(dataset, self.index)
         self.logger.info("Initialisation complete")
-        self.EM(dataset, iterations, 'IBM1TypeS1', self.index)
+        self.EM(dataset, iterations, self.index)
         # reset self.index to 0
         self.index = 0
         self.logger.info("Stage 1 Complete")
@@ -143,7 +143,7 @@ class AlignmentModel(IBM1Base):
         self.initialiseBiwordCount(dataset, self.index)
         self.s = self.calculateS(dataset, self.index)
         self.logger.info("Initialisation complete")
-        self.EM(dataset, iterations, 'IBM1TypeS2', self.index)
+        self.EM(dataset, iterations, self.index)
         self.logger.info("Stage 2 Complete")
         return
 

@@ -37,7 +37,7 @@ class AlignmentModelBase(Base):
         t[t == 0] = 0.000006123586217
         return t
 
-    def EM(self, dataset, iterations, modelName="IBM1Base", index=0):
+    def EM(self, dataset, iterations, index=0):
         self.logger.info("Starting Training Process")
         self.logger.info("Training size: " + str(len(dataset)))
         start_time = time.time()
