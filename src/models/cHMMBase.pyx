@@ -7,6 +7,7 @@
 #
 # This is the base model for HMM
 #
+import cython
 import sys
 import time
 import numpy as np
@@ -17,9 +18,10 @@ from copy import deepcopy
 from loggers import logging
 from models.cModelBase import AlignmentModelBase as Base
 from evaluators.evaluator import evaluate
-__version__ = "0.4a"
+__version__ = "0.5a"
 
 
+@cython.boundscheck(False)
 class AlignmentModelBase(Base):
     def __init__(self):
         if "nullEmissionProb" not in vars(self):
@@ -54,20 +56,22 @@ class AlignmentModelBase(Base):
         return
 
     def forwardBackward(self, f, e, tSmall, a):
-        alpha = np.zeros((len(f), len(e)))
-        beta = np.zeros((len(f), len(e)))
-        alphaScale = np.zeros(len(f))
+        cdef int fLen = len(f)
+        cdef int eLen = len(e)
+        alpha = np.zeros((fLen, eLen))
+        beta = np.zeros((fLen, eLen))
+        alphaScale = np.zeros(fLen)
 
-        alpha[0] = tSmall[0] * self.pi[:len(e)]
+        alpha[0] = tSmall[0] * self.pi[:eLen]
         alphaScale[0] = 1 / np.sum(alpha[0])
         alpha[0] *= alphaScale[0]
-        for i in range(1, len(f)):
+        for i in range(1, fLen):
             alpha[i] = tSmall[i] * np.matmul(alpha[i - 1], a[i])
             alphaScale[i] = 1 / np.sum(alpha[i])
             alpha[i] *= alphaScale[i]
 
-        beta[len(f) - 1].fill(alphaScale[len(f) - 1])
-        for i in range(len(f) - 2, -1, -1):
+        beta[fLen - 1].fill(alphaScale[fLen - 1])
+        for i in range(fLen - 2, -1, -1):
             beta[i] = np.matmul(beta[i + 1] * tSmall[i + 1], a[i + 1].T) *\
                 alphaScale[i]
         return alpha, alphaScale, beta
@@ -77,7 +81,10 @@ class AlignmentModelBase(Base):
                          str(len(dataset)))
         startTime = time.time()
 
-        maxE = max([len(e) for (f, e, alignment) in dataset])
+        cdef int maxE = max([len(e) for (f, e, alignment) in dataset])
+        cdef int fLen, eLen
+        cdef logLikelihood
+        cdef counter
         for (f, e, alignment) in dataset:
             self.eLengthSet[len(e)] = 1
         self.initialiseParameter(maxE)
@@ -90,16 +97,18 @@ class AlignmentModelBase(Base):
             self._beginningOfIteration(dataset, maxE, index)
 
             for (f, e, alignment) in dataset:
+                fLen = len(f)
+                eLen = len(e)
                 counter += 1
                 if iteration == 0:
-                    self.initialValues(len(e))
+                    self.initialValues(eLen)
 
-                a = self.aProbability(f, e)[:len(f), :len(e), :len(e)]
+                a = self.aProbability(f, e)[:fLen, :eLen, :eLen]
                 tSmall = self.tProbability(f, e, index)
 
                 alpha, alphaScale, beta = self.forwardBackward(f, e, tSmall, a)
                 gamma = ((alpha * beta).T / alphaScale).T
-                xi = np.zeros((len(f), len(e), len(e)))
+                xi = np.zeros((fLen, eLen, eLen))
                 xi[1:] = alpha[:-1][..., None] * a[1:] *\
                     (beta * tSmall)[1:][:, None, :]
 
@@ -128,7 +137,8 @@ class AlignmentModelBase(Base):
         raise NotImplementedError
 
     def EStepDelta(self, f, e, xi):
-        fLen, eLen = len(f), len(e)
+        cdef int fLen = len(f)
+        cdef int eLen = len(e)
         c = np.zeros(eLen * 2)
         Xceta = np.sum(xi, axis=0)
         for j in range(eLen):
@@ -162,12 +172,13 @@ class AlignmentModelBase(Base):
         return t
 
     def aProbability(self, f, e):
-        Len = len(e)
-        if Len in self.eLengthSet:
-            a = self.a[Len][:Len * 2, :Len * 2]
+        cdef int fLen = len(f)
+        cdef int eLen = len(e)
+        if eLen in self.eLengthSet:
+            a = self.a[eLen][:eLen * 2, :eLen * 2]
         else:
-            a = np.full((Len * 2, Len * 2), 1. / Len)
-        return np.tile(a, (len(f), 1, 1))
+            a = np.full((eLen * 2, eLen * 2), 1. / eLen)
+        return np.tile(a, (fLen, 1, 1))
 
     def logViterbi(self, f, e):
         e = deepcopy(e)

@@ -14,7 +14,7 @@ from loggers import logging
 from models.IBM1 import AlignmentModel as AlignerIBM1
 from models.HMMBase import AlignmentModelBase as Base
 from evaluators.evaluator import evaluate
-__version__ = "0.4a"
+__version__ = "0.5a"
 
 
 class AlignmentModel(Base):
@@ -35,20 +35,24 @@ class AlignmentModel(Base):
 
     def _beginningOfIteration(self, dataset, maxE, index):
         self.lenDataset = len(dataset)
-        self.gammaEWord = [0.0 for i in range(len(self.eLex[index]))]
+        self.gammaEWord = np.zeros(len(self.eLex[index]))
         self.gammaBiword = [defaultdict(float)
                             for i in range(len(self.fLex[index]))]
         self.gammaSum_0 = np.zeros(maxE)
         return
 
     def EStepGamma(self, f, e, gamma, index):
-        fWords = [f[i][index] for i in range(len(f))]
-        eWords = [e[j][index] for j in range(len(e))]
-        for i in range(len(f)):
-            for j in range(len(e)):
+        fLen = len(f)
+        eLen = len(e)
+        fWords = np.array([f[i][index] for i in range(fLen)])
+        eWords = np.array([e[j][index] for j in range(eLen)])
+        for i in range(fLen):
+            for j in range(eLen):
                 self.gammaBiword[fWords[i]][eWords[j]] += gamma[i][j]
-                self.gammaEWord[eWords[j]] += gamma[i][j]
-        self.gammaSum_0[:len(e)] += gamma[0]
+        self.gammaSum_0[:eLen] += gamma[0]
+
+        eDupli = (eWords[:, np.newaxis] == eWords).sum(axis=0)
+        self.gammaEWord[eWords] += (gamma * eDupli).sum(axis=0)
         return
 
     def MStepDelta(self, maxE, index):

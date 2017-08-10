@@ -12,7 +12,7 @@ from collections import defaultdict
 from loggers import logging
 from models.IBM1Base import AlignmentModelBase as IBM1Base
 from evaluators.evaluator import evaluate
-__version__ = "0.4a"
+__version__ = "0.5a"
 
 
 class AlignmentModel(IBM1Base):
@@ -34,7 +34,7 @@ class AlignmentModel(IBM1Base):
 
     def _beginningOfIteration(self, index=0):
         self.c = [defaultdict(float) for i in range(len(self.fLex[index]))]
-        self.total = [0.0 for i in range(len(self.eLex[index]))]
+        self.total = np.zeros(len(self.eLex[index]))
         return
 
     def _updateCount(self, f, e, index):
@@ -48,7 +48,9 @@ class AlignmentModel(IBM1Base):
             tmp = tSmall[i]
             for j in range(eLen):
                 self.c[fWords[i]][eWords[j]] += tmp[j]
-                self.total[eWords[j]] += tmp[j]
+        eDupli = (eWords[:, np.newaxis] == eWords).sum(axis=0)
+        tSmall = (tSmall * eDupli).sum(axis=0)
+        self.total[eWords] += tSmall
         return
 
     def _updateEndOfIteration(self, index):

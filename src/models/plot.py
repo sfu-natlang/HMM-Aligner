@@ -5,6 +5,11 @@ import matplotlib.pyplot as plt
 from matplotlib import pyplot
 from matplotlib import rcParams, rc
 rc('pdf', fonttype=42)
+__version__ = "0.5a"
+
+
+figures = []
+x = y = 0
 
 
 def plotAlignmentWithScore(score,
@@ -14,8 +19,10 @@ def plotAlignmentWithScore(score,
                            debug=False,
                            dispValue=False,
                            output=None):
-
-    fig, ax = plt.subplots()
+    global x, y
+    global figures
+    figures.append(plt.subplots())
+    fig, ax = figures[-1]
     if isinstance(score, np.ndarray):
         x, y = score.shape[:2]
     else:
@@ -124,11 +131,28 @@ def showPlot():
     pyplot.show()
 
 
+def addAlignmentToFigure(alignment, figureIndex, colour='#FFA500'):
+    if figureIndex >= len(figures):
+        print "duang", figureIndex, len(figures)
+        return
+    fig, ax = figures[figureIndex]
+    _axs = [entry[0] for entry in alignment]
+    _ays = [entry[1] for entry in alignment]
+
+    ax.scatter(_axs, _ays, s=200, marker='s', facecolors='none',
+               edgecolors=colour, linewidth='3')
+
+
 if __name__ == '__main__':
     alignment = [
         (1, 2),
         (2, 3),
         (3, 4)
+    ]
+    alignment2 = [
+        (4, 7),
+        (5, 8),
+        (6, 9)
     ]
 
     f = (u"记者 赶到 时 ， 不少 村民 正聚集 在 一 起 ， 对 这起 案件 议论 纷纷 。"
@@ -141,4 +165,8 @@ if __name__ == '__main__':
 
     score = 1. / (np.arange(len(f) * len(e)).reshape((len(e), len(f))) + 1).T
     plotAlignmentWithScore(score, alignment, f, e)
+    plotAlignmentWithScore(score, alignment, f, e)
+
+    addAlignmentToFigure(alignment2, 0)
+    addAlignmentToFigure(alignment2, 1)
     showPlot()

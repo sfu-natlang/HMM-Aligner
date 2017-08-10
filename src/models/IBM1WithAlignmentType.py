@@ -12,7 +12,7 @@ from collections import defaultdict
 from loggers import logging
 from models.IBM1Base import AlignmentModelBase as IBM1Base
 from evaluators.evaluator import evaluate
-__version__ = "0.4a"
+__version__ = "0.5a"
 
 
 class AlignmentModel(IBM1Base):
@@ -25,7 +25,6 @@ class AlignmentModel(IBM1Base):
 
         self.s = []
         self.sTag = []
-        self.index = 0
         self.typeList = []
         self.typeIndex = {}
         self.typeDist = np.zeros(0)
@@ -49,7 +48,7 @@ class AlignmentModel(IBM1Base):
 
     def _beginningOfIteration(self, index=0):
         self.c = [defaultdict(float) for i in range(len(self.fLex[index]))]
-        self.total = [0.0 for i in range(len(self.eLex[index]))]
+        self.total = np.zeros(len(self.eLex[index]))
         self.c_feh = [defaultdict(lambda: np.zeros(len(self.typeIndex)))
                       for i in range(len(self.fLex[index]))]
         return
@@ -67,8 +66,10 @@ class AlignmentModel(IBM1Base):
             tmps = score[i]
             for j in range(eLen):
                 self.c[fWords[i]][eWords[j]] += tmp[j]
-                self.total[eWords[j]] += tmp[j]
                 self.c_feh[fWords[i]][eWords[j]] += tmps[j]
+        eDupli = (eWords[:, np.newaxis] == eWords).sum(axis=0)
+        tSmall = (tSmall * eDupli).sum(axis=0)
+        self.total[eWords] += tSmall
         return
 
     def _updateEndOfIteration(self, index):
@@ -79,7 +80,7 @@ class AlignmentModel(IBM1Base):
                 self.t[i][j] = self.c[i][j] / self.total[j]
 
         # Update s
-        if self.index == 0:
+        if index == 0:
             del self.s
             self.s = self.c_feh
         else:
@@ -126,24 +127,20 @@ class AlignmentModel(IBM1Base):
     def trainStage1(self, dataset, iterations=5):
         self.logger.info("Stage 1 Start Training with POS Tags")
         self.logger.info("Initialising model with POS Tags")
-        # self.index set to 1 means training with POS Tag
-        self.index = 1
-        self.initialiseBiwordCount(dataset, self.index)
-        self.sTag = self.calculateS(dataset, self.index)
+        self.initialiseBiwordCount(dataset, 1)
+        self.sTag = self.calculateS(dataset, 1)
         self.logger.info("Initialisation complete")
-        self.EM(dataset, iterations, self.index)
-        # reset self.index to 0
-        self.index = 0
+        self.EM(dataset, iterations, 1)
         self.logger.info("Stage 1 Complete")
         return
 
     def trainStage2(self, dataset, iterations=5):
         self.logger.info("Stage 2 Start Training with FORM")
         self.logger.info("Initialising model with FORM")
-        self.initialiseBiwordCount(dataset, self.index)
-        self.s = self.calculateS(dataset, self.index)
+        self.initialiseBiwordCount(dataset, 0)
+        self.s = self.calculateS(dataset, 0)
         self.logger.info("Initialisation complete")
-        self.EM(dataset, iterations, self.index)
+        self.EM(dataset, iterations, 0)
         self.logger.info("Stage 2 Complete")
         return
 

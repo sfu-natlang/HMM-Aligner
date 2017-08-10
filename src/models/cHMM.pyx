@@ -8,15 +8,17 @@
 # This is the implementation of HMM word aligner, it requires IBM1 in order to
 # function properly
 #
+import cython
 import numpy as np
 from collections import defaultdict
 from loggers import logging
 from models.cIBM1 import AlignmentModel as AlignerIBM1
 from models.cHMMBase import AlignmentModelBase as Base
 from evaluators.evaluator import evaluate
-__version__ = "0.4a"
+__version__ = "0.5a"
 
 
+@cython.boundscheck(False)
 class AlignmentModel(Base):
     def __init__(self):
         self.modelName = "HMM"
@@ -35,20 +37,24 @@ class AlignmentModel(Base):
 
     def _beginningOfIteration(self, dataset, maxE, index):
         self.lenDataset = len(dataset)
-        self.gammaEWord = [0.0 for i in range(len(self.eLex[index]))]
+        self.gammaEWord = np.zeros(len(self.eLex[index]))
         self.gammaBiword = [defaultdict(float)
                             for i in range(len(self.fLex[index]))]
         self.gammaSum_0 = np.zeros(maxE)
         return
 
     def EStepGamma(self, f, e, gamma, index):
-        fWords = [f[i][index] for i in range(len(f))]
-        eWords = [e[j][index] for j in range(len(e))]
-        for i in range(len(f)):
-            for j in range(len(e)):
+        cdef int fLen = len(f)
+        cdef int eLen = len(e)
+        fWords = np.array([f[i][index] for i in range(fLen)])
+        eWords = np.array([e[j][index] for j in range(eLen)])
+        for i in range(fLen):
+            for j in range(eLen):
                 self.gammaBiword[fWords[i]][eWords[j]] += gamma[i][j]
-                self.gammaEWord[eWords[j]] += gamma[i][j]
-        self.gammaSum_0[:len(e)] += gamma[0]
+        self.gammaSum_0[:eLen] += gamma[0]
+
+        eDupli = (eWords[:, np.newaxis] == eWords).sum(axis=0)
+        self.gammaEWord[eWords] += (gamma * eDupli).sum(axis=0)
         return
 
     def MStepDelta(self, maxE, index):

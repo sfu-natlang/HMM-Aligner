@@ -13,7 +13,7 @@ def init_logger(logFile='aligner.log'):
     ch.setLevel(logging.INFO)
     # create formatter and add it to the handlers
     formatter = logging.Formatter(
-        '%(asctime)s %(name)s [%(levelname)s]: %(message)s')
+        '%(asctime)s %(process)d:%(name)s [%(levelname)s]: %(message)s')
     fh.setFormatter(formatter)
     ch.setFormatter(formatter)
     # add the handlers to the logger
@@ -31,7 +31,7 @@ def init_logger(logFile='aligner.log'):
     ch.setLevel(logging.INFO)
     # create formatter and add it to the handlers
     formatter = logging.Formatter(
-        '%(asctime)s %(name)s [%(levelname)s]: %(message)s')
+        '%(asctime)s %(process)d:%(name)s [%(levelname)s]: %(message)s')
     fh.setFormatter(formatter)
     ch.setFormatter(formatter)
     # add the handlers to the logger
@@ -49,7 +49,7 @@ def init_logger(logFile='aligner.log'):
     ch.setLevel(logging.INFO)
     # create formatter and add it to the handlers
     formatter = logging.Formatter(
-        '%(asctime)s %(name)s [%(levelname)s]: %(message)s')
+        '%(asctime)s %(process)d:%(name)s [%(levelname)s]: %(message)s')
     fh.setFormatter(formatter)
     ch.setFormatter(formatter)
     # add the handlers to the logger
@@ -67,7 +67,7 @@ def init_logger(logFile='aligner.log'):
     ch.setLevel(logging.INFO)
     # create formatter and add it to the handlers
     formatter = logging.Formatter(
-        '%(asctime)s %(name)s [%(levelname)s]: %(message)s')
+        '%(asctime)s %(process)d:%(name)s [%(levelname)s]: %(message)s')
     fh.setFormatter(formatter)
     ch.setFormatter(formatter)
     # add the handlers to the logger
@@ -85,7 +85,7 @@ def init_logger(logFile='aligner.log'):
     ch.setLevel(logging.INFO)
     # create formatter and add it to the handlers
     formatter = logging.Formatter(
-        '%(asctime)s %(name)s [%(levelname)s]: %(message)s')
+        '%(asctime)s %(process)d:%(name)s [%(levelname)s]: %(message)s')
     fh.setFormatter(formatter)
     ch.setFormatter(formatter)
     # add the handlers to the logger
@@ -103,7 +103,7 @@ def init_logger(logFile='aligner.log'):
     ch.setLevel(logging.INFO)
     # create formatter and add it to the handlers
     formatter = logging.Formatter(
-        '%(asctime)s %(name)s [%(levelname)s]: %(message)s')
+        '%(asctime)s %(process)d:%(name)s [%(levelname)s]: %(message)s')
     fh.setFormatter(formatter)
     ch.setFormatter(formatter)
     # add the handlers to the logger
@@ -121,7 +121,7 @@ def init_logger(logFile='aligner.log'):
     ch.setLevel(logging.INFO)
     # create formatter and add it to the handlers
     formatter = logging.Formatter(
-        '%(asctime)s %(name)s [%(levelname)s]: %(message)s')
+        '%(asctime)s %(process)d:%(name)s [%(levelname)s]: %(message)s')
     fh.setFormatter(formatter)
     ch.setFormatter(formatter)
     # add the handlers to the logger
