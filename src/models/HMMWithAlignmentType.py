@@ -99,7 +99,7 @@ class AlignmentModel(HMM):
         alignerIBM1 = AlignerIBM1()
         alignerIBM1.sharedLexikon(self)
         alignerIBM1.initialiseBiwordCount(dataset, index)
-        alignerIBM1.EM(dataset, iterations, 'IBM1', index)
+        alignerIBM1.EM(dataset, iterations, index)
         self.logger.info("IBM model Trained")
 
         self.logger.info("Initialising HMM")

@@ -95,7 +95,7 @@ class AlignmentModel(Base):
         alignerIBM1 = AlignerIBM1()
         alignerIBM1.sharedLexikon(self)
         alignerIBM1.initialiseBiwordCount(dataset)
-        alignerIBM1.EM(dataset, iterations, 'IBM1')
+        alignerIBM1.EM(dataset, iterations)
         self.t = alignerIBM1.t
         self.logger.info("IBM model Trained")
         self.baumWelch(dataset, iterations=iterations)
