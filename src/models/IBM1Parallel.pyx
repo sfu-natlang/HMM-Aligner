@@ -9,16 +9,18 @@
 #
 import time
 import numpy as np
+import cython
 from collections import defaultdict
 from copy import deepcopy
 from loggers import logging
-from models.modelBase import AlignmentModelBase as Base
+from models.cModelBase import AlignmentModelBase as Base
 from evaluators.evaluator import evaluate
 __version__ = "0.5a"
 
+
 tTable = []
 
-
+@cython.boundscheck(False)
 def tProbability(f, e, index):
     t = np.zeros((len(f), len(e)))
     for j in range(len(e)):
@@ -27,26 +29,22 @@ def tProbability(f, e, index):
     t[t == 0] = 0.000006123586217
     return t
 
-
+@cython.boundscheck(False)
 def mapFunc(dataset):
-    result = defaultdict(float)
+    result = []
     index = 0
-    for item in dataset:
+    for item, tSmall in dataset:
         f, e = item[0:2]
         fLen = len(f)
         eLen = len(e)
         fWords = np.array([f[i][index] for i in range(fLen)])
         eWords = np.array([e[j][index] for j in range(eLen)])
-        tSmall = tProbability(f, e, index)
+        # tSmall = tProbability(f, e, index)
         tSmall = tSmall / tSmall.sum(axis=1)[:, None]
-        for i in range(fLen):
-            tmp = tSmall[i]
-            for j in range(eLen):
-                result[(f[i][index], e[j][index])] += tmp[j]
-                result[e[j][index]] += tmp[j]
-    return result.items()
+        result.append((tSmall, fWords, eWords))
+    return result
 
-
+@cython.boundscheck(False)
 def partition(dataset, size):
     result = []
     slices = (len(dataset) + size - 1) / size
@@ -56,14 +54,11 @@ def partition(dataset, size):
             result.append(dataset[i * size: (i + 1) * size])
         else:
             result.append(dataset[i * size:])
+        result[-1] = [(sent, tProbability(sent[0], sent[1], 0))
+                      for sent in result[-1]]
     return result
 
-
-def reduceFunc(item):
-    word, occurances = item
-    return (word, sum(occurances))
-
-
+@cython.boundscheck(False)
 class AlignmentModel(Base):
     def __init__(self):
         self.t = []
@@ -100,6 +95,7 @@ class AlignmentModel(Base):
         import multiprocessing
         import itertools
         start_time = time.time()
+        pool = multiprocessing.Pool(None)
 
         for iteration in range(iterations):
             global tTable
@@ -108,23 +104,18 @@ class AlignmentModel(Base):
             self._beginningOfIteration(index)
             self.logger.info("Starting Iteration " + str(iteration))
 
-            pool = multiprocessing.Pool(None)
             self.logger.info("Map")
             mapResponses =\
                 pool.map(mapFunc,
                          partition(dataset, len(dataset) / 4),
                          chunksize=1)
-            partitionedData = defaultdict(list)
-            for key, value in itertools.chain(*mapResponses):
-                partitionedData[key].append(value)
-            partitionedData = partitionedData.items()
             self.logger.info("Reduce")
-            reducedValues = pool.map(reduceFunc, partitionedData)
-            for item, value in reducedValues:
-                if isinstance(item, tuple):
-                    self.c[item[0]][item[1]] = value
-                else:
-                    self.total[item] = value
+            for cake in mapResponses:
+                for (tSmall, fWords, eWords) in cake:
+                    for i in range(len(fWords)):
+                        for j in range(len(eWords)):
+                            self.c[fWords[i]][eWords[j]] += tSmall[i][j]
+                            self.total[eWords[j]] += tSmall[i][j]
 
             self._updateEndOfIteration(index)
 

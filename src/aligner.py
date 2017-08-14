@@ -275,7 +275,10 @@ if __name__ == '__main__':
     if config['intersect'] is True:
         arg.append((trainDataset2, testDataset2, True))
 
-    result = multiprocessing.Pool(2).map(work, arg)
+    if len(arg) == 1:
+        result = [work(arg[0])]
+    else:
+        result = multiprocessing.Pool(2).map(work, arg)
 
     if config['testData'] != "":
         for (resultReversed, resultAlignment) in result:
