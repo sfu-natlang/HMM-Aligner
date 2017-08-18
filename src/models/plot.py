@@ -3,9 +3,16 @@ from __future__ import unicode_literals
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import pyplot
-from matplotlib import rcParams, rc
+from matplotlib import rcParams, rc, font_manager
 rc('pdf', fonttype=42)
 __version__ = "0.5a"
+
+
+prop = None
+# In case the characters are not display correctly, one can use the following
+# two lines of code to manually load fonts.
+# font_path = "/System/Library/Fonts/STHeiti Light.ttc"
+# prop = font_manager.FontProperties(fname=font_path)
 
 
 figures = []
@@ -48,7 +55,10 @@ def plotAlignmentWithScore(score,
         xlabels = [item.get_text() for item in ax.get_xticklabels()]
         for i in range(len(f)):
             xlabels[i + 1] = f[i][0].decode('utf-8')
-        ax.set_xticklabels(xlabels)
+        if prop is not None:
+            ax.set_xticklabels(xlabels, fontproperties=prop)
+        else:
+            ax.set_xticklabels(xlabels)
     if e is not None:
         pyplot.yticks(range(y + 2))
         ylabels = [item.get_text() for item in ax.get_yticklabels()]
@@ -56,7 +66,10 @@ def plotAlignmentWithScore(score,
             ylabels[i + 1] = e[i][0].decode('utf-8')
         if y > len(e):
             ylabels[len(e) + 1] = "NULL"
-        ax.set_yticklabels(ylabels)
+        if prop is not None:
+            ax.set_yticklabels(ylabels, fontproperties=prop)
+        else:
+            ax.set_yticklabels(ylabels)
 
     # Hover effect
     points_with_annotation = []
