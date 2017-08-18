@@ -161,11 +161,10 @@ if __name__ == '__main__':
     alignment = [
         (1, 10), (2, 7), (3, 3), (4, 1), (5, 2), (6, 3)
     ]
-    alignment2 = [
+    goldAlignment = [
         (1, 10), (1, 9), (2, 7), (2, 6), (2, 8), (3, 4), (3, 5), (4, 1),
         (5, 2), (6, 3)
     ]
-
     score = [[-69.83854259, -50.24906734, -40.05389257, -52.78227564,
               -48.95559616, -83.05203389, -41.84190419, -36.80988323,
               -53.95177903, -5.51836396, -52.21216642],
@@ -184,7 +183,6 @@ if __name__ == '__main__':
              [-154.63301046, -150.83650201, -151.92970335, -152.40304942,
               -152.70031894, -153.19412, -153.31395162, -153.80551227,
               -154.39353667, -154.82147064, -159.91620834]]
-
     f = (u"阿富汗 阅兵典礼 遭攻击 三名 激进分子 被击毙 。"
          ).encode("utf-8").split()
     e = (u"three militants killed in attack on troop parade in afghanistan" +
@@ -192,9 +190,18 @@ if __name__ == '__main__':
     f = [(word,) for word in f]
     e = [(word,) for word in e]
 
-    plotAlignmentWithScore(score, alignment, f, e)
-    plotAlignmentWithScore(score, alignment, f, e)
+    alignment2 = [(1, 1), (2, 2)]
+    goldAlignment2 = [(1, 1), (2, 2)]
+    score2 = [[-2.14112664, -38.80694869, -50.13921307],
+              [-36.93361547, -3.30257487, -51.00374225]]
+    f2 = (u"对 。").encode("utf-8").split()
+    e2 = (u"right . NULL").encode("utf-8").split()
+    f2 = [(word,) for word in f2]
+    e2 = [(word,) for word in e2]
 
-    addAlignmentToFigure(alignment2, 0)
-    addAlignmentToFigure(alignment2, 1)
+    plotAlignmentWithScore(score, alignment, f, e)
+    plotAlignmentWithScore(score2, alignment2, f2, e2)
+
+    addAlignmentToFigure(goldAlignment, 0)
+    addAlignmentToFigure(goldAlignment2, 1)
     showPlot()
