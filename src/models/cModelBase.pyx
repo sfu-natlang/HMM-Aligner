@@ -219,7 +219,7 @@ class AlignmentModelBase():
         '''
         if isinstance(a, np.ndarray):
             self.logger.info("Dumping Numpy array, size: " + str(a.shape) +
-                             ", empty entries: " + str(len(zip(*a.nonzero()))))
+                             ", valid entries: " + str(len(zip(*a.nonzero()))))
             aDict = {"§§NUMPY§§": 0.0}
             for coordinate in zip(*a.nonzero()):
                 aDict[coordinate] = a[coordinate]
