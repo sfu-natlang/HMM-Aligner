@@ -268,7 +268,8 @@ if __name__ == '__main__':
 
         if testDataset is not None:
             alignResult = aligner.decode(testDataset, config['showFigure'])
-        return (reversed, alignResult)
+            return (reversed, alignResult)
+        return (None, None)
 
     arg = [(trainDataset, testDataset, False), ]
     if config['intersect'] is True:
