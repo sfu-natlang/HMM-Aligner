@@ -13,7 +13,7 @@ from collections import defaultdict
 from loggers import logging
 from models.cIBM1Base import AlignmentModelBase as IBM1Base
 from evaluators.evaluator import evaluate
-__version__ = "0.4a"
+__version__ = "0.5a"
 
 
 @cython.boundscheck(False)
@@ -31,7 +31,7 @@ class AlignmentModel(IBM1Base):
     def train(self, dataset, iterations=5):
         dataset = self.initialiseLexikon(dataset)
         self.initialiseBiwordCount(dataset)
-        self.EM(dataset, iterations, 'IBM1')
+        self.EM(dataset, iterations)
         return
 
     def _beginningOfIteration(self, index=0):

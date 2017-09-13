@@ -12,7 +12,7 @@ from collections import defaultdict
 from loggers import logging
 from models.IBM1Base import AlignmentModelBase as IBM1Base
 from evaluators.evaluator import evaluate
-__version__ = "0.4a"
+__version__ = "0.5a"
 
 
 class AlignmentModel(IBM1Base):
@@ -130,7 +130,7 @@ class AlignmentModel(IBM1Base):
         self.initialiseBiwordCount(dataset, 1)
         self.sTag = self.calculateS(dataset, 1)
         self.logger.info("Initialisation complete")
-        self.EM(dataset, iterations, 'IBM1TypeS1', 1)
+        self.EM(dataset, iterations, 1)
         self.logger.info("Stage 1 Complete")
         return
 
@@ -140,7 +140,7 @@ class AlignmentModel(IBM1Base):
         self.initialiseBiwordCount(dataset, 0)
         self.s = self.calculateS(dataset, 0)
         self.logger.info("Initialisation complete")
-        self.EM(dataset, iterations, 'IBM1TypeS2', 0)
+        self.EM(dataset, iterations, 0)
         self.logger.info("Stage 2 Complete")
         return
 

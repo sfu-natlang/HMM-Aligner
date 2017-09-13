@@ -3,8 +3,16 @@ from __future__ import unicode_literals
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import pyplot
-from matplotlib import rcParams, rc
+from matplotlib import rcParams, rc, font_manager
 rc('pdf', fonttype=42)
+__version__ = "0.5a"
+
+
+prop = None
+# In case the characters are not display correctly, one can use the following
+# two lines of code to manually load fonts.
+# font_path = "/System/Library/Fonts/STHeiti Light.ttc"
+# prop = font_manager.FontProperties(fname=font_path)
 
 
 figures = []
@@ -47,7 +55,10 @@ def plotAlignmentWithScore(score,
         xlabels = [item.get_text() for item in ax.get_xticklabels()]
         for i in range(len(f)):
             xlabels[i + 1] = f[i][0].decode('utf-8')
-        ax.set_xticklabels(xlabels)
+        if prop is not None:
+            ax.set_xticklabels(xlabels, fontproperties=prop)
+        else:
+            ax.set_xticklabels(xlabels)
     if e is not None:
         pyplot.yticks(range(y + 2))
         ylabels = [item.get_text() for item in ax.get_yticklabels()]
@@ -55,7 +66,10 @@ def plotAlignmentWithScore(score,
             ylabels[i + 1] = e[i][0].decode('utf-8')
         if y > len(e):
             ylabels[len(e) + 1] = "NULL"
-        ax.set_yticklabels(ylabels)
+        if prop is not None:
+            ax.set_yticklabels(ylabels, fontproperties=prop)
+        else:
+            ax.set_yticklabels(ylabels)
 
     # Hover effect
     points_with_annotation = []
@@ -143,29 +157,51 @@ def addAlignmentToFigure(alignment, figureIndex, colour='#FFA500'):
 
 
 if __name__ == '__main__':
+    print "This run is for debug purpose only"
     alignment = [
-        (1, 2),
-        (2, 3),
-        (3, 4)
+        (1, 10), (2, 7), (3, 3), (4, 1), (5, 2), (6, 3)
     ]
-    alignment2 = [
-        (4, 7),
-        (5, 8),
-        (6, 9)
+    goldAlignment = [
+        (1, 10), (1, 9), (2, 7), (2, 6), (2, 8), (3, 4), (3, 5), (4, 1),
+        (5, 2), (6, 3)
     ]
-
-    f = (u"记者 赶到 时 ， 不少 村民 正聚集 在 一 起 ， 对 这起 案件 议论 纷纷 。"
+    score = [[-69.83854259, -50.24906734, -40.05389257, -52.78227564,
+              -48.95559616, -83.05203389, -41.84190419, -36.80988323,
+              -53.95177903, -5.51836396, -52.21216642],
+             [-52.62003578, -48.66259046, -49.63266598, -48.3515764,
+              -47.78903018, -47.54357859, -20.80823706, -23.82287451,
+              -46.78370645, -44.94213171, -54.38097957],
+             [-67.21835653, -65.00201479, -62.33380346, -64.35327028,
+              -63.36921806, -63.823067, -61.77243324, -61.50220974,
+              -63.21514471, -63.30335522, -69.67085268],
+             [-71.601932, -103.69747858, -107.72672434, -130.7129619,
+              -124.35902727, -139.03331623, -101.91164878, -116.38019098,
+              -129.80343778, -102.51292713, -110.36482535],
+             [-144.83428264, -111.05359273, -117.6295708, -113.49649321,
+              -125.38998938, -114.11012588, -114.2928265, -126.00118102,
+              -115.6176449, -117.29842781, -120.46454762],
+             [-154.63301046, -150.83650201, -151.92970335, -152.40304942,
+              -152.70031894, -153.19412, -153.31395162, -153.80551227,
+              -154.39353667, -154.82147064, -159.91620834]]
+    f = (u"阿富汗 阅兵典礼 遭攻击 三名 激进分子 被击毙 。"
          ).encode("utf-8").split()
-    e = (
-        u"when our journalist arrived , many villagers had gathered . " +
-        u"they were talking widely about the case .").encode("utf-8").split()
+    e = (u"three militants killed in attack on troop parade in afghanistan" +
+         u" . NULL").encode("utf-8").split()
     f = [(word,) for word in f]
     e = [(word,) for word in e]
 
-    score = 1. / (np.arange(len(f) * len(e)).reshape((len(e), len(f))) + 1).T
-    plotAlignmentWithScore(score, alignment, f, e)
-    plotAlignmentWithScore(score, alignment, f, e)
+    alignment2 = [(1, 1), (2, 2)]
+    goldAlignment2 = [(1, 1), (2, 2)]
+    score2 = [[-2.14112664, -38.80694869, -50.13921307],
+              [-36.93361547, -3.30257487, -51.00374225]]
+    f2 = (u"对 。").encode("utf-8").split()
+    e2 = (u"right . NULL").encode("utf-8").split()
+    f2 = [(word,) for word in f2]
+    e2 = [(word,) for word in e2]
 
-    addAlignmentToFigure(alignment2, 0)
-    addAlignmentToFigure(alignment2, 1)
+    plotAlignmentWithScore(score, alignment, f, e)
+    plotAlignmentWithScore(score2, alignment2, f2, e2)
+
+    addAlignmentToFigure(goldAlignment, 0)
+    addAlignmentToFigure(goldAlignment2, 1)
     showPlot()

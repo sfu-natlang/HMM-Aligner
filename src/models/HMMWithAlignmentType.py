@@ -18,7 +18,7 @@ from loggers import logging
 from models.IBM1 import AlignmentModel as AlignerIBM1
 from models.HMM import AlignmentModel as HMM
 from evaluators.evaluator import evaluate
-__version__ = "0.4a"
+__version__ = "0.5a"
 
 
 class AlignmentModel(HMM):
@@ -99,7 +99,7 @@ class AlignmentModel(HMM):
         alignerIBM1 = AlignerIBM1()
         alignerIBM1.sharedLexikon(self)
         alignerIBM1.initialiseBiwordCount(dataset, index)
-        alignerIBM1.EM(dataset, iterations, 'IBM1', index)
+        alignerIBM1.EM(dataset, iterations, index)
         self.logger.info("IBM model Trained")
 
         self.logger.info("Initialising HMM")

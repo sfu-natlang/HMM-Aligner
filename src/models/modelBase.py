@@ -24,7 +24,7 @@ currentdir = os.path.dirname(
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 from loggers import logging
-__version__ = "0.4a"
+__version__ = "0.5a"
 
 
 def isLambda(f):
@@ -219,7 +219,7 @@ class AlignmentModelBase():
         '''
         if isinstance(a, np.ndarray):
             self.logger.info("Dumping Numpy array, size: " + str(a.shape) +
-                             ", empty entries: " + str(len(zip(*a.nonzero()))))
+                             ", valid entries: " + str(len(zip(*a.nonzero()))))
             aDict = {"§§NUMPY§§": 0.0}
             for coordinate in zip(*a.nonzero()):
                 aDict[coordinate] = a[coordinate]
