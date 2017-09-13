@@ -183,22 +183,22 @@ def infoDataset(dataset):
         ("Percentage of unique target language words occuring only once",
          len([key for key in eCount if eCount[key] == 1]) * 1. / len(eCount)))
     info.append(
-        ("Percentage of unique source language words occuring in (0, 3]",
+        ("Percentage of unique source language words occurrence in (0, 3]",
          len([key for key in fCount if fCount[key] <= 3]) * 1. / len(fCount)))
     info.append(
-        ("Percentage of unique target language words occuring in (0, 3]",
+        ("Percentage of unique target language words occurrence in (0, 3]",
          len([key for key in eCount if eCount[key] <= 3]) * 1. / len(eCount)))
     info.append(
-        ("Percentage of unique source language words occuring in (0, 5]",
+        ("Percentage of unique source language words occurrence in (0, 5]",
          len([key for key in fCount if fCount[key] <= 5]) * 1. / len(fCount)))
     info.append(
-        ("Percentage of unique target language words occuring in (0, 5]",
+        ("Percentage of unique target language words occurrence in (0, 5]",
          len([key for key in eCount if eCount[key] <= 5]) * 1. / len(eCount)))
     info.append(
-        ("Percentage of unique source language words occuring in (0, 10]",
+        ("Percentage of unique source language words occurrence in (0, 10]",
          len([key for key in fCount if fCount[key] <= 10]) * 1. / len(fCount)))
     info.append(
-        ("Percentage of unique target language words occuring in (0, 10]",
+        ("Percentage of unique target language words occurrence in (0, 10]",
          len([key for key in eCount if eCount[key] <= 10]) * 1. / len(eCount)))
     return info
 
