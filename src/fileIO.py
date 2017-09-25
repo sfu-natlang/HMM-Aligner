@@ -249,6 +249,31 @@ def loadAlignment(fileName, linesToLoad=sys.maxint,
     return result
 
 
+def intersect(alignment, reversedAlignment):
+    '''
+    This function is used to intersect alignment results.
+
+    @param alignment: Alignment, source-target
+    @param reversedAlignment: Alignment, reversed alignment result,
+        target-source
+    @return: Alignment
+    '''
+    result = []
+    for align, alignRev in zip(alignment, reversedAlignment):
+        sentenceAlignment = []
+        for item in align:
+            if len(item) == 2:
+                # Without alignment type
+                if (item[1], item[0]) in alignRev:
+                    sentenceAlignment.append(item)
+            else:
+                # With alignment type
+                if (item[1], item[0], item[2]) in alignRev:
+                    sentenceAlignment.append(item)
+        result.append(sentenceAlignment)
+    return result
+
+
 class TestFileIO(unittest.TestCase):
 
     def testLoadBitext(self):

@@ -16,7 +16,7 @@ import multiprocessing
 from ConfigParser import SafeConfigParser
 from loggers import logging, init_logger
 from models.modelChecker import checkAlignmentModel
-from fileIO import loadDataset, exportToFile, loadAlignment
+from fileIO import loadDataset, exportToFile, loadAlignment, intersect
 __version__ = "0.6a"
 
 
@@ -288,21 +288,7 @@ if __name__ == '__main__':
                 alignResult = resultAlignment
 
         if config['intersect'] is True:
-            # Intersection is performed here.
-            result = []
-            for align, alignRev in zip(alignResult, alignResultRev):
-                sentenceAlignment = []
-                for item in align:
-                    if len(item) == 2:
-                        # Without alignment type
-                        if (item[1], item[0]) in alignRev:
-                            sentenceAlignment.append(item)
-                    else:
-                        # With alignment type
-                        if (item[1], item[0], item[2]) in alignRev:
-                            sentenceAlignment.append(item)
-                result.append(sentenceAlignment)
-            alignResult = result
+            alignResult = intersect(alignResult, alignResultRev)
 
         if config['output'] != "":
             exportToFile(alignResult, config['output'])
