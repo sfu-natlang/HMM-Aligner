@@ -17,7 +17,7 @@ from ConfigParser import SafeConfigParser
 from loggers import logging, init_logger
 from models.modelChecker import checkAlignmentModel
 from fileIO import loadDataset, exportToFile, loadAlignment, intersect
-__version__ = "0.6a"
+__version__ = "0.7a"
 
 
 if __name__ == '__main__':
@@ -42,6 +42,7 @@ if __name__ == '__main__':
         'output': 'o.wa',
         'showFigure': 0,
         'intersect': False,
+        'sequential': False,
 
         'loadModel': "",
         'saveModel': "",
@@ -135,6 +136,9 @@ if __name__ == '__main__':
         ap.add_argument(
             "--intersect", dest="intersect", action='store_true',
             help="Do intersection training.")
+        ap.add_argument(
+            "--sequential", dest="sequential", action='store_true',
+            help="If doing intersection, it will be done sequentially.")
         args = ap.parse_args()
 
     # Process config file
@@ -278,7 +282,12 @@ if __name__ == '__main__':
     if len(arg) == 1:
         result = [work(arg[0])]
     else:
-        result = multiprocessing.Pool(2).map(work, arg)
+        if config['sequential'] is True:
+            result1 = work(arg[0])
+            result2 = work(arg[1])
+            result = (result1, result2)
+        else:
+            result = multiprocessing.Pool(2).map(work, arg)
 
     if config['testData'] != "":
         for (resultReversed, resultAlignment) in result:

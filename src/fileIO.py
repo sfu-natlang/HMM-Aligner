@@ -14,7 +14,7 @@ import os
 import sys
 import inspect
 import unittest
-__version__ = "0.4a"
+__version__ = "0.5a"
 
 
 def exportToFile(result, fileName):
