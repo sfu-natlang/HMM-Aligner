@@ -365,20 +365,6 @@ class AlignmentModelBase():
                 count[i][j] /= feCount[i][j]
         return count
 
-    def keyDiv(self, x, y):
-        """
-        This method is no longer used in the actual programme.
-        """
-        if x.shape[:-1] != y.shape:
-            raise RuntimeError("Incorrect size")
-        if len(x.shape) == 3:
-            for i, j in zip(*y.nonzero()):
-                x[i][j] /= y[i][j]
-        elif len(x.shape) == 2:
-            for i, in zip(*y.nonzero()):
-                x[i] /= y[i]
-        return x
-
     def decode(self, dataset, showFigure=0):
         """
         This is the decoder. It decodes all sentences in the dataset by calling
@@ -577,44 +563,6 @@ class TestModelBase(unittest.TestCase):
             []
         )
         self.assertSequenceEqual(model.lexiSentence(sentence), correct)
-        return
-
-    def testKeyDiv3D(self):
-        import math
-        n = 3
-        m = 4
-        h = 5
-        x = np.arange(n * m * h).reshape((n, m, h)) + 1
-        y = np.arange(n * m).reshape(n, m) + 1
-        with np.errstate(invalid='ignore', divide='ignore'):
-            correct = np.array([[[x[i][j][k] / y[i][j] for k in range(h)]
-                                 for j in range(m)]
-                                for i in range(n)])
-        model = AlignmentModelBase()
-        result = model.keyDiv(x, y)
-        for i in range(n):
-            for j in range(m):
-                for k in range(h):
-                    self.assertFalse(math.isnan(result[i][j][k]))
-                    self.assertEqual(result[i][j][k], correct[i][j][k])
-        return
-
-    def testKeyDiv2D(self):
-        import math
-        n = 3
-        m = 4
-        x = np.arange(n * m).reshape((n, m)) + 1
-        y = np.arange(n) + 1
-        with np.errstate(invalid='ignore', divide='ignore'):
-            correct = np.array([[x[i][j] / y[i]
-                                 for j in range(m)]
-                                for i in range(n)])
-        model = AlignmentModelBase()
-        result = model.keyDiv(x, y)
-        for i in range(n):
-            for j in range(m):
-                    self.assertFalse(math.isnan(result[i][j]))
-                    self.assertEqual(result[i][j], correct[i][j])
         return
 
     def testLoadSaveObjectFromPKL(self):

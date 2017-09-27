@@ -1,0 +1,2 @@
+The files here are for unit tests and other supportive tasks.
+This folder does not contain modules of the aligner.

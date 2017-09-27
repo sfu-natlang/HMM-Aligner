@@ -57,7 +57,7 @@ class AlignmentModel(Base):
 
     def MStepDelta(self, maxE, index):
         # Update a
-        for Len in self.eLengthSet:
+        for Len in self.eLengthUpdateSet:
             deltaSum = np.sum(self.delta[Len], axis=1) + 1e-37
             for prev_j in range(Len):
                 self.a[Len][prev_j][:Len] =\
@@ -75,12 +75,12 @@ class AlignmentModel(Base):
 
     def endOfBaumWelch(self, index):
         # Smoothing for target sentences of unencountered length
-        for targetLen in self.eLengthSet:
+        for targetLen in self.eLengthUpdateSet:
             a = self.a[targetLen]
             for prev_j in range(targetLen):
                 for j in range(targetLen):
                     a[prev_j][j] *= 1 - self.p0H
-        for targetLen in self.eLengthSet:
+        for targetLen in self.eLengthUpdateSet:
             a = self.a[targetLen]
             for prev_j in range(targetLen):
                 for j in range(targetLen):
