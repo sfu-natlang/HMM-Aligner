@@ -544,8 +544,49 @@ class AlignmentModelBase():
         self.fLex, self.eLex, self.fIndex, self.eIndex =\
             model.fLex, model.eLex, model.fIndex, model.eIndex
 
+    def extendNumpyArray(self, array, shape):
+        """
+        This method extends an array to a shape not smaller in any dimension
+        than target shape. The entries created during extension will all have
+        zero values.
+        @param array: np.array. The original array.
+        @param shape: tuple. The target shape.
+        @return: np.array. The extended array.
+        """
+        if not isinstance(array, np.ndarray):
+            array = np.zeros(shape)
+            return array
+        if len(array.shape) != len(shape):
+            raise RuntimeError("Array dimensions doesn't match")
+        for i in range(len(shape)):
+            if array.shape[i] < shape[i]:
+                tmp =\
+                    array.shape[0:i] +\
+                    (shape[i] - array.shape[i], ) +\
+                    array.shape[i + 1:]
+                array = np.append(array, np.zeros(tmp), axis=i)
+        return array
+
 
 class TestModelBase(unittest.TestCase):
+    def testExtendNumpyArray(self):
+        model = AlignmentModelBase()
+        arrayA = np.array(range(20)).reshape((4, 5))
+        arrayAExtended = np.append(
+            np.append(
+                arrayA,
+                np.zeros((2, 5)),
+                axis=0
+            ),
+            np.zeros((6, 3)),
+            axis=1
+        )
+        np.testing.assert_array_equal(
+            arrayAExtended,
+            model.extendNumpyArray(arrayA, (6, 8)))
+        return
+
+
     def testlexiSentence(self):
         model = AlignmentModelBase()
         model.fIndex = [{
