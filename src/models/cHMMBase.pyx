@@ -81,12 +81,12 @@ class AlignmentModelBase(Base):
                          str(len(dataset)))
         startTime = time.time()
 
-        cdef int maxE = max([len(e) for (f, e, alignment) in dataset])
         cdef int fLen, eLen
         cdef logLikelihood
         cdef counter
         for (f, e, alignment) in dataset:
             self.eLengthSet[len(e)] = 1
+        cdef int maxE = max(self.eLengthSet.keys())
         self.initialiseParameter(maxE)
         self.logger.info("Maximum Target sentence length: " + str(maxE))
 

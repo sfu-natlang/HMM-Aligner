@@ -77,9 +77,9 @@ class AlignmentModelBase(Base):
                          str(len(dataset)))
         startTime = time.time()
 
-        maxE = max([len(e) for (f, e, alignment) in dataset])
         for (f, e, alignment) in dataset:
             self.eLengthSet[len(e)] = 1
+        maxE = max(self.eLengthSet.keys())
         self.initialiseParameter(maxE)
         self.logger.info("Maximum Target sentence length: " + str(maxE))
 
