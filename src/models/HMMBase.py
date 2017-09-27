@@ -15,6 +15,7 @@ from collections import defaultdict
 from copy import deepcopy
 
 from loggers import logging
+from dataOP import extendNumpyArray
 from models.modelBase import AlignmentModelBase as Base
 from evaluators.evaluator import evaluate
 __version__ = "0.5a"
@@ -49,10 +50,10 @@ class AlignmentModelBase(Base):
         return
 
     def initialiseParameter(self, maxE):
-        self.a = self.extendNumpyArray(
+        self.a = extendNumpyArray(
             self.a,
             (maxE + 1, maxE * 2, maxE * 2))
-        self.pi = self.extendNumpyArray(
+        self.pi = extendNumpyArray(
             self.pi,
             (maxE * 2,))
         self.delta = np.zeros((maxE + 1, maxE, maxE))
