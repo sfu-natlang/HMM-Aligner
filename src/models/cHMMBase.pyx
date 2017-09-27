@@ -45,13 +45,18 @@ class AlignmentModelBase(Base):
         return
 
     def initialValues(self, Len):
-        self.a[:Len + 1, :Len, :Len].fill(1.0 / Len)
-        self.pi[:Len].fill(1.0 / 2 / Len)
+        if np.all(self.a[Len] == 0):
+            self.a[Len, :Len, :Len].fill(1.0 / Len)
+        self.pi[self.pi == 0] = 1.0 / 2 / Len
         return
 
     def initialiseParameter(self, maxE):
-        self.a = np.zeros((maxE + 1, maxE * 2, maxE * 2))
-        self.pi = np.zeros(maxE * 2)
+        self.a = self.extendNumpyArray(
+            self.a,
+            (maxE + 1, maxE * 2, maxE * 2))
+        self.pi = self.extendNumpyArray(
+            self.pi,
+            (maxE * 2,))
         self.delta = np.zeros((maxE + 1, maxE, maxE))
         return
 
@@ -84,9 +89,11 @@ class AlignmentModelBase(Base):
         cdef int fLen, eLen
         cdef logLikelihood
         cdef counter
+        self.eLengthUpdateSet = {}
         for (f, e, alignment) in dataset:
             self.eLengthSet[len(e)] = 1
-        cdef int maxE = max(self.eLengthSet.keys())
+            self.eLengthUpdateSet[len(e)] = 1
+        cdef int maxE = max(self.eLengthUpdateSet.keys())
         self.initialiseParameter(maxE)
         self.logger.info("Maximum Target sentence length: " + str(maxE))
 

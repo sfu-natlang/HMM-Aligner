@@ -584,6 +584,7 @@ class TestModelBase(unittest.TestCase):
         np.testing.assert_array_equal(
             arrayAExtended,
             model.extendNumpyArray(arrayA, (6, 8)))
+        return
 
     def testlexiSentence(self):
         model = AlignmentModelBase()
