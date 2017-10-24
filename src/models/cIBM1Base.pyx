@@ -50,7 +50,8 @@ class AlignmentModelBase(Base):
             self.logger.info("Starting Iteration " + str(iteration))
 
             for item in dataset:
-
+                if len(item[0]) == 0 or len(item[1]) == 0:
+                    continue
                 self._updateCount(item[0], item[1], index)
 
             self._updateEndOfIteration(index)

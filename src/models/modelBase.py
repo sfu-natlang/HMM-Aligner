@@ -447,6 +447,8 @@ class AlignmentModelBase():
         extEIndex = [{} for i in range(indices)]
 
         for f, e, alignment in dataset:
+            if len(f) == 0:
+                continue
             for index in range(min(indices, len(f[0]))):
                 for fWord in f:
                     if fWord[index] not in self.fIndex[index]:

@@ -105,6 +105,8 @@ class AlignmentModelBase(Base):
             self._beginningOfIteration(dataset, maxE, index)
 
             for (f, e, alignment) in dataset:
+                if len(f) == 0 or len(e) == 0:
+                    continue
                 fLen = len(f)
                 eLen = len(e)
                 counter += 1
