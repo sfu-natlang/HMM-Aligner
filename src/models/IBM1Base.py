@@ -48,6 +48,8 @@ class AlignmentModelBase(Base):
             counter = 0
 
             for item in dataset:
+                if (len(item[0]) == 0 or len(item[1]) == 0):
+                    continue
                 f, e = item[0:2]
                 counter += 1
                 self._updateCount(f, e, index)
