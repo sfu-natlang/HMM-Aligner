@@ -96,3 +96,7 @@ ENV/
 
 # Unittest stuff
 src/support/dump.pkl
+
+# Dumped files
+*.pkl
+*.pklz
