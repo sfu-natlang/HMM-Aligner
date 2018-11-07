@@ -1,6 +1,23 @@
 # HMM-Aligner
 This is the implementation of word aligner using Hidden Markov Model.
 
+Cite this if you used it:
+
+    @article{Gū2018a,
+        title = {An Easily Extensible Word Aligner},
+        author = {Jetic Gū and Anahita Mansouri-Bigvand and Anoop Sarkar},
+        url = {https://ufal.mff.cuni.cz/pbml/111/art-gu-et-al.pdf},
+        doi = {10.2478/pralin-2018-0008},
+        issn = {0032-6585},
+        year = {2018},
+        date = {2018-10-01},
+        journal = {The Prague Bulletin of Mathematical Linguistics},
+        volume = {111},
+        pages = {87--96},
+        pubstate = {published},
+        tppubtype = {article}
+    }
+
 ## Note
 The HMM Aligner is still under development, so new features and optimisations
 will be added. However we always maintain a master branch that works. To see
