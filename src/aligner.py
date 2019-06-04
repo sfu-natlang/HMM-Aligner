@@ -11,9 +11,8 @@ import sys
 import os
 import importlib
 import argparse
-import StringIO
 import multiprocessing
-from ConfigParser import SafeConfigParser
+from configparser import SafeConfigParser
 from loggers import logging, init_logger
 from models.modelChecker import checkAlignmentModel
 from fileIO import loadDataset, exportToFile, loadAlignment
@@ -35,10 +34,10 @@ if __name__ == '__main__':
         'testDataTag': '',
         'reference': '',
 
-        'trainSize': sys.maxint,
-        'testSize': sys.maxint,
+        'trainSize': sys.maxsize,
+        'testSize': sys.maxsize,
         'iterations': 5,
-        'model': "IBM1",
+        'model': "cHMM",
         'output': 'o.wa',
         'showFigure': 0,
         'intersect': False,

@@ -146,7 +146,7 @@ def showPlot():
 
 def addAlignmentToFigure(alignment, figureIndex, colour='#FFA500'):
     if figureIndex >= len(figures):
-        print "duang", figureIndex, len(figures)
+        print("duang", figureIndex, len(figures))
         return
     fig, ax = figures[figureIndex]
     _axs = [entry[0] for entry in alignment]
@@ -157,7 +157,7 @@ def addAlignmentToFigure(alignment, figureIndex, colour='#FFA500'):
 
 
 if __name__ == '__main__':
-    print "This run is for debug purpose only"
+    print("This run is for debug purpose only")
     alignment = [
         (1, 10), (2, 7), (3, 3), (4, 1), (5, 2), (6, 3)
     ]

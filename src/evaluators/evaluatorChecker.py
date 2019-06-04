@@ -22,7 +22,7 @@ requiredArguments = {"result": "list",
 
 def checkEvaluator(func, logger=True):
     def error(msg):
-        print "[ERROR]:", msg
+        print("[ERROR]:", msg)
 
     if not inspect.isfunction(func):
         error(
@@ -79,20 +79,20 @@ class TestEvaluators(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    print "Launching unit test on: evaluators"
-    print "This test will first check the interface, then the behaviours on ",\
-        "all supported evaluators:", supportedEvaluators
+    print("Launching unit test on: evaluators")
+    print("This test will first check the interface, then the behaviours on ",
+          "all supported evaluators:", supportedEvaluators)
 
     import importlib
     for name in supportedEvaluators:
         try:
             Function = importlib.import_module("evaluators." + name).evaluate
         except all:
-            print "Evaluator", name, ": failed"
+            print("Evaluator", name, ": failed")
         if checkEvaluator(Function, False):
-            print "Evaluator", name, ": passed"
+            print("Evaluator", name, ": passed")
         else:
-            print "Evaluator", name, ": failed"
+            print("Evaluator", name, ": failed")
 
-    print "Now performing behaviour tests"
+    print("Now performing behaviour tests")
     unittest.main()

@@ -40,7 +40,7 @@ def exportToFile(result, fileName):
     return
 
 
-def _loadBitext(file1, file2, linesToLoad=sys.maxint):
+def _loadBitext(file1, file2, linesToLoad=sys.maxsize):
     '''
     This function is used to read a bitext from two text files.
 
@@ -58,7 +58,7 @@ def _loadBitext(file1, file2, linesToLoad=sys.maxint):
     return bitext
 
 
-def _loadTritext(file1, file2, file3, linesToLoad=sys.maxint):
+def _loadTritext(file1, file2, file3, linesToLoad=sys.maxsize):
     '''
     This function is used to read a bitext from two text files.
 
@@ -105,7 +105,7 @@ def processAlignmentEntry(entry, listToAddTo, splitChar='-',
     return
 
 
-def loadDataset(fFiles, eFiles, alignmentFile="", linesToLoad=sys.maxint,
+def loadDataset(fFiles, eFiles, alignmentFile="", linesToLoad=sys.maxsize,
                 reverse=False):
     '''
     This function is used to read a Dataset files.
@@ -120,13 +120,13 @@ def loadDataset(fFiles, eFiles, alignmentFile="", linesToLoad=sys.maxint,
         https://github.com/sfu-natlang/HMM-Aligner/wiki/API-reference:-Dataset-Data-Format-V0.2a#tritext
     '''
     fContents =\
-        [zip(*[fContent.strip().split() for fContent in contents])
-         for contents in zip(*[open(os.path.expanduser(fFile))
-                             for fFile in fFiles])[:linesToLoad]]
+        [list(zip(*[fContent.strip().split() for fContent in contents]))
+         for contents in list(zip(*[open(os.path.expanduser(fFile))
+                                    for fFile in fFiles]))[:linesToLoad]]
     eContents =\
-        [zip(*[eContent.strip().split() for eContent in contents])
-         for contents in zip(*[open(os.path.expanduser(eFile))
-                             for eFile in eFiles])[:linesToLoad]]
+        [list(zip(*[eContent.strip().split() for eContent in contents]))
+         for contents in list(zip(*[open(os.path.expanduser(eFile))
+                                    for eFile in eFiles]))[:linesToLoad]]
 
     if alignmentFile:
         alignment =\
@@ -148,7 +148,7 @@ def loadDataset(fFiles, eFiles, alignmentFile="", linesToLoad=sys.maxint,
         alignment = [[] for i in range(min(linesToLoad,
                                            len(fContents),
                                            len(eContents)))]
-    return zip(fContents, eContents, alignment)
+    return list(zip(fContents, eContents, alignment))
 
 
 def infoDataset(dataset):
@@ -203,7 +203,7 @@ def infoDataset(dataset):
     return info
 
 
-def loadAlignment(fileName, linesToLoad=sys.maxint,
+def loadAlignment(fileName, linesToLoad=sys.maxsize,
                   reverse=False, loadType=True):
     '''
     This function is used to read the GoldAlignment or Alignment from files.

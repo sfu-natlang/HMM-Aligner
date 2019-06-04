@@ -16,7 +16,7 @@ import gzip
 import time
 import unittest
 import numpy as np
-import cPickle as pickle
+import pickle
 from copy import deepcopy
 from collections import defaultdict
 currentdir = os.path.dirname(
@@ -219,7 +219,8 @@ class AlignmentModelBase():
         '''
         if isinstance(a, np.ndarray):
             self.logger.info("Dumping Numpy array, size: " + str(a.shape) +
-                             ", valid entries: " + str(len(zip(*a.nonzero()))))
+                             ", valid entries: " +
+                             str(len(list(zip(*a.nonzero())))))
             aDict = {"§§NUMPY§§": 0.0}
             for coordinate in zip(*a.nonzero()):
                 aDict[coordinate] = a[coordinate]

@@ -188,14 +188,14 @@ class AlignmentModelBase(Base):
                         score[i] += np.log(self.pi[:eLen * 2])
                     else:
                         score[i][:self.pi.shape[0]] += np.log(self.pi)
-                        score[i][self.pi.shape[0]:].fill(-sys.maxint)
+                        score[i][self.pi.shape[0]:].fill(-sys.maxsize)
             else:
                 tmp = (a[i].T + score[i - 1]).T
                 bestPrev_j = np.argmax(tmp, axis=0)
                 prev_j[i] = bestPrev_j
                 score[i] += np.max(tmp, axis=0)
 
-        maxScore = -sys.maxint - 1
+        maxScore = -sys.maxsize - 1
         best_j = 0
         for j in range(eLen * 2):
             if score[fLen - 1][j] > maxScore:

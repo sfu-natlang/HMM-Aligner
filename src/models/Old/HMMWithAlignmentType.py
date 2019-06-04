@@ -197,12 +197,12 @@ class AlignmentModel(Base):
                 if j < len(self.pi) and self.pi[j] != 0:
                     score[0][j][h] += log(self.pi[j])
                 else:
-                    score[0][j][h] = - sys.maxint - 1
+                    score[0][j][h] = - sys.maxsize - 1
 
         for i in range(1, fLen):
             for j in range(len(e)):
-                maxScore = -sys.maxint - 1
-                jPrevBest = -sys.maxint - 1
+                maxScore = -sys.maxsize - 1
+                jPrevBest = -sys.maxsize - 1
                 hPrevBest = 0
                 tPr = log(self.tProbability(f[i], e[j]))
                 for jPrev in range(len(e)):
@@ -225,7 +225,7 @@ class AlignmentModel(Base):
                         prev_j[i][j][h] = jPrevBest
                         prev_h[i][j][h] = hPrevBest
 
-        maxScore = -sys.maxint - 1
+        maxScore = -sys.maxsize - 1
         best_j = best_h = 0
         for j in range(len(e)):
             for h in range(len(self.typeList)):

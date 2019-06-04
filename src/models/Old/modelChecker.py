@@ -51,7 +51,7 @@ def checkAlignmentModel(modelClass, logger=True):
         error = logging.getLogger('CheckModel').error
     else:
         def error(msg):
-            print "[ERROR]:", msg
+            print("[ERROR]:", msg)
 
     if not inspect.isclass(modelClass):
         error(
@@ -109,18 +109,18 @@ def checkAlignmentModel(modelClass, logger=True):
 
 
 if __name__ == '__main__':
-    print "Launching unit test on: models.modelChecker.checkAlignmentModel"
-    print "This test will test the behaviour of checkAlignmentModel on all",\
-        "supported models:", supportedModels
+    print("Launching unit test on: models.modelChecker.checkAlignmentModel")
+    print("This test will test the behaviour of checkAlignmentModel on all",
+          "supported models:", supportedModels)
 
     import importlib
     for name in supportedModels:
         try:
             Model = importlib.import_module("models." + name).AlignmentModel
         except all:
-            print "Model", name, ": failed"
+            print("Model", name, ": failed")
         mode = checkAlignmentModel(Model, False)
         if mode:
-            print "Model", name, ": passed"
+            print("Model", name, ": passed")
         else:
-            print "Model", name, ": failed"
+            print("Model", name, ": failed")

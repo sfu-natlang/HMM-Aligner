@@ -7,7 +7,7 @@ import sys
 import os
 
 
-def pennTreeIntoTags(fileName, linesToLoad=sys.maxint):
+def pennTreeIntoTags(fileName, linesToLoad=sys.maxsize):
     result = []
     fileName = os.path.expanduser(fileName)
     content = [line.strip() for line in open(fileName)][:linesToLoad]
@@ -20,13 +20,13 @@ def pennTreeIntoTags(fileName, linesToLoad=sys.maxint):
         for i in range(len(procLine)):
             if procLine[i].isdigit():
                 sentence.append(procLine[i - 1])
-                print "Missing elements!"
+                print("Missing elements!")
         # sentence = [entry for entry in sentence if entry != "-NONE-"]
         result.append(sentence)
     return result
 
 
-def tokenIntoForms(fileName, linesToLoad=sys.maxint):
+def tokenIntoForms(fileName, linesToLoad=sys.maxsize):
     result = []
     fileName = os.path.expanduser(fileName)
     content = [line.strip() for line in open(fileName)][:linesToLoad]
@@ -41,7 +41,7 @@ def tokenIntoForms(fileName, linesToLoad=sys.maxint):
     return result
 
 
-def alignmentToList(fileName, linesToLoad=sys.maxint):
+def alignmentToList(fileName, linesToLoad=sys.maxsize):
     result = []
     fileName = os.path.expanduser(fileName)
     content = [line.strip() for line in open(fileName)][:linesToLoad]
@@ -55,7 +55,7 @@ def convertFiles(filePattern, converter, output="o.pos"):
     import glob
     for name in glob.glob(filePattern):
         if os.path.isfile(name):
-            print name
+            print(name)
             result += converter(name)
     file = open(output, "w")
     for sentence in result:
