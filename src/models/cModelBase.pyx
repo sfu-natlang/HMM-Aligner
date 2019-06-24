@@ -217,7 +217,7 @@ class AlignmentModelBase():
         @param output: object. The file(or compressed file).
         @return: loaded component
         '''
-        if isinstance(a, np.ndarray):
+        '''if isinstance(a, np.ndarray):
             self.logger.info("Dumping Numpy array, size: " + str(a.shape) +
                              ", valid entries: " +
                              str(len(list(zip(*a.nonzero())))))
@@ -226,7 +226,7 @@ class AlignmentModelBase():
                 aDict[coordinate] = a[coordinate]
             a = aDict
             pickle.dump(a, output)
-            return
+            return'''
         if isinstance(a, defaultdict):
             # Remove zero valued entries from defaultdict
             self.logger.info(
